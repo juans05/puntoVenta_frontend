@@ -1,0 +1,92 @@
+.item{
+    padding: 12px 8px 12px;
+    background: #FFFFFF;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    border: 1px solid #d8d8d8;
+
+  }
+
+  .item>img{
+    border-radius: 12px;
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    margin: 0 0 5px 0;
+/*     filter: grayscale(100%); */
+   
+  }
+
+  .item>p{
+    font-size: 13px;
+    font-weight: 500;
+    color: #19191C;
+  /*   margin: .2rem 0; */
+  }
+
+  .item>span{
+    font-size: 14px;
+    font-weight: 600;
+    color: #2997FE;
+    
+  }
+
+  .stock{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 5px 0;
+    background: #fff;
+
+    border-radius: 8px;
+    padding: 5px 5px;
+    gap: 5px;
+  }
+
+
+  .stock>svg{
+    font-size: 18px;
+    color: #2997FE;;
+  }
+
+
+  .stock>p{
+    font-size: 13px;
+    position: relative;
+    top: 1.5px;
+    color: #2997FE;;
+  }
+
+  .closeBtn{
+
+    position: absolute;
+    right: 15px;
+    top: 10px;
+}
+.closeBtn>div{
+    cursor: pointer;
+}
+.closeBtn>div>svg{
+    width: 20px;
+    height: 20px;
+}
+.closeBtn>div>svg path{
+    fill: grey;
+
+}
+
+.selected
+{
+
+  
+  box-shadow: #2997FE 0px 0px 0px 2px;
+}
+
+.selected>img{
+/*   filter: none; */
+}

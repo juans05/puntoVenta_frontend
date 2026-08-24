@@ -1,0 +1,128 @@
+.select {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: 36px;
+}
+
+.selected-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  height: 38px;
+  overflow-y: auto;
+}
+
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: 36px;
+}
+
+.selected-option {
+  display: flex;
+  align-items: center;
+  background-color: #f2f2f2;
+  color: #333;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.selected-option:hover {
+  background-color: #e6e6e6;
+}
+
+.remove-button {
+  margin-left: 4px;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: #999;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.remove-button:hover {
+  color: #666;
+}
+
+.options {
+  background: #fff;
+  position: absolute;
+  width: 100%;
+  top: 47px;
+  max-height: 250px;
+  overflow-y: auto;
+  border-radius: 4px;
+  box-shadow: 0px 0px 20px 0px rgb(76 87 125 / 10%);
+  z-index: 999999;
+  overflow-x: hidden;
+  padding-right: 10px;
+}
+
+.options.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.options input {
+  margin-left: 5px;
+}
+
+.options.open div,.options div {
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 600;
+  color: #5e6278;
+}
+
+.search-input:focus {
+  border-color: #0077ff;
+  background-color: #fff;
+}
+
+.option {
+  display: block;
+  padding: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+}
+
+.option:hover {
+  background-color: #f2f2f2;
+}
+
+.option.selected {
+  background-color: rgba(222, 237, 248, 0.4);
+  color: #0EA5EA !important;
+}
+
+.option.selected:hover {
+  background-color: rgba(222, 237, 248, 0.4);
+  color: #0EA5EA !important;
+}
+
+.selected-options>span {
+  width: 100%;
+  font-size: 1.1rem;
+  padding: 0px 10px;
+}
+
+
+.label {
+  position: relative;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5e6278;
+}

@@ -1,0 +1,124 @@
+.img-brand-logo {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+}
+
+.brand-logo {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0 15px;
+    color: var(--neutral-800);
+    background-color: #fff;
+    border-right: 1px solid var(--neutral-200);
+    align-self: stretch;
+}
+
+.brand-logo span {
+    font-size: 16px;
+}
+
+.entrance-right {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-md);
+    color: var(--ink-400);
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.entrance-right:hover {
+    background-color: var(--brand-50);
+    color: var(--brand-600);
+}
+
+.entrance-right svg {
+    display: block !important;
+    width: 20px !important;
+    height: 20px !important;
+}
+
+.avatar {
+    display: flex;
+    align-items: center;
+    padding: 1.1rem 1.25rem !important;
+    gap: 12px;
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.avatar>div:nth-child(1) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.avatar>div:nth-child(1)>div {
+    min-width: 0;
+}
+
+.avatar>div:nth-child(1)>div>h5 {
+    color: var(--neutral-800) !important;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.avatar>div:nth-child(1)>div>p {
+    color: var(--ink-400);
+    font-size: 11px;
+    margin-top: 1px;
+}
+
+.avatar>div:nth-child(1)>div>div {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    color: #50cd89;
+    margin-top: 3px;
+}
+
+.avatar>div:nth-child(1)>div>div>span {
+    display: block;
+    background: #50cd89;
+    width: 6px;
+    height: 6px;
+    border-radius: 100% !important;
+    margin-right: 0.35rem !important;
+}
+
+.aside {
+    background: #fff !important;
+    box-shadow: var(--shadow-card);
+}
+
+.btn-go-sales {
+    margin-right: 12px;
+}
+
+.btn-go-sales>a {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--brand-500);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    transition: background-color .15s ease;
+}
+
+.btn-go-sales>a>p {
+    font-size: 13px;
+}
+
+.btn-go-sales>a:hover {
+    background: var(--brand-600);
+}

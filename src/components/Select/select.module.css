@@ -1,0 +1,197 @@
+.wrapper__select {
+    /*   filter: blur(0); */
+      position: relative;
+      z-index: 1;
+  }
+  
+  .wrapper__select label {
+      font-size: 11px;
+      display: block;
+      color: #3F4254;
+      font-weight: 500;
+    
+  }
+  
+  .wrapper__select .input__select{
+      height: 35px !important;
+  /*     margin-top: 4px !important; */
+      margin-top: 4px ;
+  }
+  
+  .disabled__select{
+  /*     min-width: auto; */
+      background: #efefef4d;
+      pointer-events: none;
+  
+  }
+  
+  .content__noResults__Select p {
+      padding: 10px;
+  }
+  
+  .content__listOptions {
+      background: #fff;
+      position: absolute;
+      width: 100%;
+
+      /* top: 70px; */
+      top: 60px;
+      overflow-y: auto;
+      border-radius: var(--radius-md, 8px);
+      box-shadow: var(--shadow-dropdown, 0px 0px 20px 0px rgb(76 87 125 / 12%));
+      border: 1px solid var(--neutral-200, #E4E7EC);
+      z-index: 999999;
+  }
+  
+  .content__listOptions li {
+      border-bottom: 1px solid rgb(235, 235, 235);
+      text-decoration: none;
+  }
+
+  .content__listOptions li:last-child {
+      border-bottom: none;
+  }
+  
+  .content__listOptions li p {
+      text-transform: uppercase;
+      font-size: 10px;
+  }
+  
+  .content__listOptions::after {
+      border-top: 11px solid transparent;
+      border-bottom: 11px solid #fff;
+      border-left: 11px solid transparent;
+      border-right: 11px solid transparent;
+      content: "";
+      display: inline-block;
+      position: absolute;
+      left: 20px;
+      margin-right: auto;
+      margin-left: auto;
+      width: 1px;
+      top: -22px;
+      z-index: 999999;
+  }
+  
+  .content__listOptions li {
+      padding: 10px;
+      cursor: pointer;
+  }
+  
+  .content__listOptions li:hover {
+      background: var(--brand-500, #2997FE);
+      color: #fff;
+      transition: 0.15s ease;
+  }
+  
+  .content__listOptions li:hover p {
+      color: rgb(255, 255, 255);
+  }
+  
+  .content__listOptions p {
+      display: block;
+
+      font-size: 12px !important;
+      cursor: pointer !important;
+      transition: 0.2s;
+      color: #5e6278;
+      font-weight: 600;
+  }
+  
+  .content__listOptions::-webkit-scrollbar {
+      -webkit-appearance: none;
+  }
+  
+  .content__listOptions::-webkit-scrollbar:vertical {
+      width:6px;
+  }
+  
+  .content__listOptions::-webkit-scrollbar-button:increment,.content__listOptions::-webkit-scrollbar-button {
+      display: none;
+  } 
+  
+  .content__listOptions::-webkit-scrollbar:horizontal {
+      height: 10px;
+  }
+  
+  .content__listOptions::-webkit-scrollbar-thumb {
+      background-color: #a4a6a7;
+      border-radius: 3px;
+      border: 1px solid #d0d0d0;
+  }
+  
+  .content__listOptions::-webkit-scrollbar-track {
+      border-radius: 10px;  
+  }
+  
+  .input__select {
+      position: relative;
+      display: flex;
+      cursor: pointer !important;
+      border: 1px solid var(--neutral-200, #E4E7EC);
+      margin-bottom: 1rem;
+      outline: none;
+      border-radius: var(--radius-md, 0.5rem);
+      padding: 10px;
+      transition: border-color .15s ease;
+  }
+  
+  .input__select span {
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer !important;
+      transition: 0.5s;
+      text-transform: uppercase;
+      color: #5e6278;
+      position: relative;
+      font-weight: 600;
+  }
+  
+  .input__select input {
+      position: relative;
+      border: none !important;
+      background: transparent !important;
+      left: -23px;
+      top: 1px;
+      outline: none !important;
+  }
+  
+  .input__select input:disabled {
+      background: #efefef4d !important;
+      z-index: 999999;
+      pointer-events: none;
+      position: relative;
+  }
+  
+  .input__select > div {
+      width: 10px;
+  }
+  
+  .input__select svg {
+      position: absolute !important;
+      top: 6px;
+      right: 5px;
+  }
+  
+  .input__select svg path {
+      fill: var(--brand-500, #2997FE);
+  }
+  
+  .disabledDiv{
+  /*     border: 1px solid #999999 !important; */
+      background-color: #f3f4f5 !important;
+      color: #666666;
+  }
+  
+  .disabledDiv div input{
+      /* border: 1px solid #999999 !important;
+      background-color: #f3f4f5 !important;
+      color: #666666; */
+      display: none;
+  }
+  
+  
+  .disabledDiv .content__listOptions{
+      display: none;
+  }
+  

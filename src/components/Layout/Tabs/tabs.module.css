@@ -1,0 +1,77 @@
+.tabs-container {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background: #fff;
+    overflow-x: auto;
+    border-bottom: 1px solid #E4E4E4;
+    height: 100%;
+  }
+  
+  .tabs {
+    display: flex;
+   /*  flex-wrap: wrap; */
+    gap: 10px;
+  }
+  
+  .tab-button {
+    padding: 12px 16px;
+    background: #FFFFFF;
+    border: 1px solid #E4E4E4;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 14px;
+    height: 50px;
+    white-space: nowrap;
+  }
+  
+  .tab-button:hover {
+    background: #F4FEFC;
+    border: 1px solid #2997FE;
+    border-radius: 40px;
+    color: #2997FE;
+    font-weight: 600;
+  }
+  
+  .tab-button.active {
+    background: #F4FEFC;
+    border: 1px solid #2997FE;
+    border-radius: 40px;
+    color: #2997FE;
+    font-weight: 600;
+  }
+  
+  .tab-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .tab-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .tab-action:hover {
+    background: rgba(0, 0, 0, 0.18);
+  }
+  .tab-action svg {
+    width: 12px;
+    height: 12px;
+  }
+  .tab-button.active .tab-action {
+    background: rgba(0, 158, 247, 0.2);
+  }
+  
+  .tab-content {
+    margin-top: 16px;
+  }
+  

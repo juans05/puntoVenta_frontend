@@ -1,0 +1,134 @@
+.item {
+  padding: 12px 8px 16px;
+  background: #FFFFFF;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  border: 1px solid #F1F1F2;
+  box-shadow: 0px 4px 12px 0px rgba(0, 0, 0, 0.03);
+}
+
+.itemImg {
+  width: 160px;
+  height: 150px;
+  border-radius: 12px;
+  margin: 0 auto;
+}
+
+.empty-img{
+  background: #FAFEFC;
+  border: 1px dashed #2997FE;
+  width: 160px;
+  height: 60px;
+  border-radius: 12px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;    
+  align-items: center;
+  margin-bottom: 15px;
+  margin-top: 10px;
+}
+
+.empty-img>p{
+  color: #2997FE;
+  font-size: 14px;
+  text-align: center;
+}
+
+.itemImg>img {
+  border-radius: 10px;
+  object-fit: contain;
+  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+
+  
+}
+
+.item>p {
+  font-size: 16px;
+  font-weight: 500;
+  color: #19191C;
+  margin: .2rem 0;
+  text-align: center;
+}
+
+.item>span {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2997FE;
+
+}
+
+.stock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 5px 0;
+  background: #fff;
+
+  border-radius: 8px;
+  padding: 5px 5px;
+  gap: 5px;
+}
+
+
+.stock>svg {
+  font-size: 18px;
+  color: #2997FE;
+  ;
+}
+
+
+.stock>p {
+  font-size: 13px;
+  position: relative;
+  top: 1.5px;
+  color: #2997FE;
+  ;
+}
+
+.closeBtn {
+
+  position: absolute;
+  right: 15px;
+  top: 10px;
+}
+
+.closeBtn>div {
+  cursor: pointer;
+}
+
+.closeBtn>div>svg {
+  width: 20px;
+  height: 20px;
+}
+
+.closeBtn>div>svg path {
+  fill: grey;
+  transition: all .3s ease;
+
+}
+
+.closeBtn>div:hover>svg path {
+  fill: black;
+
+}
+
+.historyBtn {
+  position: absolute;
+  left: 15px;
+  top: 10px;
+  cursor: pointer;
+  font-size: 20px;
+  color: grey;
+  transition: all .3s ease;
+}
+
+.historyBtn:hover {
+  color: #2997FE;
+}

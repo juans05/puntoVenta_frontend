@@ -1,0 +1,230 @@
+.wrapper__input {
+  position: relative;
+  z-index: 0;
+  border-radius: 0.5rem;
+}
+
+.wrapper__input input[type=text],
+.wrapper__input input[type=password],
+.wrapper__input input[type="email"],
+.wrapper__input input[type=number], .input__table input {
+  border-radius: var(--radius-md, 0.5rem);
+  padding: 0.775rem 1rem;
+  text-align: left;
+  font-weight: 500;
+  position: relative;
+  border: 1px solid var(--neutral-200, #E4E7EC);
+  outline: none;
+  background: #fff !important;
+  width: 100%;
+  color: var(--neutral-800, #344054);
+  font-size: 13px;
+
+  position: relative;
+  transition: border-color .15s ease, box-shadow .15s ease;
+  height: 38px;
+}
+
+.wrapper__input .date {
+  padding:  0.775rem 1rem 0.775rem 3.4rem  !important;
+  outline: none;
+  border-radius: var(--radius-md, 0.5rem);
+  text-align: left;
+  font-weight: 500;
+  position: relative;
+  border: 1px solid var(--neutral-200, #E4E7EC);
+  outline: none;
+  background: #fff !important;
+  width: 100%;
+  color: var(--neutral-800, #344054);
+  font-size: 13px;
+
+  position: relative;
+  transition: border-color .15s ease, box-shadow .15s ease;
+  height: 38px;
+}
+
+.wrapper__input input::placeholder {
+  color: var(--neutral-400, #A1A5B7);
+  font-size: 13px;
+
+}
+
+.wrapper__input input:focus {
+  color: var(--neutral-800, #344054);
+  background: #fff;
+  border-color: var(--brand-500, #2997FE);
+  box-shadow: 0 0 0 3px var(--brand-100, #DBEEFF);
+}
+
+.wrapper__input label {
+  position: relative;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--neutral-700, #475467);
+}
+
+.content__input {
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.isSearching {
+  cursor: text;
+}
+
+.isPointer {
+  cursor: pointer;
+}
+
+.wrapper__input textarea {
+  height: 100px;
+  border-radius: 0.5rem;
+  font-size: 10px;
+  padding: 10px;
+  text-align: left;
+  font-weight: 600;
+
+  border: 1px solid #CACACA;
+  margin-bottom: 1rem;
+  outline: none;
+  width: 100%;
+  resize: none;
+  color: #5e6278;
+}
+
+.observation {
+  padding: 0px 20px;
+}
+
+.observation textarea {
+  height: 10.5rem;
+}
+
+input:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Search */
+.searchInput {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 10px 15px 10px 15px;
+  width: 300px;
+
+}
+
+.searchInput input {
+  line-height: 1.5;
+  border: none !important;
+  background: #FFFFFF;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><path fill='%23838D99' d='M13.22 14.63a8 8 0 1 1 1.41-1.41l4.29 4.29a1 1 0 1 1-1.41 1.41l-4.29-4.29zm-.66-2.07a6 6 0 1 0-8.49-8.49 6 6 0 0 0 8.49 8.49z'></path></svg>");
+  background-repeat: no-repeat;
+  background-position: 8px 10px;
+  background-size: 14px 14px;
+  border-bottom: 2px solid rgba(157, 163, 170, 0.2) !important;
+  padding: .5em 1em .5em 3em !important;
+
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  border-radius: 0px !important;
+  height: 4rem !important;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px !important;
+  color: #18181B;
+}
+
+table input {
+  font-size: 10px !important;
+}
+
+.searchInput input::placeholder {
+  color: #838D99;
+
+}
+
+.searchInput svg path {
+  fill: #18181B;
+  ;
+}
+
+.searchInput input:focus {
+  border-bottom: 2.5px solid var(--brand-500, #2997FE) !important;
+}
+
+
+
+
+.searchInput:focus {
+  box-shadow: 0 0 0 2px var(--brand-100, #DBEEFF);
+  outline: 1px solid var(--brand-500, #2997FE);
+}
+
+
+.cleanString {
+  cursor: pointer;
+  /*   border: 1px solid black; */
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  height: 100%;
+
+
+
+
+}
+
+.cleanString>div {
+  height: 100%;
+}
+
+.cleanString>div>svg {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.cleanString svg path {
+  fill: #ABAAAA;
+
+}
+
+
+.wrapperPercentage {
+  align-items: center;
+  border: 1px solid black;
+  display: flex;
+  margin: 4px 0px 10px 0px;
+  /*  justify-content: center; */
+  width: 100%;
+  background-color: #fff;
+  border: 1px solid #CACACA;
+  transition: 0.5s;
+  border-radius: 0.5rem;
+}
+
+.wrapperPercentage>input {
+  margin: 0px !important;
+  border: none !important;
+  /*  border-radius: 0 !important; */
+  width: 50%;
+
+}
+
+
+.wrapperPercentage>span {
+  
+  color: #5e6278;
+  font-size: 10px;
+  width: 50%;
+  text-align: center;
+
+}
+
+.limitedDate input {
+  border: 2px solid #f05e5e !important;
+  color: #f05e5e !important;
+}
