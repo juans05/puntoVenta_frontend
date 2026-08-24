@@ -1,0 +1,96 @@
+.newSale {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-family: 'SF-UI-Display-Medium';
+}
+
+.newSale h6 {
+    font-family: 'SF-UI-Display-Semibold';
+    font-size: 14px;
+}
+
+.content__wrappernewSale {
+    margin-top: 190px;
+}
+
+.img__newSale {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
+    margin-bottom: 20px;
+}
+
+.img__newSale img {
+    max-width: 100%;
+    border: 5px solid #B5B5C3;
+    height: 100%;
+    border-radius: 100%;
+}
+
+.input__newSale {
+    margin-top: 20px;
+}
+
+.input__newSale input {
+    border-radius: 0.5rem;
+    padding: 0.775rem 1rem;
+    text-transform: uppercase;
+    text-align: center;
+    position: relative;
+    border: 1px solid #E4E7EC;
+    outline: none;
+    margin-top: 4px;
+    width: 100%;
+    color: #667085;
+    font-size: 12px;
+    font-family: 'SF-UI-Display-Medium' !important;
+    position: relative;
+    transition: 0.1s;
+}
+
+.input__newSale input::placeholder {
+    color: #A1A5B7;
+    font-size: 12px;
+    font-family: 'SF-UI-Display-Medium';
+}
+
+.input__newSale input:focus {
+    color: #475467;
+    background: #fff;
+    border-color: #B5B5C3;
+    box-shadow: false, 0 0 0 0.25rem #2997FE, 0.25;
+}
+
+.buttons__newSale {
+    margin-top: 30px;
+}
+
+.buttons__newSale button {
+    margin-right: 20px;
+    text-transform: uppercase;
+    padding: 7px 15px;
+    font-size: 12px;
+    font-family: 'SF-UI-Display-Medium' !important;
+    border-radius: 4px;
+    color: #fff;
+}
+
+.buttons__newSale > button:nth-child(1) {
+    background: #fff;
+    color: #222;
+    border: 1px solid #222;
+    transition: 0.4s;
+}
+
+.buttons__newSale > button:nth-child(1):hover {
+    background: #222;
+    color: #fff;
+    transition: 0.4s;
+}
+
+.buttons__newSale > button:nth-child(2) {
+    background: #27B1FF;
+    border: 1px solid #27B1FF;
+}

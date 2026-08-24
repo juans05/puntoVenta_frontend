@@ -1,0 +1,61 @@
+
+label .input {
+    display: none;
+}
+
+label .input:checked+.toggle-wrapper {
+    box-shadow: 0 8px 14px 0 rgba(18, 51, 215, 0.12);
+}
+
+label .input:checked+.toggle-wrapper>.selector {
+    left: calc(100% - 25px);
+    background-color: #2997FE;
+}
+
+label .input:checked~.notification>.selected:before {
+    content: "Tabla";
+}
+
+label .toggle-wrapper {
+    position: relative;
+    width: 70px;
+    box-shadow: 0 8px 14px 0 rgba(18, 51, 215, 0.12);
+    height: 30px;
+    background-color: #ffffff;
+    border-radius: 999px;
+    margin: auto;
+    cursor: pointer;
+    pointer-events: all;
+    border: 1px solid #ebedf1;
+}
+
+label .toggle-wrapper .selector {
+    width: 15px;
+    height: 15px;
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    background-color: #a7a7a7;
+    transition: left 0.25s ease;
+    border-radius: 50%;
+}
+
+label .isCuca {
+    font-size: 12px;
+    margin-top: 10px;
+    text-align: center;
+    width: 100%;
+}
+
+label .isCuca .selected:before {
+    content: "Cliente";
+    font-size: 12px;
+}
+
+.switch {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    margin-right: 20px;
+}

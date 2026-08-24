@@ -1,0 +1,39 @@
+/* tab.module.css */
+
+.tab-menu-container {
+    width: 200px;
+  }
+  
+  .tab-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .tab-menu li {
+    cursor: pointer;
+    padding: 5px;
+  }
+  
+  .tab-menu li:hover {
+    background-color: #f0f0f0;
+  }
+  
+  li.active {
+    background-color: #e0e0e0;
+    border: red;
+    font-weight: bold;
+  }
+  
+ .level-1 li {
+    padding-left: 10px;
+  }
+  
+.level-2 li {
+    padding-left: 20px;
+  }
+  
+.level-3 li {
+    padding-left: 30px;
+  }
+  

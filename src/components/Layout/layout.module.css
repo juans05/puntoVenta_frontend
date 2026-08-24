@@ -1,0 +1,184 @@
+.main{
+display: flex;
+width: 100%;
+height: 100%;
+
+
+}
+
+.sidebar{
+   
+}
+
+.outlet{
+    width: calc(100% - 140px);
+    /* height: 100vh; */
+    height: calc(100vh - 80px);
+}
+
+.navbar{
+    height: 80px;
+    display: flex;
+    border-bottom: 1px solid #E4E4E4 !important;
+    border-right: 1px solid #E4E4E4;
+}
+
+.navbar>div:nth-child(1){
+    width: 450px;
+    border-right: 1px solid #E4E4E4;
+    background: #ffffff;
+}
+.navbar>div:nth-child(1)>div{
+/*     border: 1px solid red; */
+    width: 100%;
+    height: 100%;
+}
+.navbar>div:nth-child(1)>div>input{
+/*     border: 1px solid red; */
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    font-size: 16px;
+    font-weight: 400;
+}
+.navbar>div:nth-child(1)>div>input:hover,.navbar>div:nth-child(1)>div>input:focus{
+    outline: none;
+}
+.navbar>div:nth-child(1)>div>input:hover~button>svg,.navbar>div:nth-child(1)>div>input:focus~button>svg{
+    color: #2997FE
+}
+.navbar>div:nth-child(1)>div>button>svg{
+    color: #19191C;
+    top: 18px;
+
+}
+.navbar>div:nth-child(2){
+    width: calc(100% - 450px);
+    height: 80px !important;
+    background: #fff;
+  
+}
+
+.header{
+    background: #FFFFFF;
+border-bottom: 1px solid #E4E4E4;
+border-top: 1px solid #E4E4E4;
+border-right: 1px solid #E4E4E4;
+padding: 10px 16px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+height: 60px;
+}
+
+.header>h4{
+    color: var(--neutral-800);
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.content{
+   height: calc(100% - 140px) ;
+   overflow-y: auto !important;
+   padding: 16px;
+}
+
+.items{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+}
+
+.btn{
+    display: flex;
+    gap: 10px !important;
+}
+/* .btn>button:nth-child(1){
+    border: 1px solid #2997FE !important;
+    background: #fff;
+    color: #2997FE
+} */
+.btn>button:nth-child(1){
+    background: var(--brand-50);
+    color: var(--brand-600);
+    border: 1px dotted var(--brand-500);
+    border-radius: var(--radius-md);
+ }
+.btn>button:nth-child(2){
+   background: var(--brand-500);
+   border: none;
+   border-radius: var(--radius-md);
+}
+
+.btn>button >p{
+    top: 0 !important;
+}
+
+
+
+/* .items ya es responsive por sí solo (auto-fill), no necesita breakpoints manuales. */
+
+@media (max-width: 768px){
+    .main{
+        flex-direction: column;
+    }
+    .outlet{
+        width: 100%;
+        height: auto;
+    }
+    .navbar{
+        flex-direction: column;
+        height: auto;
+    }
+    .navbar>div:nth-child(1){
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #E4E4E4;
+    }
+    .navbar>div:nth-child(2){
+        width: 100%;
+        height: auto !important;
+    }
+    .content{
+        height: auto;
+    }
+    .header{
+        height: auto;
+        flex-wrap: wrap;
+        gap: 10px;
+        border-right: none;
+    }
+    .btn{
+        flex-wrap: wrap;
+    }
+}
+
+
+/* Scroll */
+.content::-webkit-scrollbar {
+  -webkit-appearance: none;
+}
+
+.content::-webkit-scrollbar:vertical {
+  width: 6px;
+}
+
+.content::-webkit-scrollbar-button:increment {
+  display: none;
+}
+
+.content::-webkit-scrollbar:horizontal {
+  height: 10px;
+}
+
+.content::-webkit-scrollbar-thumb {
+  background-color: #a4a6a7;
+  border-radius: 3px;
+  border: 1px solid #D0D5DD;
+}
+
+.content::-webkit-scrollbar-track {
+  border-radius: 10px;
+}

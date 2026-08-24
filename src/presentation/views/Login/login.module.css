@@ -1,0 +1,229 @@
+.login__wrapper {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-height: 100vh;
+}
+
+.login__form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    font-family: 'SF-UI-Display-Semibold';
+    padding: 48px 24px;
+    max-width: 420px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.logo {
+    width: 96px;
+    max-height: 64px;
+    object-fit: contain;
+    margin: 0 auto 8px auto;
+}
+
+.login__form h5 {
+    font-size: 22px;
+    margin-bottom: 4px;
+    color: var(--neutral-800);
+    font-weight: 700;
+}
+
+.login__form p {
+    font-size: 13px;
+    margin-bottom: 10px;
+    color: var(--neutral-500);
+}
+
+.login__form input {
+    border-radius: var(--radius-md);
+    height: 44px !important;
+    text-transform: lowercase;
+    text-align: left;
+    position: relative;
+    border: 1px solid var(--neutral-200);
+    outline: none;
+    margin-top: 0px;
+    width: 100%;
+    color: var(--neutral-800);
+    font-size: 13px !important;
+    transition: 0.15s ease;
+}
+
+.header__loginInfo {
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.form__wrapper label {
+    text-align: left !important;
+    font-size: 12.5px !important;
+}
+
+.form__wrapper {
+    margin-top: 24px;
+}
+
+.form__wrapper > div:nth-child(1) {
+    position: relative;
+    margin-top: 18px;
+}
+
+.form__wrapper > div:nth-child(2) {
+    position: relative;
+    margin-top: 18px;
+    margin-bottom: 22px;
+}
+
+.form__wrapper > div:nth-child(3) {
+    position: relative;
+    text-align: right;
+}
+
+.form__wrapper > div:nth-child(3) a {
+    color: var(--brand-600);
+    font-size: 12px;
+    margin-top: 9px;
+    font-weight: 700;
+}
+
+.login__form .togglePassword {
+    position: absolute;
+    top: 38px;
+    z-index: 2;
+    right: 14px;
+    left: auto;
+    display: flex;
+    width: auto;
+    color: var(--neutral-400);
+    background: transparent;
+    border: none;
+    padding: 4px;
+    margin: 0;
+    cursor: pointer;
+    transition: color .15s ease;
+}
+
+.login__form .togglePassword:hover {
+    background: transparent;
+    color: var(--neutral-700);
+}
+
+.togglePassword svg {
+    width: 18px;
+    height: 18px;
+}
+
+.login__form input::placeholder {
+    color: var(--neutral-400);
+    font-size: 13px;
+    text-transform: capitalize;
+}
+
+.login__form input:focus {
+    color: var(--neutral-800);
+    background: #fff;
+    border-color: var(--brand-500);
+    box-shadow: 0 0 0 3px var(--brand-100);
+}
+
+.login__banner {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background: linear-gradient(160deg, var(--brand-50) 0%, var(--brand-100) 55%, var(--brand-200) 100%);
+    position: relative;
+}
+
+.login__banner::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.7) 100%);
+}
+
+.content__loginBanner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    padding: 40px;
+}
+
+.img__contentLogin {
+    width: 320px;
+    height: 320px;
+    display: flex;
+    align-items: center;
+    margin: 0 auto;
+}
+
+.img__contentLogin img {
+    width: 100%;
+}
+
+.info__contentLogin {
+    text-align: center;
+    max-width: 420px;
+    font-family: 'SF-UI-Display-Semibold';
+}
+
+.info__contentLogin h4 {
+    font-size: 25px;
+    color: var(--neutral-800);
+    font-weight: 700;
+}
+
+.info__contentLogin p {
+    color: var(--neutral-600);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.info__contentLogin strong {
+    color: var(--brand-600);
+}
+
+.login__form button {
+    background: var(--brand-500);
+    color: #fff;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-md);
+    margin-top: 4px;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color .15s ease, transform .1s ease;
+}
+
+.login__form button:hover {
+    background: var(--brand-600);
+}
+
+.login__form button:active {
+    transform: scale(0.99);
+}
+
+/* Above tablet width, split into the branded banner + form layout. */
+@media (min-width: 900px) {
+    .login__wrapper {
+        grid-template-columns: minmax(360px, 480px) 1fr;
+    }
+
+    .login__banner {
+        display: flex;
+    }
+}
+
+@media (min-width: 640px) {
+    .login__form {
+        padding: 48px 64px;
+    }
+}
