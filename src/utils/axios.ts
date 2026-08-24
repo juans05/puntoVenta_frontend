@@ -32,8 +32,15 @@ export function initAxiosInterceptors() {
         return response;
     },
         function (error) {
-            console.log(error)
-            if (error.response.status === 401 && !isUnauthorizedHandled) {
+            console.error('[axios] request failed', {
+                url: error.config?.baseURL + '' + error.config?.url,
+                method: error.config?.method,
+                status: error.response?.status,
+                code: error.code,
+                message: error.message,
+                responseData: error.response?.data,
+            })
+            if (error.response?.status === 401 && !isUnauthorizedHandled) {
                 isUnauthorizedHandled = true;
                 deleteToken();
                 toast.error('Se ha terminado la sesión, vuelve a iniciar sesión por favor')

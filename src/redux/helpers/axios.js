@@ -3,8 +3,8 @@ import axios from 'axios';
 /* export const baseUrl = "https://api.suiza-soft.com"; */
 // export const baseUrl = "https://webapipuntoventa.azurewebsites.net/api"
 /* export const baseUrl = "http://119.8.153.52:2034/api"; */
-// export const baseUrl = "http://localhost:5001/api"; 
-export const baseUrl = "https://apipuntoventa.lobytech.com/api"; 
+// export const baseUrl = "http://localhost:5001/api";
+export const baseUrl = "https://puntoventabackend-production.up.railway.app/api";
 
 const refreshTokens = async (url, method, tokens) => {
 
@@ -132,7 +132,14 @@ const fetchConToken = async (endpoint, data, method = 'GET') => {
       });
       return response;
     } catch (error) {
-      if (error.response.status === 401) {
+      console.error('[fetchConToken GET] request failed', {
+        url,
+        status: error.response?.status,
+        code: error.code,
+        message: error.message,
+        responseData: error.response?.data,
+      })
+      if (error.response?.status === 401) {
         localStorage.setItem('tokenResponse', true)
         if (Date.now() < refreshExpiration) {
           let respuesta = await refreshTokens(url, method, tokens)
@@ -158,7 +165,14 @@ const fetchConToken = async (endpoint, data, method = 'GET') => {
       });
       return response;
     } catch (error) {
-      if (error.response.status === 401) {
+      console.error(`[fetchConToken ${method}] request failed`, {
+        url,
+        status: error.response?.status,
+        code: error.code,
+        message: error.message,
+        responseData: error.response?.data,
+      })
+      if (error.response?.status === 401) {
         let respuesta = await refreshTokens(url, method, tokens)
         return respuesta;
       }
