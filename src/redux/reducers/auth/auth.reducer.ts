@@ -78,7 +78,13 @@ export const signIn = (user: IUser) => {
       dispatch({ type: ALERT, payload: { loading: false } });
     } catch (error: any) {
       dispatch({ type: ALERT, payload: { loading: false } });
-      console.log(error);
+      console.error('[signIn] /autenticacion/token failed', {
+        url: error?.config?.baseURL + '' + error?.config?.url,
+        status: error?.response?.status,
+        code: error?.code,
+        message: error?.message,
+        responseData: error?.response?.data,
+      });
       if (error?.response?.status === 400) {
         return dispatch({
           type: types.SIGN_IN_ERROR,
