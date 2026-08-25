@@ -93,10 +93,10 @@ export const Navbar = ({ onClickSidebar }: any) => {
 
               {
                 !me?.userName?.startsWith('RECEPCION') && !me?.userName?.startsWith('CONTADORA') &&
-                <div className={`hidden sm:block ${styles['btn-go-sales']}`}>
+                <div className={styles['btn-go-sales']}>
                   <NavLink to={'/facturacion'}>
                     <Icon icon="icon-park-solid:sales-report" />
-                    <p>Ir a ventas</p>
+                    <p className="hidden sm:inline">Ir a ventas</p>
                   </NavLink>
                 </div>
               }
