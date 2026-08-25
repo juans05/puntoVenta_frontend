@@ -21,9 +21,15 @@ export interface IParseoResultado {
 const COLUMNAS_REQUERIDAS = [
   "Inicio del informe",
   "Fin del informe",
-  "Nombre del anuncio",
   "Importe gastado (PEN)",
 ];
+
+function tieneColumnaNombre(fila: any): boolean {
+  return (
+    Object.prototype.hasOwnProperty.call(fila, "Nombre del anuncio") ||
+    Object.prototype.hasOwnProperty.call(fila, "Nombre de la campaña")
+  );
+}
 
 function excelFechaAIso(valor: any): string | null {
   if (!valor) return null;
@@ -43,6 +49,9 @@ export function parseGastoPublicidadExcel(arrayBuffer: ArrayBuffer): IParseoResu
   const columnasFaltantes = COLUMNAS_REQUERIDAS.filter(
     (col) => !Object.prototype.hasOwnProperty.call(filasCrudas[0], col)
   );
+  if (!tieneColumnaNombre(filasCrudas[0])) {
+    columnasFaltantes.push("Nombre del anuncio (o Nombre de la campaña)");
+  }
   if (columnasFaltantes.length > 0) {
     return {
       filas: [],
@@ -54,7 +63,7 @@ export function parseGastoPublicidadExcel(arrayBuffer: ArrayBuffer): IParseoResu
   const errores: string[] = [];
 
   filasCrudas.forEach((fila, index) => {
-    const nombreAnuncio = fila["Nombre del anuncio"];
+    const nombreAnuncio = fila["Nombre del anuncio"] ?? fila["Nombre de la campaña"];
     const fechaInicio = excelFechaAIso(fila["Inicio del informe"]);
     const fechaFin = excelFechaAIso(fila["Fin del informe"]);
     const importeGastado = parseFloat(fila["Importe gastado (PEN)"]);
