@@ -21,5 +21,6 @@ export interface RootState {
     configuracionRenta: any;
     compras: any;
     gastos: any;
+    publicidad: any;
 
 }

@@ -14,6 +14,7 @@ import { myBusinessReducer } from './reducers/Admin/my-business/myBusiness.reduc
 import { configuracionRentaReducer } from './reducers/Admin/configuracion-renta/configuracionRenta.reducer';
 import { compraReducer } from './reducers/Admin/compras/compra.reducer';
 import { gastoReducer } from './reducers/Admin/gastos/gasto.reducer';
+import { gastoPublicidadReducer } from './reducers/Admin/gastoPublicidad/gastoPublicidad.reducer';
 
 export const store = configureStore({
     reducer: {
@@ -31,6 +32,7 @@ export const store = configureStore({
         configuracionRenta:configuracionRentaReducer,
         compras:compraReducer,
         gastos:gastoReducer,
+        publicidad: gastoPublicidadReducer,
     }
 })
 
