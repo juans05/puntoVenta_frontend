@@ -74,7 +74,7 @@ export const Navbar = ({ onClickSidebar }: any) => {
                 ></path>
               </svg>
             </button>
-            <div className={`w-64 h-full ${styles['brand-logo']}`}>
+            <div className={`w-40 sm:w-64 h-full ${styles['brand-logo']}`}>
               <a href="/dashboard" className="flex ml-2 md:mr-24">
                 <img className={`${styles['img-brand-logo']}`} src={tenantEmpresa?.logoSidebar} alt="Logo de la empresa" />
               </a>
