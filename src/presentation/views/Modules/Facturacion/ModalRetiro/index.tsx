@@ -55,7 +55,7 @@ const ModalRetiro = ({ onClose, setOpenRetiro }: any) => {
                             <RetiroSvg />
                         </div>
                         <div>
-                            <Input value={0} name='monto' type='number' onChange={(e: any) => setAmount(Number(e.target.value))} isLabel label="Monto" />
+                            <Input value={amount} name='monto' type='number' onChange={(e: any) => setAmount(Number(e.target.value))} isLabel label="Monto" />
                             <Input isLabel label='Motivo' onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setMotivo(e.target.value)} type='textarea' name="" id=""/>
                             <button disabled={amount > 0 && motivo !== "" ? false : true} onClick={retirar} className="mt-0 text-sm bg-brand-500 hover:bg-brand-600 transition-colors w-full rounded-md p-2 text-white">Retirar</button>
                         </div>

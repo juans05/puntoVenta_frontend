@@ -161,7 +161,7 @@ const Input: FC<IInput> = (props) => {
 
         if (type === "number") {
             return (
-                <input type={type} step="any" name={name} disabled={disabled} value={value} placeholder={placeholder} onChange={onChange} />
+                <input type={type} step="any" name={name} disabled={disabled} value={value} placeholder={placeholder} onChange={onChange} onFocus={(e) => e.target.select()} />
             )
         }
 
