@@ -30,7 +30,7 @@ const Facturacion = () => {
     const dispatch = useAppDispatch();
     const { products }: IProductsState = useAppSelector((state: RootState) => state.products);
     const { customer, me }: any = useAppSelector((state: RootState) => state.auth)
-    const { message, numeroDocumento, code }: ISalesState = useAppSelector((state: RootState) => state.sales)
+    const { message, numeroDocumento, code, productsBySale }: ISalesState = useAppSelector((state: RootState) => state.sales)
     const {
         caja,
         isReport,
@@ -82,6 +82,7 @@ const Facturacion = () => {
     const [isOpenCaja, setOpenCaja] = useState<boolean>(false);
     const [isOpenRetiro, setIsOpenRetiro] = useState<boolean>(false);
     const [isOpenModalHistorialRetiro, setIsOpenModalHistorialRetiro] = useState<boolean>(false)
+    const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
 
     useEffect(() => {
         if (caja?.cajaAbierta === false) {
@@ -109,6 +110,19 @@ const Facturacion = () => {
 
     const openSidebarMenu = () => {
         setOpenSidebar(true)
+    }
+
+    useEffect(() => {
+        if (productsBySale?.length === 0) {
+            setIsMobileCartOpen(false)
+        }
+    }, [productsBySale])
+
+    let mobileCartCount = 0;
+    let mobileCartTotal = 0;
+    for (const producto of productsBySale) {
+        mobileCartCount += producto.cantidad;
+        mobileCartTotal += producto.precio * producto.cantidad;
     }
 
     useEffect(() => {
@@ -147,7 +161,7 @@ const Facturacion = () => {
                     </div>
 
 
-                    <div className={styles.facturation__wrapper}>
+                    <div className={`${styles.facturation__wrapper} ${isMobileCartOpen ? styles.cartOpen : ''}`}>
                         <ListaProductos
                             setOpenRetiro={setIsOpenRetiro}
                             boxModal={boxModal}
@@ -155,9 +169,16 @@ const Facturacion = () => {
                             setIsOpenModalHistorialRetiro={setIsOpenModalHistorialRetiro}
                             setOpenSidebar={setOpenSidebar}
                             isOpenSidebar={isOpenSidebar}
-                            openSidebarMenu={openSidebarMenu} setIsOpenModal={setIsOpenModal} />
+                            openSidebarMenu={openSidebarMenu} setIsOpenModal={setIsOpenModal}
+                            closeMobileCart={() => setIsMobileCartOpen(false)} />
                     </div>
                 </div>
+                {productsBySale?.length > 0 && !isMobileCartOpen &&
+                    <div className={styles.mobileCartBar} onClick={() => setIsMobileCartOpen(true)}>
+                        <span>Ver carrito ({mobileCartCount})</span>
+                        <span>S/ {mobileCartTotal.toFixed(2)}</span>
+                    </div>
+                }
             </div>
             {isOpen && !isOpenLoadingPay && <ModalPay isIgv={isIgv} setIsIgv={setIsIgv} onClose={() => setIsOpenModal(false)} isOpen={isOpen} setIsOpenLoadingPay={setIsOpenLoadingPay} />}
             {isOpenLoadingPay && code === 1 && <ModalLoadingPay setIsOpenLoadingPay={setIsOpenLoadingPay} />}

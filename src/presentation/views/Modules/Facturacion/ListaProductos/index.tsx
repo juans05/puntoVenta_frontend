@@ -24,9 +24,10 @@ interface IProps {
     boxModal: any
     setOpenRetiro: Dispatch<boolean>
     setIsOpenModalHistorialRetiro: Dispatch<boolean>
+    closeMobileCart: () => void
 }
 
-const ListaProductos = ({isIgv,setIsOpenModalHistorialRetiro,setOpenRetiro, boxModal,setOpenSidebar,isOpenSidebar, setIsOpenModal, openSidebarMenu }: IProps) => {
+const ListaProductos = ({isIgv,setIsOpenModalHistorialRetiro,setOpenRetiro, boxModal,setOpenSidebar,isOpenSidebar, setIsOpenModal, openSidebarMenu, closeMobileCart }: IProps) => {
 
     const dispatch = useAppDispatch();
 
@@ -99,6 +100,7 @@ const ListaProductos = ({isIgv,setIsOpenModalHistorialRetiro,setOpenRetiro, boxM
     return (
         <div className="relative">
             {isOpenSidebar && <SidebarOptions setIsOpenModalHistorialRetiro={setIsOpenModalHistorialRetiro} setOpenRetiro={setOpenRetiro} boxModal={boxModal} onClose={() => setOpenSidebar(false)} />}
+            <div onClick={closeMobileCart} className={styles.mobileCartSheet__close}><span></span></div>
             <div className="flex justify-between px-5 py-3">
                 <h3 className="text-[#47525E] font-bold"><h4 className="mt-2">Vendedor - {me?.userName}</h4></h3>
                 <div className="flex items-center">
