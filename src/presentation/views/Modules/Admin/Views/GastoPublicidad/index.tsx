@@ -50,7 +50,7 @@ export const GastoPublicidad = () => {
     setErrores(erroresParseo);
   };
 
-  const handleProductoChange = (index: number, productoId: number) => {
+  const handleProductoChange = (index: number, productoId: number | null) => {
     setFilas((prev) => prev.map((f, i) => (i === index ? { ...f, productoId } : f)));
   };
 
@@ -143,7 +143,7 @@ export const GastoPublicidad = () => {
                   <td>
                     <select
                       value={f.productoId ?? ""}
-                      onChange={(e) => handleProductoChange(i, Number(e.target.value))}
+                      onChange={(e) => handleProductoChange(i, e.target.value ? Number(e.target.value) : null)}
                     >
                       <option value="">Selecciona un producto</option>
                       {productos.map((p) => (
