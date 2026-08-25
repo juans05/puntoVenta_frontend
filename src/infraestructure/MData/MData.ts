@@ -142,6 +142,16 @@ export const menuSidebar = [
     url: "dashboard/gastos",
   },
   {
+    // Comparte el code de Gastos a propósito (mismo patrón que "Configuraciones"
+    // más abajo): evita crear un módulo/submódulo nuevo en AspNetModule/
+    // AspNetSubModule y reasignar permisos por tenant solo para esta pantalla.
+    code: "1300",
+    id: 15,
+    value: "ROI Publicidad",
+    icon: "mdi:chart-line",
+    url: "dashboard/publicidad",
+  },
+  {
     // Comparte el code de Gastos a propósito: así aparece para cualquier
     // usuario que ya tenga acceso a Gastos, sin necesitar un módulo/submódulo
     // nuevo en AspNetModule/AspNetSubModule ni reasignar permisos por tenant.

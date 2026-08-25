@@ -23,6 +23,7 @@ import { Sucursales } from "../presentation/views/Modules/Admin/Views/Sucursales
 import { Cajas } from "../presentation/views/Modules/Admin/Views/Cajas";
 import { Compras } from "../presentation/views/Modules/Admin/Views/Compras";
 import { Gastos } from "../presentation/views/Modules/Admin/Views/Gastos";
+import { GastoPublicidad } from "../presentation/views/Modules/Admin/Views/GastoPublicidad";
 import { CatalogosGasto } from "../presentation/views/Modules/Admin/Views/CatalogosGasto";
 import { Empresas } from "../presentation/views/Modules/Admin/Views/Empresas";
 
@@ -59,6 +60,7 @@ export const Dashboard = () => {
             <Route path="cajas" element={<Cajas />}/>
             <Route path="compras" element={<Compras />}/>
             <Route path="gastos" element={<Gastos />}/>
+            <Route path="publicidad" element={<GastoPublicidad />}/>
             <Route path="gastos/catalogos" element={<CatalogosGasto />}/>
             <Route path="empresas" element={<Empresas />}/>
 {/*             <Route path="my-business" element={<MyBusiness />} /> */}
