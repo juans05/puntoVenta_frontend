@@ -33,7 +33,7 @@ const initialForm = {
   nombre: "",
   rutaImagen: "",
   cloudinaryPublicId: "",
-  comentarios: "",
+  comentario: "",
   codigoBarra: "",
   stock: 0,
   precioVentaSinInpuesto: 0,
@@ -65,7 +65,7 @@ export const ProductoModal = () => {
   const {
     nombre,
     rutaImagen,
-    comentarios,
+    comentario,
     codigoBarra,
     stock,
     precioVentaSinInpuesto,
@@ -573,7 +573,7 @@ export const ProductoModal = () => {
                   >
                     <Input
                       name="stock"
-                      defaultValue={stock}
+                      value={stock}
                       label="Stock"
                       isLabel
                       type="number"
@@ -589,7 +589,7 @@ export const ProductoModal = () => {
                 <div>
                   <Input
                     name="precioVentaSinInpuesto"
-                    defaultValue={precioVentaSinInpuesto}
+                    value={precioVentaSinInpuesto}
                     label="Costo"
                     onChange={handleInputChange}
                     isLabel
@@ -597,7 +597,7 @@ export const ProductoModal = () => {
                   />
                   <Input
                     name="margenGanancia"
-                    defaultValue={margenGanancia}
+                    value={margenGanancia}
                     label="Margen de ganancia"
                     isLabel
                     type="number"
@@ -643,8 +643,8 @@ export const ProductoModal = () => {
                 <label>Comentarios</label>
                 <textarea
                   onChange={handleInputChange}
-                  name="comentarios"
-                  value={comentarios}
+                  name="comentario"
+                  value={comentario}
                 ></textarea>
               </div>
               <div className={styles["main-content-buttons"]}>
