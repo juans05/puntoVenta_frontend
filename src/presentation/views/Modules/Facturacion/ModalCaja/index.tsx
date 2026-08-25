@@ -43,7 +43,7 @@ const ModalCaja = ({onClose,setOpenCaja}: any) => {
                     <img width={150} src={billetera} alt="" />
                   </div>
                   <div>
-                    <Input value={0} name='monto' type='number' onChange={(e: any) => setAmount(Number(e.target.value))} isLabel label={montosCaja?.cajaAbierta === undefined || caja === false || montosCaja?.cajaAbierta === false ? 'Monto de apertura' : 'Monto de cierre'} />
+                    <Input value={amount} name='monto' type='number' onChange={(e: any) => setAmount(Number(e.target.value))} isLabel label={montosCaja?.cajaAbierta === undefined || caja === false || montosCaja?.cajaAbierta === false ? 'Monto de apertura' : 'Monto de cierre'} />
                     <button disabled={amount >= 0 ? false : true} onClick={openBox} className="mt-4 text-sm bg-brand-500 hover:bg-brand-600 transition-colors w-full rounded-md p-2 text-white">{montosCaja?.cajaAbierta === undefined || caja === false || montosCaja?.cajaAbierta === false ? 'Aperturar Caja' : 'Cerrar Caja'}</button>
                   </div>
                 </div>
