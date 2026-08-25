@@ -25,6 +25,7 @@ import { UserTable } from "../../../../presentation/views/Modules/Admin/Views/Us
 import { IHeaderTable } from "../../../../application/models/Header/IHeaderTable";
 import { ITableHeaderProps } from "../../../Datatable/table/TableHeader/TableHeader";
 import { ITableButton } from "../../../Datatable/table/TableButton";
+import { ImageCropModal } from "../../../ImageCropModal";
 const initialForm = {
   nombreCategoria: "",
   categoriaId: 0,
@@ -59,6 +60,7 @@ export const ProductoModal = () => {
   const [formValues, setFormValues] = useState<any>(initialForm);
   const [imagenArchivo, setImagenArchivo] = useState<File | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
+  const [archivoParaRecortar, setArchivoParaRecortar] = useState<File | null>(null);
   const [subiendoImagen, setSubiendoImagen] = useState<boolean>(false);
   const [eliminandoImagen, setEliminandoImagen] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -269,15 +271,26 @@ export const ProductoModal = () => {
       return;
     }
 
+    setArchivoParaRecortar(archivo);
+  };
+
+  const handleRecorteConfirmado = async (archivoRecortado: File) => {
+    setArchivoParaRecortar(null);
+
     if (imagenPreview) URL.revokeObjectURL(imagenPreview);
 
-    const previewUrl = URL.createObjectURL(archivo);
-    setImagenArchivo(archivo);
+    const previewUrl = URL.createObjectURL(archivoRecortado);
+    setImagenArchivo(archivoRecortado);
     setImagenPreview(previewUrl);
 
     if (activeProducto?.productoId) {
-      await subirImagen(activeProducto.productoId, archivo);
+      await subirImagen(activeProducto.productoId, archivoRecortado);
     }
+  };
+
+  const handleRecorteCancelado = () => {
+    setArchivoParaRecortar(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const subirImagen = async (productoId: any, archivo: File) => {
@@ -463,6 +476,14 @@ export const ProductoModal = () => {
                     style={{ display: "none" }}
                     onChange={handleSeleccionarImagen}
                   />
+
+                  {archivoParaRecortar && (
+                    <ImageCropModal
+                      archivo={archivoParaRecortar}
+                      onCropped={handleRecorteConfirmado}
+                      onCancel={handleRecorteCancelado}
+                    />
+                  )}
 
                   {subiendoImagen ? (
                     <div className={styles["imagen-estado"]}>
