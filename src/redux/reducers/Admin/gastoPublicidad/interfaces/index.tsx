@@ -1,6 +1,6 @@
-export interface IRoiPorProducto {
-  productoId: number;
-  nombreProducto: string;
+export interface IRoiPorGrupo {
+  grupoId: number;
+  nombreGrupo: string;
   gastoAds: number;
   ingresos: number;
   costoProducto: number;
@@ -9,5 +9,5 @@ export interface IRoiPorProducto {
 }
 
 export interface IGastoPublicidadState {
-  roi: IRoiPorProducto[];
+  roi: IRoiPorGrupo[];
 }

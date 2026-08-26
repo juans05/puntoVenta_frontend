@@ -10,7 +10,7 @@ export interface IFilaPublicidadParseada {
   alcance: number | null;
   resultados: number | null;
   costoPorResultado: number | null;
-  productoId: number | null;
+  grupoId: number | null;
 }
 
 export interface IParseoResultado {
@@ -83,7 +83,7 @@ export function parseGastoPublicidadExcel(arrayBuffer: ArrayBuffer): IParseoResu
       alcance: fila["Alcance"] ? parseInt(fila["Alcance"], 10) : null,
       resultados: fila["Compras"] ? parseInt(fila["Compras"], 10) : null,
       costoPorResultado: fila["Costo por compra (PEN)"] ? parseFloat(fila["Costo por compra (PEN)"]) : null,
-      productoId: null,
+      grupoId: null,
     });
   });
 

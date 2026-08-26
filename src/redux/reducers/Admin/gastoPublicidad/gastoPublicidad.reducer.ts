@@ -20,13 +20,13 @@ export const gastoPublicidadReducer = createReducer(initialState, (builder) => {
   );
 });
 
-export const getRoiPublicidad = (desde?: string, hasta?: string, productoId?: number) => {
+export const getRoiPublicidad = (desde?: string, hasta?: string, grupoId?: number) => {
   return async (dispatch: Dispatch<AnyAction>) => {
     try {
       const params = new URLSearchParams();
       if (desde) params.append("Desde", desde);
       if (hasta) params.append("Hasta", hasta);
-      if (productoId) params.append("ProductoId", String(productoId));
+      if (grupoId) params.append("GrupoId", String(grupoId));
 
       const response: any = await axiosInstance.get(`/gastopublicidad/roi?${params.toString()}`);
       const { status, data } = response;

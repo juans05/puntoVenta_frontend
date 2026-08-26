@@ -13,8 +13,8 @@ import {
 } from "../../../../../../helpers/functions/parseGastoPublicidadExcel";
 import axiosInstance from "../../../../../../utils/axios";
 
-interface IProductoOpcion {
-  productoId: number;
+interface IGrupoOpcion {
+  grupoId: number;
   nombre: string;
 }
 
@@ -22,7 +22,7 @@ export const GastoPublicidad = () => {
   const dispatch = useAppDispatch();
   const { roi }: any = useAppSelector((state: RootState) => state.publicidad);
 
-  const [productos, setProductos] = useState<IProductoOpcion[]>([]);
+  const [grupos, setGrupos] = useState<IGrupoOpcion[]>([]);
   const [filas, setFilas] = useState<IFilaPublicidadParseada[]>([]);
   const [errores, setErrores] = useState<string[]>([]);
   const [subiendo, setSubiendo] = useState(false);
@@ -31,12 +31,12 @@ export const GastoPublicidad = () => {
 
   useEffect(() => {
     axiosInstance
-      .get("/productos/listar?Amount=1000")
+      .get("/Grupo/listar")
       .then((res: any) => {
-        const items = res.data?.data?.items ?? [];
-        setProductos(items.map((p: any) => ({ productoId: p.productoId, nombre: p.nombre })));
+        const items = res.data?.data ?? [];
+        setGrupos(items.map((g: any) => ({ grupoId: g.grupoId, nombre: g.nombre })));
       })
-      .catch(() => setProductos([]));
+      .catch(() => setGrupos([]));
   }, []);
 
   useEffect(() => {
@@ -50,11 +50,11 @@ export const GastoPublicidad = () => {
     setErrores(erroresParseo);
   };
 
-  const handleProductoChange = (index: number, productoId: number | null) => {
-    setFilas((prev) => prev.map((f, i) => (i === index ? { ...f, productoId } : f)));
+  const handleGrupoChange = (index: number, grupoId: number | null) => {
+    setFilas((prev) => prev.map((f, i) => (i === index ? { ...f, grupoId } : f)));
   };
 
-  const puedeConfirmar = filas.length > 0 && filas.every((f) => f.productoId !== null);
+  const puedeConfirmar = filas.length > 0 && filas.every((f) => f.grupoId !== null);
 
   const handleConfirmar = async () => {
     setSubiendo(true);
@@ -62,7 +62,7 @@ export const GastoPublicidad = () => {
       const resultado = await importarGastoPublicidad({
         loteImportacionId: crypto.randomUUID(),
         filas: filas.map((f) => ({
-          productoId: f.productoId,
+          grupoId: f.grupoId,
           nombreAnuncio: f.nombreAnuncio,
           nombreConjuntoAnuncios: f.nombreConjuntoAnuncios,
           fechaInicio: f.fechaInicio,
@@ -129,7 +129,7 @@ export const GastoPublicidad = () => {
                 <th>Inicio</th>
                 <th>Fin</th>
                 <th>Gasto (PEN)</th>
-                <th>Producto</th>
+                <th>Grupo</th>
               </tr>
             </thead>
             <tbody>
@@ -142,13 +142,13 @@ export const GastoPublicidad = () => {
                   <td>S/ {f.importeGastado.toFixed(2)}</td>
                   <td>
                     <select
-                      value={f.productoId ?? ""}
-                      onChange={(e) => handleProductoChange(i, e.target.value ? Number(e.target.value) : null)}
+                      value={f.grupoId ?? ""}
+                      onChange={(e) => handleGrupoChange(i, e.target.value ? Number(e.target.value) : null)}
                     >
-                      <option value="">Selecciona un producto</option>
-                      {productos.map((p) => (
-                        <option key={p.productoId} value={p.productoId}>
-                          {p.nombre}
+                      <option value="">Selecciona un grupo</option>
+                      {grupos.map((g) => (
+                        <option key={g.grupoId} value={g.grupoId}>
+                          {g.nombre}
                         </option>
                       ))}
                     </select>
@@ -181,7 +181,7 @@ export const GastoPublicidad = () => {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Producto</th>
+              <th>Grupo</th>
               <th>Gasto Ads</th>
               <th>Ingresos</th>
               <th>Costo Producto</th>
@@ -198,8 +198,8 @@ export const GastoPublicidad = () => {
               </tr>
             ) : (
               roi.map((r: any) => (
-                <tr key={r.productoId}>
-                  <td>{r.nombreProducto}</td>
+                <tr key={r.grupoId}>
+                  <td>{r.nombreGrupo}</td>
                   <td>S/ {r.gastoAds.toFixed(2)}</td>
                   <td>S/ {r.ingresos.toFixed(2)}</td>
                   <td>S/ {r.costoProducto.toFixed(2)}</td>
