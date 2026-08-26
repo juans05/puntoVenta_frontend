@@ -12,11 +12,14 @@ export interface ITipoDocumentoRule {
     onlyNumbers: boolean;
 }
 
+// Longitudes y validación según el Catálogo N° 06 (Tipo de Documento de Identidad) de SUNAT.
 export const TIPO_DOCUMENTO_RULES: Record<number, ITipoDocumentoRule> = {
     1: { label: "DNI", minLength: 8, maxLength: 8, onlyNumbers: true },
-    2: { label: "Pasaporte", minLength: 9, maxLength: 9, onlyNumbers: false },
-    3: { label: "Carnet de Extranjeria", minLength: 9, maxLength: 9, onlyNumbers: false },
+    2: { label: "Pasaporte", minLength: 1, maxLength: 12, onlyNumbers: false },
+    3: { label: "Carnet de Extranjeria", minLength: 1, maxLength: 12, onlyNumbers: false },
     4: { label: "Libre", minLength: 0, maxLength: 150, onlyNumbers: false },
+    5: { label: "RUC", minLength: 11, maxLength: 11, onlyNumbers: true },
+    6: { label: "Partida de Nacimiento", minLength: 1, maxLength: 15, onlyNumbers: false },
 };
 
 export const getNumeroDocumentoError = (tipoDocumentoId: number, numero: string): string | null => {

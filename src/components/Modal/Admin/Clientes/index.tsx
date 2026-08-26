@@ -28,7 +28,6 @@ Modal.setAppElement("#root");
 const initialForm = {
   nombre: "",
   numeroDocumento: "",
-  fechaNacimiento: "",
   direccion: "",
   telefono: "",
   email: "",
@@ -53,7 +52,6 @@ export const ClientesModal = () => {
   const {
     nombre,
     numeroDocumento,
-    fechaNacimiento,
     direccion,
     telefono,
     email,
@@ -149,19 +147,6 @@ export const ClientesModal = () => {
     if (numeroDocumentoError) {
       toast.error(numeroDocumentoError);
       return;
-    }
-    if (fechaNacimiento && /^\d{4}-\d{2}-\d{2}$/.test(fechaNacimiento)) {
-      const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
-      const fecha = new Date(`${fechaNacimiento}T00:00:00`);
-      if (isNaN(fecha.getTime())) {
-        toast.error("La fecha de nacimiento no es válida");
-        return;
-      }
-      if (fecha > hoy) {
-        toast.error("La fecha de nacimiento no puede ser una fecha futura");
-        return;
-      }
     }
     if (activeClients) {
       dispatch(
@@ -264,17 +249,6 @@ export const ClientesModal = () => {
                     defaultValue={sexo}
                     options={sex}
                     onChange={handleChangeSelect}
-                  />
-                </div>
-                <div>
-                  <Input
-                    type="date"
-                    withDate
-                    name="fechaNacimiento"
-                    isLabel
-                    label="Fecha de Nacimiento"
-                    value={fechaNacimiento}
-                    onChange={handleInputChange}
                   />
                 </div>
                 <div>
