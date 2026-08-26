@@ -10,6 +10,9 @@ export interface IFilaPublicidadParseada {
   alcance: number | null;
   resultados: number | null;
   costoPorResultado: number | null;
+  indicadorResultado: string | null;
+  clics: number | null;
+  costoPorClic: number | null;
   grupoId: number | null;
 }
 
@@ -73,6 +76,16 @@ export function parseGastoPublicidadExcel(arrayBuffer: ArrayBuffer): IParseoResu
       return;
     }
 
+    // "Resultados" / "Costo por resultados" son el KPI real de Meta: su significado depende
+    // del objetivo de la campaña (compras, conversaciones, leads, etc. — ver "Indicador de
+    // resultado"). "Compras" / "Costo por compra (PEN)" solo aplican a campañas optimizadas
+    // para compras y vienen vacías para el resto — se usan como fallback para exports viejos
+    // que no traían "Resultados".
+    const resultados = fila["Resultados"] ?? fila["Compras"];
+    const costoPorResultado = fila["Costo por resultados"] ?? fila["Costo por compra (PEN)"];
+    const clics = fila["Clics (todos)"] ?? fila["Clics"] ?? null;
+    const costoPorClic = fila["CPC (todo) (PEN)"] ?? fila["CPC (todos) (PEN)"] ?? fila["CPC (PEN)"] ?? null;
+
     filas.push({
       nombreAnuncio,
       nombreConjuntoAnuncios: fila["Nombre del conjunto de anuncios"] ?? null,
@@ -81,8 +94,11 @@ export function parseGastoPublicidadExcel(arrayBuffer: ArrayBuffer): IParseoResu
       importeGastado,
       impresiones: fila["Impresiones"] ? parseInt(fila["Impresiones"], 10) : null,
       alcance: fila["Alcance"] ? parseInt(fila["Alcance"], 10) : null,
-      resultados: fila["Compras"] ? parseInt(fila["Compras"], 10) : null,
-      costoPorResultado: fila["Costo por compra (PEN)"] ? parseFloat(fila["Costo por compra (PEN)"]) : null,
+      resultados: resultados ? parseInt(resultados, 10) : null,
+      costoPorResultado: costoPorResultado ? parseFloat(costoPorResultado) : null,
+      indicadorResultado: fila["Indicador de resultado"] ?? null,
+      clics: clics ? parseInt(clics, 10) : null,
+      costoPorClic: costoPorClic ? parseFloat(costoPorClic) : null,
       grupoId: null,
     });
   });

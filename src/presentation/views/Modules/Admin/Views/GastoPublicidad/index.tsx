@@ -18,6 +18,15 @@ interface IGrupoOpcion {
   nombre: string;
 }
 
+// Sentinel de frontend para "este anuncio no corresponde a ningún grupo de productos"
+// (ej. branding general). Se traduce a null (GrupoId nulo) al armar el payload de importación.
+// Distinto de `null`, que significa "todavía no se eligió nada" y bloquea la confirmación.
+const NO_APLICA = -1;
+
+// Sentinel para "este anuncio no va" (no funciona / no interesa). Se traduce a
+// GrupoId=null + Descartado=true. Se excluye del cálculo de ROI.
+const NO_VA = -2;
+
 export const GastoPublicidad = () => {
   const dispatch = useAppDispatch();
   const { roi }: any = useAppSelector((state: RootState) => state.publicidad);
@@ -34,7 +43,11 @@ export const GastoPublicidad = () => {
       .get("/Grupo/listar")
       .then((res: any) => {
         const items = res.data?.data ?? [];
-        setGrupos(items.map((g: any) => ({ grupoId: g.grupoId, nombre: g.nombre })));
+        setGrupos(
+          items
+            .filter((g: any) => g.grupoId)
+            .map((g: any) => ({ grupoId: g.grupoId, nombre: g.nombre }))
+        );
       })
       .catch(() => setGrupos([]));
   }, []);
@@ -46,8 +59,34 @@ export const GastoPublicidad = () => {
   const handleFile = async (file: File) => {
     const buffer = await file.arrayBuffer();
     const { filas: parseadas, errores: erroresParseo } = parseGastoPublicidadExcel(buffer);
-    setFilas(parseadas);
     setErrores(erroresParseo);
+
+    if (parseadas.length === 0) {
+      setFilas([]);
+      return;
+    }
+
+    // Recupera el Grupo (o "No aplica") que ya se le asignó a estos mismos anuncios en una
+    // importación anterior, para no obligar a remapear anuncios/campañas recurrentes cada
+    // semana. Si un anuncio nunca se importó antes, queda sin elegir (bloquea "Confirmar").
+    try {
+      const nombresAnuncio = Array.from(new Set(parseadas.map((f) => f.nombreAnuncio)));
+      const res: any = await axiosInstance.post("/gastopublicidad/mapeos-anuncios", { nombresAnuncio });
+      const mapeos: { nombreAnuncio: string; grupoId: number | null; descartado: boolean }[] = res.data?.data ?? [];
+      const mapeoPorAnuncio = new Map(mapeos.map((m) => [m.nombreAnuncio, m]));
+
+      setFilas(
+        parseadas.map((f) => {
+          const mapeo = mapeoPorAnuncio.get(f.nombreAnuncio);
+          if (!mapeo) return f;
+          if (mapeo.descartado) return { ...f, grupoId: NO_VA };
+          return { ...f, grupoId: mapeo.grupoId === null ? NO_APLICA : mapeo.grupoId };
+        })
+      );
+    } catch {
+      // Si falla la recuperación de mapeos, se sigue igual: el usuario elige todo a mano.
+      setFilas(parseadas);
+    }
   };
 
   const handleGrupoChange = (index: number, grupoId: number | null) => {
@@ -62,7 +101,8 @@ export const GastoPublicidad = () => {
       const resultado = await importarGastoPublicidad({
         loteImportacionId: crypto.randomUUID(),
         filas: filas.map((f) => ({
-          grupoId: f.grupoId,
+          grupoId: f.grupoId === NO_APLICA || f.grupoId === NO_VA ? null : f.grupoId,
+          descartado: f.grupoId === NO_VA,
           nombreAnuncio: f.nombreAnuncio,
           nombreConjuntoAnuncios: f.nombreConjuntoAnuncios,
           fechaInicio: f.fechaInicio,
@@ -72,6 +112,8 @@ export const GastoPublicidad = () => {
           alcance: f.alcance,
           resultados: f.resultados,
           costoPorResultado: f.costoPorResultado,
+          clics: f.clics,
+          costoPorClic: f.costoPorClic,
         })),
       });
 
@@ -129,6 +171,10 @@ export const GastoPublicidad = () => {
                 <th>Inicio</th>
                 <th>Fin</th>
                 <th>Gasto (PEN)</th>
+                <th>Resultados</th>
+                <th>Costo/Resultado</th>
+                <th>Clics</th>
+                <th>Costo/Clic</th>
                 <th>Grupo</th>
               </tr>
             </thead>
@@ -140,12 +186,18 @@ export const GastoPublicidad = () => {
                   <td>{f.fechaInicio}</td>
                   <td>{f.fechaFin}</td>
                   <td>S/ {f.importeGastado.toFixed(2)}</td>
+                  <td title={f.indicadorResultado ?? undefined}>{f.resultados ?? "-"}</td>
+                  <td>{f.costoPorResultado !== null ? `S/ ${f.costoPorResultado.toFixed(2)}` : "-"}</td>
+                  <td>{f.clics ?? "-"}</td>
+                  <td>{f.costoPorClic !== null ? `S/ ${f.costoPorClic.toFixed(2)}` : "-"}</td>
                   <td>
                     <select
                       value={f.grupoId ?? ""}
                       onChange={(e) => handleGrupoChange(i, e.target.value ? Number(e.target.value) : null)}
                     >
                       <option value="">Selecciona un grupo</option>
+                      <option value={NO_APLICA}>No aplica</option>
+                      <option value={NO_VA}>No va</option>
                       {grupos.map((g) => (
                         <option key={g.grupoId} value={g.grupoId}>
                           {g.nombre}
@@ -183,6 +235,10 @@ export const GastoPublicidad = () => {
             <tr>
               <th>Grupo</th>
               <th>Gasto Ads</th>
+              <th>Impresiones</th>
+              <th>Alcance</th>
+              <th>Clics</th>
+              <th>Costo/Clic</th>
               <th>Ingresos</th>
               <th>Costo Producto</th>
               <th>Utilidad Neta</th>
@@ -192,15 +248,19 @@ export const GastoPublicidad = () => {
           <tbody>
             {!roi || roi.length === 0 ? (
               <tr>
-                <td colSpan={6} className={styles.empty}>
+                <td colSpan={10} className={styles.empty}>
                   No hay datos de ROI para este rango.
                 </td>
               </tr>
             ) : (
               roi.map((r: any) => (
-                <tr key={r.grupoId}>
+                <tr key={r.grupoId ?? "sin-grupo"}>
                   <td>{r.nombreGrupo}</td>
                   <td>S/ {r.gastoAds.toFixed(2)}</td>
+                  <td>{r.impresiones?.toLocaleString() ?? "-"}</td>
+                  <td>{r.alcance?.toLocaleString() ?? "-"}</td>
+                  <td>{r.clics?.toLocaleString() ?? "-"}</td>
+                  <td>{r.costoPorClic !== null ? `S/ ${r.costoPorClic.toFixed(2)}` : "-"}</td>
                   <td>S/ {r.ingresos.toFixed(2)}</td>
                   <td>S/ {r.costoProducto.toFixed(2)}</td>
                   <td className={r.utilidadNeta >= 0 ? styles.positivo : styles.negativo}>
