@@ -771,7 +771,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
                 </div>
 
                 {formValues.esEcommerce && (
-                  <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-neutral-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-neutral-200">
                     <div>
                       <SelectPro
                         onChange={(_idValue: any, value: string) => {

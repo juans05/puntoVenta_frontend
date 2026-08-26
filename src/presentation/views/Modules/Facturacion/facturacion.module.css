@@ -1408,3 +1408,39 @@ input[type=checkbox]:checked::before {
     border-radius: 999px;
   }
 }
+
+/* Mobile: el modal de Métodos de pago no cabía en pantalla (ancho fijo > viewport) */
+@media screen and (max-width: 640px) {
+  .wrapper__payMethod {
+    padding: 0 10px;
+  }
+
+  .modal__payMethod {
+    width: 100%;
+    max-width: 480px;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+
+  .body__payMethod {
+    max-width: 100%;
+    padding: 16px;
+  }
+
+  .grid__cardMethodPay {
+    width: 100%;
+  }
+
+  .wrapper__contentPays {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .body__payMethod__billingActive,
+  .body__payMethod__billingActivePlinYape {
+    grid-template-columns: 1fr;
+  }
+
+  .form__payMethod {
+    grid-template-columns: 1fr;
+  }
+}
