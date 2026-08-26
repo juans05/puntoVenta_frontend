@@ -1,7 +1,9 @@
 .header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
@@ -107,4 +109,58 @@
 .pagination-info {
   font-size: 13px;
   color: #475467;
+}
+
+/* Mobile: filas de la tabla como tarjetas apiladas en vez de scroll horizontal */
+@media screen and (max-width: 640px) {
+  .tableWrap {
+    overflow-x: visible;
+    background: transparent;
+    border: none;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table, .table tbody, .table tr, .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table tr {
+    background: #fff;
+    border: 1px solid #F1F1F2;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    padding: 4px 14px;
+  }
+
+  .table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f7f7f8;
+    white-space: normal;
+    text-align: right;
+  }
+
+  .table tr td:last-child {
+    border-bottom: none;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 600;
+    color: #99a1b7;
+    text-transform: uppercase;
+    text-align: left;
+  }
+
+  .table td:last-child:not(:empty) {
+    justify-content: flex-end;
+  }
 }

@@ -71,12 +71,12 @@ export const Compras = () => {
             ) : (
               compras.map((c: any) => (
                 <tr key={c.id}>
-                  <td>{c.numeroCompra}</td>
-                  <td>{c.fechaCompra}</td>
-                  <td>{c.proveedor ?? "Sin proveedor"}</td>
-                  <td>{c.metodoPago ?? "-"}</td>
-                  <td>S/ {Number(c.total).toFixed(2)}</td>
-                  <td>
+                  <td data-label="N° Compra">{c.numeroCompra}</td>
+                  <td data-label="Fecha">{c.fechaCompra}</td>
+                  <td data-label="Proveedor">{c.proveedor ?? "Sin proveedor"}</td>
+                  <td data-label="Método de pago">{c.metodoPago ?? "-"}</td>
+                  <td data-label="Total">S/ {Number(c.total).toFixed(2)}</td>
+                  <td data-label="Estado">
                     <span
                       className={`${styles.estado} ${
                         c.estado === "ANULADO" ? styles.anulado : styles.confirmado
@@ -85,7 +85,7 @@ export const Compras = () => {
                       {c.estado}
                     </span>
                   </td>
-                  <td>{c.usuario ?? "-"}</td>
+                  <td data-label="Usuario">{c.usuario ?? "-"}</td>
                   <td>
                     {c.estado !== "ANULADO" && (
                       <button
