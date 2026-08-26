@@ -1412,35 +1412,103 @@ input[type=checkbox]:checked::before {
 /* Mobile: el modal de Métodos de pago no cabía en pantalla (ancho fijo > viewport) */
 @media screen and (max-width: 640px) {
   .wrapper__payMethod {
-    padding: 0 10px;
+    padding: 0;
+    align-items: flex-end;
+    height: 100dvh;
   }
 
   .modal__payMethod {
     width: 100%;
-    max-width: 480px;
-    max-height: 92vh;
+    max-width: 100%;
+    max-height: 92dvh;
     overflow-y: auto;
+    border-radius: 16px 16px 0 0;
+    margin: 0;
+  }
+
+  .header__payMethod {
+    padding: 16px 16px 8px;
+  }
+
+  .header__payMethod h5 {
+    font-size: 18px;
+  }
+
+  .header__payMethod p {
+    font-size: 12px;
   }
 
   .body__payMethod {
     max-width: 100%;
-    padding: 16px;
+    padding: 12px 16px;
   }
 
   .grid__cardMethodPay {
     width: 100%;
+    grid-template-columns: 1fr !important;
+  }
+
+  .grid__cardMethodPay > div:nth-child(n) {
+    grid-column: 1 / -1 !important;
   }
 
   .wrapper__contentPays {
     grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .card__methodPay > div:nth-child(1) {
+    padding: 12px 8px;
+  }
+
+  .card__methodPay svg {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .card__methodPay img {
+    max-width: 50px !important;
+    max-height: 36px !important;
+    width: auto !important;
+    height: auto !important;
+  }
+
+  .card__methodPay p {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  .active__payment {
+    padding: 12px 8px;
   }
 
   .body__payMethod__billingActive,
   .body__payMethod__billingActivePlinYape {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .form__payMethod {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .client__option {
+    grid-template-columns: 1fr;
+  }
+
+  .buttons__options {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .chooseBilling {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 4px;
+  }
+
+  .chooseBilling button {
+    padding: 8px 4px;
+    font-size: 12px;
   }
 }
