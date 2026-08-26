@@ -44,6 +44,15 @@ interface IOption {
   value: string;
 }
 
+type MethodType = "EFECTIVO" | "TARJETA" | "BILLETERA";
+
+const getMethodType = (value?: string): MethodType => {
+  const v = (value || "").toLowerCase();
+  if (v.includes("efectivo") || v.includes("cash") || v.includes("sol")) return "EFECTIVO";
+  if (v.includes("yape") || v.includes("plin") || v.includes("transferencia") || v.includes("billetera") || v.includes("wallet")) return "BILLETERA";
+  return "TARJETA";
+};
+
 export interface IClient {
   id?: number;
   index?: number;
@@ -127,6 +136,9 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
     total += producto.precio * producto.cantidad;
   }
 
+  const selectedMethod = (payMethods as IOption[])?.find((item: IOption) => item.id === payMethod);
+  const selectedMethodType: MethodType | null = payMethod === 0 ? null : getMethodType(selectedMethod?.value);
+
   const documents = [{ id: 1, value: "DNI" }];
 
   const sex = [
@@ -139,19 +151,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
   }, []);
 
   useEffect(() => {
-    if (payMethod === 4 && activeBilling === "boleta") {
-      setFormValues({
-        ...formValues,
-        razonSocial: clientes[0]?.nombre,
-      });
-    }
-    if (payMethod === 3 && activeBilling === "boleta") {
-      setFormValues({
-        ...formValues,
-        razonSocial: clientes[0]?.nombre,
-      });
-    }
-    if (payMethod === 1 && activeBilling === "boleta") {
+    if (payMethod !== 0 && activeBilling === "boleta") {
       setFormValues({
         ...formValues,
         razonSocial: clientes[0]?.nombre,
@@ -208,21 +208,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
   };
 
   const next = () => {
-    if (activeBilling === "factura" && payMethod === 1) {
-      if (formValues?.razonSocial === "") {
-        return toast.error("Debes agregar la razon social");
-      }
-      if (formValues?.ruc === "") {
-        return toast.error("Debes agregar un numero de documento");
-      }
-      if (formValues?.ruc.length !== 11) {
-        return toast.error("El ruc debe tener 11 números");
-      }
-    }
-    if (
-      (activeBilling === "factura" && payMethod === 3) ||
-      (activeBilling === "factura" && payMethod === 4)
-    ) {
+    if (activeBilling === "factura") {
       if (formValues?.razonSocial === "") {
         return toast.error("Debes agregar la razon social");
       }
@@ -236,19 +222,8 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
     if (activeBilling === "") {
       return toast.error("Elegir un tipo de venta");
     }
-    if (activeBilling === "factura" && payMethod === 2) {
-      if (formValues?.razonSocial === "") {
-        return toast.error("Debes agregar la razon social");
-      }
-      if (formValues?.ruc === "") {
-        return toast.error("Debes agregar un numero de documento");
-      }
-      if (formValues?.ruc.length !== 11) {
-        return toast.error("El ruc debe tener 11 números");
-      }
-    }
     dispatch(getDni(activeBilling === "boleta" ? searchDni : formValues?.ruc));
-    if (payMethod === 3 || payMethod === 4) {
+    if (selectedMethodType === "BILLETERA") {
       setIsOpenLoadingPay(true);
       setActiveBilling("");
       return dispatch(
@@ -257,7 +232,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
           numeroDocumento:
             activeBilling === "boleta" ? searchDni : formValues?.ruc,
           tipoDocumentoVentaId: activeBilling === "boleta" ? 2 : 1,
-          efectivo: payMethod === 3 ? "YAPE" : "PLIN",
+          efectivo: selectedMethod?.value?.toUpperCase() || "BILLETERA",
           tipoVenta: activeBilling,
           total: total,
           detallePago: [
@@ -271,7 +246,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
       );
     }
 
-    if (payMethod === 2 || payMethod === 6) {
+    if (selectedMethodType === "TARJETA") {
       if (referenciaOperacion === "") {
         return toast.error("Debes agregar una referencia válida de operación");
       }
@@ -280,7 +255,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
       dispatch(
         saleProducts({
           ...formValues,
-          efectivo: "VISA",
+          efectivo: selectedMethod?.value?.toUpperCase() || "TARJETA",
           numeroDocumento:
             activeBilling === "boleta" ? searchDni : formValues?.ruc,
           tipoDocumentoVentaId: activeBilling === "boleta" ? 2 : 1,
@@ -394,7 +369,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
         ...formValues,
         clientId: clientes[0].id,
       });
-      if (payMethod === 1 && activeBilling === "boleta") {
+      if (payMethod !== 0 && activeBilling === "boleta") {
         setFormValues({
           ...formValues,
           razonSocial: clientes[0]?.nombre,
@@ -682,33 +657,43 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
                             checked={payMethod === item.id && true}
                             onChange={() => undefined}
                           />
-                          {item?.id === 1 || item?.id === 7 ? (
-                            <Icon
-                              icon="mingcute:receive-money-fill"
-                              color="#59CF64"
-                              width={85}
-                            />
-                          ) : (item?.id === 2 || item?.id === 6)  ? (
-                            <Icon icon="logos:visa" width={120} height={80} />
-                          ) : (item?.id === 3 ) ? (
-                            <img
-                              width={60}
-                              src="https://peruconnection.com.pe/wp-content/uploads/2021/11/9877sd.png"
-                            />
-                          ) : item?.id === 4 ? (
-                            <img
-                              width={85}
-                              src="https://seeklogo.com/images/P/plin-logo-0C4106153C-seeklogo.com.png"
-                            />
-                          ) : item?.id === 5 ? (
-                            <img
-                              style={{ textAlign: "center", margin: "0 auto" }}
-                              width={105}
-                              src="https://img.freepik.com/vector-gratis/mano-sujetando-telefono-servicio-billetera-digital-enviando-dinero-transaccion-pago-o-transferencia-traves-ilustracion-plana-aplicacion-movil_74855-20589.jpg?w=2000"
-                            />
-                          ) : (
-                            ""
-                          )}
+                          {(() => {
+                            const v = (item?.value || "").toLowerCase();
+                            if (v.includes("efectivo") || v.includes("cash")) {
+                              return (
+                                <Icon
+                                  icon="mingcute:receive-money-fill"
+                                  color="#59CF64"
+                                  width={85}
+                                />
+                              );
+                            }
+                            if (v.includes("yape")) {
+                              return (
+                                <img
+                                  width={60}
+                                  src="https://peruconnection.com.pe/wp-content/uploads/2021/11/9877sd.png"
+                                />
+                              );
+                            }
+                            if (v.includes("plin")) {
+                              return (
+                                <img
+                                  width={85}
+                                  src="https://seeklogo.com/images/P/plin-logo-0C4106153C-seeklogo.com.png"
+                                />
+                              );
+                            }
+                            if (v.includes("transferencia")) {
+                              return (
+                                <Icon icon="ph:bank-fill" color="#2997FE" width={70} />
+                              );
+                            }
+                            if (v.includes("visa") || v.includes("master") || v.includes("tarjeta")) {
+                              return <Icon icon="logos:visa" width={120} height={80} />;
+                            }
+                            return <Icon icon="ph:wallet-fill" color="#667085" width={70} />;
+                          })()}
                           <p>{item?.value}</p>
                         </div>
                       </div>
@@ -811,7 +796,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
               </div>
             )}
 
-            {activeBilling === "factura" && !isNew && (payMethod === 2  || payMethod === 6 || payMethod === 5 )&& (
+            {activeBilling === "factura" && !isNew && selectedMethodType === "TARJETA" && (
               <div className={styles.body__payMethod__billingActive}>
                 <div className="mb-3">
                   <Input
@@ -846,8 +831,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
               </div>
             )}
 
-            {((activeBilling === "factura" && !isNew && payMethod === 3) ||
-              (activeBilling === "factura" && !isNew && payMethod === 4)) && (
+            {activeBilling === "factura" && !isNew && selectedMethodType === "BILLETERA" && (
               <div className={styles.body__payMethod__billingActivePlinYape}>
                 <div className="mb-3">
                   <Input
@@ -873,7 +857,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
             {activeBilling === "boleta" && !isNew && (
               <>
                 <div className={styles.body__payMethod__billingActive}>
-                  {(payMethod === 2 || payMethod === 6 || payMethod === 5 ) && (
+                  {selectedMethodType === "TARJETA" && (
                     <>
                       <div>
                         <Input
@@ -893,7 +877,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
               </>
             )}
 
-            { ( payMethod === 1 || payMethod === 7 ) && withClient && !isNew ? (
+            { selectedMethodType === "EFECTIVO" && withClient && !isNew ? (
               <div className={styles.form__payMethod}>
                 <>
                   {withClient && activeBilling === "boleta" ? (
@@ -953,7 +937,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
               </div>
             ) : (
               <>
-                {!isNew && ( payMethod === 1 || payMethod === 7 ) && (
+                {!isNew && selectedMethodType === "EFECTIVO" && (
                   <div className={styles.form__payMethod}>
                     <>
                       {activeBilling === "factura" ? (
