@@ -1507,3 +1507,116 @@ input[type=checkbox]:checked::before {
     font-size: 12px;
   }
 }
+
+/* Mobile muy angosto (ej. 302x704): el buscador+grilla debe entrar en una sola
+   pantalla, sin que el header recorte contenido dentro de .products__wrapper
+   (que tiene overflow:hidden). dvh evita el salto por la barra del navegador. */
+@media screen and (max-width: 400px) {
+  .products__wrapper {
+    height: 100dvh;
+  }
+
+  .header__welcome h3 {
+    font-size: 15px;
+  }
+
+  .header__welcome p {
+    display: none;
+  }
+
+  .header__content {
+    padding: 6px 10px 0 10px;
+  }
+
+  .filters {
+    margin-top: 8px;
+  }
+
+  .filters input {
+    padding: 8px 10px 8px 32px;
+    font-size: 12px;
+  }
+
+  .search svg {
+    top: 6px;
+    left: 8px;
+    width: 18px;
+  }
+
+  .btn__filters {
+    margin-left: 8px;
+    margin-right: 0;
+    padding: 8px;
+  }
+
+  .header__options {
+    margin-top: 4px;
+  }
+
+  .header__options button {
+    padding: 5px 10px;
+    font-size: 11px;
+    margin-right: 6px;
+    margin-bottom: 6px;
+  }
+
+  .filters__products {
+    margin-top: 6px;
+    padding: 0 6px;
+  }
+
+  .content__viewProducts {
+    height: calc(100dvh - 112px);
+    padding: 0 0 70px 0;
+  }
+
+  .gridContent__products {
+    grid-template-columns: repeat(2, 1fr);
+    grid-gap: 8px;
+    padding: 0 0 40px 0;
+    margin-top: 8px;
+  }
+
+  .cardFood {
+    padding: 4px 4px 0 4px;
+  }
+
+  .cardFood > div:nth-child(1) {
+    height: 80px;
+  }
+
+  .empty-img {
+    width: 100%;
+    height: 60px;
+  }
+
+  .info__cardFood {
+    padding: 6px 4px 2px 4px;
+  }
+
+  .info__cardFood h3 {
+    font-size: 11px;
+    width: auto;
+  }
+
+  .infoCardFooter {
+    padding: 0 4px 4px;
+  }
+
+  .infoCardFooter p,
+  .infoCardFooter strong {
+    font-size: 10px;
+  }
+
+  .mount__cardFood p {
+    font-size: 11px;
+  }
+
+  .mobileCartBar {
+    left: 6px;
+    right: 6px;
+    bottom: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
