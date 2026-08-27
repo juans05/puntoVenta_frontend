@@ -6,6 +6,7 @@ import { Graph1 } from "./Graph1";
 import { Graph4 } from "./Graph4";
 import styles from "./dashboard.module.css";
 import { Indicadores } from "./Indicadores";
+import { ReporteMargen } from "./ReporteMargen";
 import { Grid, Callout } from "@tremor/react";
 
 interface IDashboardResumen {
@@ -65,6 +66,8 @@ export const DashboardMain = () => {
           </div>
         </Grid>
       </main>
+
+      <ReporteMargen />
     </div>
   );
 };

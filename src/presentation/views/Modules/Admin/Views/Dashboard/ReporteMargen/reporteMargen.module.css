@@ -1,0 +1,88 @@
+.wrapper {
+  margin-top: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #344054;
+  margin: 0 0 4px;
+}
+
+.dates {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.indicadores {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  background: #fff;
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-card, 0 1px 3px rgba(0, 0, 0, 0.08));
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  color: #99a1b7;
+  text-transform: uppercase;
+  font-size: 11px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f1f2;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f7f7f8;
+  white-space: nowrap;
+}
+
+.empty {
+  text-align: center;
+  color: #99a1b7;
+  padding: 24px !important;
+}
+
+.positivo {
+  color: #05c46b;
+  font-weight: 600;
+}
+
+.negativo {
+  color: #e6423a;
+  font-weight: 600;
+}
+
+@media screen and (max-width: 768px) {
+  .indicadores {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .indicadores {
+    grid-template-columns: 1fr;
+  }
+}
