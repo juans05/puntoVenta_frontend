@@ -281,10 +281,17 @@ export const VentasModal = ({ isTurno }: IAsistenciaModal) => {
 
             <div className={styles["main-content-totales"]}>
 
-              
+                <div>
+                    <p>fecha de venta</p>
+                    <p>{activeVentas?.fechaVenta}</p>
+                </div>
+                <div>
+                    <p>fecha de registro</p>
+                    <p>{activeVentas?.fecha}</p>
+                </div>
                 <div>
                     <p>cliente</p>
-                    <p className="uppercase">{activeVentas?.nombre}</p>
+                    <p className="uppercase">{activeVentas?.clienteNombre || "SIN ESPECIFICAR"}</p>
                 </div>
                 <div>
                     <p>subtotal</p>

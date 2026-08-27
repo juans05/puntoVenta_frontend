@@ -40,7 +40,7 @@ export const TableUserBody: FC<ITableBodyProps> = (props) => {
   return (
     <>
       {rows?.length === 0 && (
-        <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+        <tr className="bg-white border-b hover:bg-gray-50">
           <th colSpan={col.length}>
             <div
               className={`${styles["empty-img"]} empty__div`}
@@ -75,7 +75,7 @@ export const TableUserBody: FC<ITableBodyProps> = (props) => {
         rows?.map((row: any, index: number) => {
           return (
             <tr
-              className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+              className="bg-white border-b hover:bg-gray-50"
               key={index}
               id={row.ticket}
             >

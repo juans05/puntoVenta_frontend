@@ -69,7 +69,6 @@ export const VentasRealizadas = () => {
     return {
       ...value,
       id: value?.anfitrionaId,
-      nombre: value?.clienteId === null ? "SIN ESPECIFICAR" : value.nombre,
       email: "",
       nacionalidad: value?.nacionalidadDescripcion,
       movil:

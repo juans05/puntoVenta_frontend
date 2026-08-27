@@ -365,17 +365,11 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
       setFormValues({
         ...formValues,
         clientId: clientes[0].id,
+        razonSocial:
+          payMethod !== 0 && activeBilling === "boleta"
+            ? clientes[0]?.nombre
+            : "",
       });
-      if (payMethod !== 0 && activeBilling === "boleta") {
-        setFormValues({
-          ...formValues,
-          razonSocial: clientes[0]?.nombre,
-        });
-      } else
-        setFormValues({
-          ...formValues,
-          razonSocial: "",
-        });
     }
     if (clientes?.length === 0) {
       setFormCliente({
@@ -446,9 +440,19 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
     }
   }, [code]);
 
+  const selectClient = () => {
+    setIsNew(false);
+  };
+
   const back = () => {
     setIsNew(false);
-    setFormCliente(formCliente);
+    setFormCliente(formClient);
+    setSearchDni("");
+    setFormValues({
+      ...formValues,
+      clientId: null,
+      razonSocial: "",
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -972,18 +976,43 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
             )}
             {isNew ? (
               <div className={styles.buttons__options}>
-                <button
-                  onClick={saveClientNew}
-                  className="bg-brand-500 hover:bg-brand-600 transition-colors mt-6 w-full rounded-md p-2 px-5 text-white"
-                >
-                  {clientes?.length === 0 ? "Agregar" : "Editar"}
-                </button>
-                <button
-                  onClick={back}
-                  className="bg-white border border-neutral-300 text-ink-900 hover:bg-neutral-50 transition-colors mt-6 w-full rounded-md p-2 px-5"
-                >
-                  Regresar
-                </button>
+                {clientes?.length > 0 ? (
+                  <>
+                    <button
+                      onClick={selectClient}
+                      className="bg-brand-500 hover:bg-brand-600 transition-colors mt-6 w-full rounded-md p-2 px-5 text-white"
+                    >
+                      Seleccionar
+                    </button>
+                    <button
+                      onClick={saveClientNew}
+                      className="bg-white border border-neutral-300 text-ink-900 hover:bg-neutral-50 transition-colors mt-6 w-full rounded-md p-2 px-5"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={back}
+                      className="bg-white border border-neutral-300 text-ink-900 hover:bg-neutral-50 transition-colors mt-6 w-full rounded-md p-2 px-5"
+                    >
+                      Regresar
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={saveClientNew}
+                      className="bg-brand-500 hover:bg-brand-600 transition-colors mt-6 w-full rounded-md p-2 px-5 text-white"
+                    >
+                      Agregar
+                    </button>
+                    <button
+                      onClick={back}
+                      className="bg-white border border-neutral-300 text-ink-900 hover:bg-neutral-50 transition-colors mt-6 w-full rounded-md p-2 px-5"
+                    >
+                      Regresar
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <button

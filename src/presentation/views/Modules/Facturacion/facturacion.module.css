@@ -1247,14 +1247,9 @@ input[type=checkbox]:checked::before {
 
 .buttons__options {
   display: grid;
-  grid-template-columns: repeat(2,1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   grid-gap: 20px;
-}
-
-.buttons__options button:nth-child(2) {
-  background: #fff !important ;
-  border: 1px solid #eb466d;
-  color: #eb466d
 }
 
 @media screen and (max-width: 1440px) {
