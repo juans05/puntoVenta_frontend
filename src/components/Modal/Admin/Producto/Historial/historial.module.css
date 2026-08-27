@@ -88,6 +88,16 @@
   padding: 24px 10px !important;
 }
 
+.entrada {
+  color: #05c46b;
+  font-weight: 600;
+}
+
+.salida {
+  color: #e6423a;
+  font-weight: 600;
+}
+
 .pagination {
   display: flex;
   justify-content: center;

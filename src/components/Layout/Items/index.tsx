@@ -47,7 +47,7 @@ export const Item = ({
       <div className={styles.closeBtn} onClick={deleteItem} title='Eliminar'>
         <Svg icon={Icons.close} />
       </div>
-      <div className={styles.historyBtn} onClick={verHistorial} title='Historial de salidas'>
+      <div className={styles.historyBtn} onClick={verHistorial} title='Kardex de movimientos'>
         <Icon icon="mdi:history" />
       </div>
       {
