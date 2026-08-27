@@ -26,7 +26,6 @@ import {
   getCustomer,
   resetCustomer,
 } from "../../../../../redux/reducers/auth/auth.reducer";
-import { Calendar } from "../../../../../components/Date";
 import SelectUbigeo from "../../../../../components/SelectPro/SelectUbigeo";
 import { getAllUbigeos } from "../../../../../redux/reducers/extensiones/extensiones..reducer";
 import Swicth from "./Switch";
@@ -61,7 +60,6 @@ export interface IClient {
   numeroDocumento: string;
   direccion: string;
   sexo: string;
-  fechaNacimiento: string;
   ubigeo: string;
   telefono: string;
   email: string;
@@ -98,7 +96,6 @@ const formClient: IClient = {
   numeroDocumento: "",
   direccion: "",
   email: "",
-  fechaNacimiento: "",
   sexo: "",
   ubigeo: "",
   ubigeoId: 260101,
@@ -435,18 +432,10 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
         updateClient({
           ...formCliente,
           clienteId: formCliente?.id,
-          fechaNacimiento: formCliente?.fechaNacimiento,
           sexo: formCliente?.sexo === "MASCULINO" ? "M" : "F",
         })
       );
     }
-  };
-
-  const handleDate = (date: any) => {
-    setFormCliente({
-      ...formCliente,
-      fechaNacimiento: date,
-    });
   };
 
   useEffect(() => {
@@ -578,13 +567,6 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
                       name="direccion"
                       isLabel
                       label="Direccion"
-                    />
-                  </div>
-                  <div>
-                    <Calendar
-                      defaultValue={formCliente.fechaNacimiento}
-                      onChange={handleDate}
-                      text="Fecha Nacimiento"
                     />
                   </div>
                   <div>
