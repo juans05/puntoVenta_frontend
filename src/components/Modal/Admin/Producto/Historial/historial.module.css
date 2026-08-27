@@ -123,3 +123,34 @@
   font-size: 13px;
   color: #475467;
 }
+
+@media screen and (max-width: 640px) {
+  .overlay {
+    align-items: flex-end;
+  }
+
+  .panel {
+    max-width: 100%;
+    max-height: 90dvh;
+    border-radius: 16px 16px 0 0;
+    padding: 16px;
+  }
+
+  .table {
+    font-size: 12px;
+  }
+
+  .table th,
+  .table td {
+    padding: 8px 6px;
+  }
+
+  .pagination {
+    gap: 8px;
+  }
+
+  .pagination button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
