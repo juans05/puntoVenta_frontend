@@ -107,6 +107,13 @@ export const Navbar = ({ onClickSidebar }: any) => {
                       <p className="hidden sm:inline">Venta rápida</p>
                     </NavLink>
                   </div>
+
+                  <div className={styles['btn-go-sales']}>
+                    <NavLink to={'/nueva-factura'}>
+                      <Icon icon="mdi:file-document-plus-outline" />
+                      <p className="hidden sm:inline">Nueva Factura</p>
+                    </NavLink>
+                  </div>
                 </>
               }
 

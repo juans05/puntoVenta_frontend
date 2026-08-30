@@ -26,6 +26,7 @@ import { Gastos } from "../presentation/views/Modules/Admin/Views/Gastos";
 import { GastoPublicidad } from "../presentation/views/Modules/Admin/Views/GastoPublicidad";
 import { CatalogosGasto } from "../presentation/views/Modules/Admin/Views/CatalogosGasto";
 import { Empresas } from "../presentation/views/Modules/Admin/Views/Empresas";
+import NuevaFactura from "../presentation/views/Modules/NuevaFactura";
 
 export const Dashboard = () => {
 
@@ -39,6 +40,7 @@ export const Dashboard = () => {
           <Route path="/" element={<Login />} />
           <Route path="/facturacion" element={<Facturacion />} />
           <Route path="/venta-rapida" element={<Facturacion requiereCaja={false} />} />
+          <Route path="/nueva-factura" element={<NuevaFactura />} />
           <Route path="/nueva-venta" element={<NuevaVenta />} />
           <Route path="/pago-exitoso" element={<PagoExitoso />} />
           <Route path="/dashboard" element={<LayoutView />}>
