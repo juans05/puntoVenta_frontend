@@ -24,8 +24,35 @@ function tieneColumnaCategoria(fila: any): boolean {
 
 function excelFechaAIso(valor: any): string | null {
   if (!valor) return null;
-  const fecha = valor instanceof Date ? valor : new Date(valor);
+
+  if (valor instanceof Date) {
+    return isNaN(valor.getTime()) ? null : valor.toISOString().slice(0, 10);
+  }
+
+  const texto = String(valor).trim();
+
+  // dd/mm/yyyy (formato con el que Excel exporta las fechas en este template) --
+  // new Date(texto) asume mm/dd/yyyy y arruina cualquier dia > 12.
+  const match = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (match) {
+    const dia = Number(match[1]);
+    const mes = Number(match[2]);
+    const anio = Number(match[3]);
+    if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return null;
+    return `${anio}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+  }
+
+  const fecha = new Date(texto);
   return isNaN(fecha.getTime()) ? null : fecha.toISOString().slice(0, 10);
+}
+
+function excelMontoANumero(valor: any): number {
+  if (typeof valor === "number") return valor;
+  // Quita el simbolo de moneda ("S/") y espacios; conserva digitos, "," y "."
+  const soloNumero = String(valor ?? "")
+    .replace(/[^0-9.,-]/g, "")
+    .replace(/,/g, "");
+  return parseFloat(soloNumero);
 }
 
 export function parseGastoExcel(arrayBuffer: ArrayBuffer): IParseoGastoResultado {
@@ -56,7 +83,7 @@ export function parseGastoExcel(arrayBuffer: ArrayBuffer): IParseoGastoResultado
   filasCrudas.forEach((fila, index) => {
     const fechaGasto = excelFechaAIso(fila["Fecha"]);
     const categoria = fila["Categoría"] ?? fila["Categoria"];
-    const monto = parseFloat(fila["Monto"]);
+    const monto = excelMontoANumero(fila["Monto"]);
     const metodoPago = fila["Método de pago"] ?? fila["Metodo de pago"] ?? null;
 
     if (!fechaGasto || !categoria || isNaN(monto)) {
