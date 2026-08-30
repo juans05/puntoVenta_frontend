@@ -120,6 +120,9 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
   const [isNew, setIsNew] = useState<boolean>(false);
   const [withClient, setWithClient] = useState<boolean>(false);
   const [searchDni, setSearchDni] = useState<any>("");
+  const [fechaVenta, setFechaVenta] = useState<string>(
+    new Date().toISOString().slice(0, 10)
+  );
 
   useEffect(() => {
     if (cliente?.id !== 0) {
@@ -232,6 +235,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
           efectivo: selectedMethod?.value?.toUpperCase() || "BILLETERA",
           tipoVenta: activeBilling,
           total: total,
+          fechaVenta,
           detallePago: [
             {
               metodoPagoId: payMethod,
@@ -258,6 +262,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
           tipoDocumentoVentaId: activeBilling === "boleta" ? 2 : 1,
           tipoVenta: activeBilling,
           total: total,
+          fechaVenta,
           detalleComprobante: formValues.detalleComprobante?.map(
             (item: any) => ({
               ...item,
@@ -286,6 +291,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
                 activeBilling === "boleta" ? searchDni : formValues?.ruc,
               tipoDocumentoVentaId: activeBilling === "boleta" ? 2 : 1,
               total: total,
+              fechaVenta,
               efectivo: "SOLES",
               detallePago: formValues?.detallePago?.map((item: any) => ({
                 ...item,
@@ -746,6 +752,20 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
                   </div>
                 ))}
             </div>
+
+            {!isNew && (
+              <div className={styles.fechaVentaWrapper}>
+                <label htmlFor="fechaVenta">Fecha de venta</label>
+                <input
+                  id="fechaVenta"
+                  type="date"
+                  value={fechaVenta}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setFechaVenta(e.target.value)
+                  }
+                />
+              </div>
+            )}
 
             {!isNew && (
               //  payMethod !== 0 && !isNew && (

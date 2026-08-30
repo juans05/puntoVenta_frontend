@@ -23,6 +23,7 @@ export interface ISaleProduct {
     clientId?: any
     tipoDocumentoVentaId: number
     numeroDocumento?: string
+    fechaVenta?: string
     total: number
     ruc: string
     razonSocial: string
