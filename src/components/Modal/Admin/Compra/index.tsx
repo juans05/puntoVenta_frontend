@@ -109,6 +109,12 @@ export const CompraModal = ({ isOpen, onClose, compraId }: IProps) => {
     value: p.nombre,
   }));
 
+  const proveedorSeleccionado =
+    proveedoresOptions.find((p: any) => Number(p.id) === Number(proveedorId))?.value ?? "";
+
+  const metodoPagoSeleccionado =
+    (payMethods ?? []).find((m: any) => Number(m.id) === Number(metodoPagoId))?.value ?? "";
+
   const agregarLinea = () => setDetalle([...detalle, { ...lineaVacia }]);
 
   const quitarLinea = (index: number) =>
@@ -212,6 +218,7 @@ export const CompraModal = ({ isOpen, onClose, compraId }: IProps) => {
                 isSearch
                 label="Proveedor (opcional)"
                 options={proveedoresOptions}
+                defaultValue={proveedorSeleccionado}
                 onChange={(idValue: any) => setProveedorId(Number(idValue))}
                 placeholder="Sin proveedor"
               />
@@ -222,6 +229,7 @@ export const CompraModal = ({ isOpen, onClose, compraId }: IProps) => {
                 isSearch
                 label="Método de pago (opcional)"
                 options={payMethods}
+                defaultValue={metodoPagoSeleccionado}
                 onChange={(idValue: any) => setMetodoPagoId(Number(idValue))}
                 placeholder="Sin especificar"
               />
