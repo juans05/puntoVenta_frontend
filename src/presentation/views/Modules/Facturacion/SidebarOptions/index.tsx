@@ -17,10 +17,11 @@ interface props {
     boxModal: any
     setOpenRetiro: any
     setIsOpenModalHistorialRetiro: Dispatch<boolean>
+    requiereCaja?: boolean
 }
 
 const SidebarOptions = ({ onClose,
-    boxModal,setOpenRetiro,setIsOpenModalHistorialRetiro
+    boxModal,setOpenRetiro,setIsOpenModalHistorialRetiro, requiereCaja = true
 }: props) => {
 
     const dispatch = useAppDispatch();
@@ -84,24 +85,28 @@ const SidebarOptions = ({ onClose,
                             <div className={styles.dividerSidebar}>
                                 <div></div>
                             </div>
-                            <li>
-                                <Link onClick={openHistorialRetiro} to={'#'}><Icon icon="icon-park-outline:folder-withdrawal" />Historial de retiros</Link>
-                            </li>
-                            <div className={styles.dividerSidebar}>
-                                <div></div>
-                            </div>
-                            <li>
-                                <Link onClick={cajaStorage === null || cajaStorage.cajaAbierta === false ? boxModal : confirmClose} to={'#'}><Icon icon="solar:box-broken" />{cajaStorage === null || cajaStorage.cajaAbierta === false ? 'Abrir Caja' : 'Cerrar Caja'}</Link>
-                            </li>
-                            <div className={styles.dividerSidebar}>
-                                <div></div>
-                            </div>
-                            <li>
-                                <Link onClick={openRetiro} to={'#'}><Icon icon="uil:money-withdrawal" />Retiro de dinero</Link>
-                            </li>
-                            <div className={styles.dividerSidebar}>
-                                <div></div>
-                            </div>
+                            {requiereCaja && (
+                                <>
+                                    <li>
+                                        <Link onClick={openHistorialRetiro} to={'#'}><Icon icon="icon-park-outline:folder-withdrawal" />Historial de retiros</Link>
+                                    </li>
+                                    <div className={styles.dividerSidebar}>
+                                        <div></div>
+                                    </div>
+                                    <li>
+                                        <Link onClick={cajaStorage === null || cajaStorage.cajaAbierta === false ? boxModal : confirmClose} to={'#'}><Icon icon="solar:box-broken" />{cajaStorage === null || cajaStorage.cajaAbierta === false ? 'Abrir Caja' : 'Cerrar Caja'}</Link>
+                                    </li>
+                                    <div className={styles.dividerSidebar}>
+                                        <div></div>
+                                    </div>
+                                    <li>
+                                        <Link onClick={openRetiro} to={'#'}><Icon icon="uil:money-withdrawal" />Retiro de dinero</Link>
+                                    </li>
+                                    <div className={styles.dividerSidebar}>
+                                        <div></div>
+                                    </div>
+                                </>
+                            )}
                             <div className={styles.dividerSidebar}>
                                 <div></div>
                             </div>

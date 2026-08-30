@@ -25,7 +25,11 @@ import ModalRetiro from './ModalRetiro';
 import ModalHistorialRetiros from './ModalHistorialRetiros';
 import { getCustomer } from '../../../../redux/reducers/auth/auth.reducer';
 
-const Facturacion = () => {
+interface IProps {
+    requiereCaja?: boolean;
+}
+
+const Facturacion = ({ requiereCaja = true }: IProps) => {
 
     const dispatch = useAppDispatch();
     const { products }: IProductsState = useAppSelector((state: RootState) => state.products);
@@ -85,6 +89,10 @@ const Facturacion = () => {
     const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
 
     useEffect(() => {
+        if (!requiereCaja) {
+            setOpenCaja(false)
+            return
+        }
         if (caja?.cajaAbierta === false) {
             setOpenCaja(true)
         } else {
@@ -94,7 +102,7 @@ const Facturacion = () => {
             null
             return
         }
-    }, [caja])
+    }, [caja, requiereCaja])
 
     const boxModal = () => {
         setOpenCaja(true);
@@ -166,6 +174,7 @@ const Facturacion = () => {
                             setOpenRetiro={setIsOpenRetiro}
                             boxModal={boxModal}
                             isIgv={isIgv}
+                            requiereCaja={requiereCaja}
                             setIsOpenModalHistorialRetiro={setIsOpenModalHistorialRetiro}
                             setOpenSidebar={setOpenSidebar}
                             isOpenSidebar={isOpenSidebar}

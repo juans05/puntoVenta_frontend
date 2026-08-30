@@ -93,12 +93,21 @@ export const Navbar = ({ onClickSidebar }: any) => {
 
               {
                 !me?.userName?.startsWith('RECEPCION') && !me?.userName?.startsWith('CONTADORA') &&
-                <div className={styles['btn-go-sales']}>
-                  <NavLink to={'/facturacion'}>
-                    <Icon icon="icon-park-solid:sales-report" />
-                    <p className="hidden sm:inline">Ir a ventas</p>
-                  </NavLink>
-                </div>
+                <>
+                  <div className={styles['btn-go-sales']}>
+                    <NavLink to={'/facturacion'}>
+                      <Icon icon="icon-park-solid:sales-report" />
+                      <p className="hidden sm:inline">Ir a ventas</p>
+                    </NavLink>
+                  </div>
+
+                  <div className={styles['btn-go-sales']}>
+                    <NavLink to={'/venta-rapida'}>
+                      <Icon icon="ph:lightning-fill" />
+                      <p className="hidden sm:inline">Venta rápida</p>
+                    </NavLink>
+                  </div>
+                </>
               }
 
               <div>

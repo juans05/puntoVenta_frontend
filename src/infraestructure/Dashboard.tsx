@@ -38,6 +38,7 @@ export const Dashboard = () => {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/facturacion" element={<Facturacion />} />
+          <Route path="/venta-rapida" element={<Facturacion requiereCaja={false} />} />
           <Route path="/nueva-venta" element={<NuevaVenta />} />
           <Route path="/pago-exitoso" element={<PagoExitoso />} />
           <Route path="/dashboard" element={<LayoutView />}>

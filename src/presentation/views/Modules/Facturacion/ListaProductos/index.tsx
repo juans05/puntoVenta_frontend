@@ -25,9 +25,10 @@ interface IProps {
     setOpenRetiro: Dispatch<boolean>
     setIsOpenModalHistorialRetiro: Dispatch<boolean>
     closeMobileCart: () => void
+    requiereCaja?: boolean
 }
 
-const ListaProductos = ({isIgv,setIsOpenModalHistorialRetiro,setOpenRetiro, boxModal,setOpenSidebar,isOpenSidebar, setIsOpenModal, openSidebarMenu, closeMobileCart }: IProps) => {
+const ListaProductos = ({isIgv,setIsOpenModalHistorialRetiro,setOpenRetiro, boxModal,setOpenSidebar,isOpenSidebar, setIsOpenModal, openSidebarMenu, closeMobileCart, requiereCaja = true }: IProps) => {
 
     const dispatch = useAppDispatch();
 
@@ -99,7 +100,7 @@ const ListaProductos = ({isIgv,setIsOpenModalHistorialRetiro,setOpenRetiro, boxM
 
     return (
         <div className="relative">
-            {isOpenSidebar && <SidebarOptions setIsOpenModalHistorialRetiro={setIsOpenModalHistorialRetiro} setOpenRetiro={setOpenRetiro} boxModal={boxModal} onClose={() => setOpenSidebar(false)} />}
+            {isOpenSidebar && <SidebarOptions requiereCaja={requiereCaja} setIsOpenModalHistorialRetiro={setIsOpenModalHistorialRetiro} setOpenRetiro={setOpenRetiro} boxModal={boxModal} onClose={() => setOpenSidebar(false)} />}
             <div onClick={closeMobileCart} className={styles.mobileCartSheet__close}><span></span></div>
             <div className="flex justify-between px-5 py-3">
                 <h3 className="text-[#47525E] font-bold"><h4 className="mt-2">Vendedor - {me?.userName}</h4></h3>
@@ -182,7 +183,7 @@ const ListaProductos = ({isIgv,setIsOpenModalHistorialRetiro,setOpenRetiro, boxM
                     <p className="text-ink-900 font-bold text-xl">{total.toFixed(2)}</p>
                 </div>
                 <button disabled={
-                    cajaStorage?.cajaAbierta === true &&
+                    (requiereCaja ? cajaStorage?.cajaAbierta === true : true) &&
                         productsBySale?.length > 0 ? false : true} onClick={showPage} className="mt-4 bg-brand-500 hover:bg-brand-600 transition-colors w-full rounded-md p-3 text-white font-semibold">Pagar</button>
             </div>
         </div>
