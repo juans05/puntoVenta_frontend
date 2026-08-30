@@ -629,6 +629,36 @@
   grid-gap: 10px;
 }
 
+.clientesEncontrados {
+  margin-top: 10px;
+}
+
+.clientesEncontrados p {
+  font-size: 13px;
+  color: #475467;
+  margin-bottom: 8px;
+}
+
+.clientesGrid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.clientesGrid th {
+  text-align: left;
+  color: #99a1b7;
+  text-transform: uppercase;
+  font-size: 11px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f1f2;
+}
+
+.clientesGrid td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f7f7f8;
+}
+
 .wrapper__historial .content__cardProduct {
   padding: 0px 10px 0px 10px
 }

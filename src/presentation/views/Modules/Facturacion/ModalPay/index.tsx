@@ -359,7 +359,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
   };
 
   useEffect(() => {
-    if (searchDni !== "" && clientes?.length > 0) {
+    if (searchDni !== "" && clientes?.length === 1) {
       dispatch(getCustomer(clientes[0]?.nombre));
       setFormCliente(clientes[0]);
       setFormValues({
@@ -383,11 +383,30 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
   console.log(formCliente);
   console.log(payMethod);
 
+  const puedeBuscarCliente = (valor: string) => {
+    const v = valor.trim();
+    if (v.length < 3) return false;
+    // Un texto todo numérico se trata como DNI exacto (8 dígitos); si no, es búsqueda por nombre.
+    return /^\d+$/.test(v) ? v.length === 8 : true;
+  };
+
   const searchClient = () => {
     setIsNew(true);
-    if (searchDni.length === 8) {
-      dispatch(getClients(searchDni));
+    if (puedeBuscarCliente(searchDni)) {
+      dispatch(getClients(searchDni.trim()));
     }
+  };
+
+  const seleccionarClienteDeLista = (c: any) => {
+    dispatch(getCustomer(c?.nombre));
+    setFormCliente(c);
+    setFormValues({
+      ...formValues,
+      clientId: c.id,
+      razonSocial:
+        payMethod !== 0 && activeBilling === "boleta" ? c?.nombre : "",
+    });
+    setIsNew(false);
   };
 
   const onChangeClient = (e: ChangeEvent<HTMLInputElement>) => {
@@ -458,9 +477,11 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       setIsNew(true);
-      if (searchDni.length === 8) {
-        dispatch(getClients(searchDni));
-        dispatch(getDni(searchDni));
+      if (puedeBuscarCliente(searchDni)) {
+        dispatch(getClients(searchDni.trim()));
+        if (searchDni.trim().length === 8) {
+          dispatch(getDni(searchDni.trim()));
+        }
       }
     }
   };
@@ -498,7 +519,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
               />
             </div>
             <h5>Métodos de pago</h5>
-            <p>Ingrese el dni del cliente o cree uno nuevo para la venta</p>
+            <p>Busca al cliente por DNI o nombre, o cree uno nuevo para la venta</p>
           </div>
           <Swicth
             withClient={withClient}
@@ -517,7 +538,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
                       setSearchDni(e.target.value)
                     }
                     isLabel
-                    label="Ingrese el dni"
+                    label="Ingrese el DNI o el nombre y apellidos"
                   />
                 </div>
                 <div>
@@ -530,8 +551,39 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
                 </div>
               </div>
             )}
+            {isNew && clientes?.length > 1 && (
+              <div className={styles.clientesEncontrados}>
+                <p>Se encontraron {clientes.length} clientes, selecciona uno:</p>
+                <table className={styles.clientesGrid}>
+                  <thead>
+                    <tr>
+                      <th>Nombres y apellidos</th>
+                      <th>DNI</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clientes.map((c: any) => (
+                      <tr key={c.id}>
+                        <td>{c.nombre}</td>
+                        <td>{c.numeroDocumento}</td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => seleccionarClienteDeLista(c)}
+                            className="bg-brand-500 hover:bg-brand-600 transition-colors rounded-md p-2 px-4 text-sm text-white"
+                          >
+                            Seleccionar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
             <div className={styles.grid__cardMethodPay}>
-              {isNew && (
+              {isNew && clientes?.length <= 1 && (
                 <>
                   <div>
                     <SelectPro
@@ -976,7 +1028,14 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
             )}
             {isNew ? (
               <div className={styles.buttons__options}>
-                {clientes?.length > 0 ? (
+                {clientes?.length > 1 ? (
+                  <button
+                    onClick={back}
+                    className="bg-white border border-neutral-300 text-ink-900 hover:bg-neutral-50 transition-colors mt-6 w-full rounded-md p-2 px-5"
+                  >
+                    Regresar
+                  </button>
+                ) : clientes?.length === 1 ? (
                   <>
                     <button
                       onClick={selectClient}

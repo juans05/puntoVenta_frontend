@@ -7,6 +7,7 @@ import {
   getCompras,
 } from "../../../../../../redux/reducers/Admin/compras/compra.reducer";
 import { CompraModal } from "../../../../../../components/Modal/Admin/Compra";
+import { CompraVerModal } from "../../../../../../components/Modal/Admin/Compra/CompraVerModal";
 import { Toaster } from "sonner";
 import { printTable } from "../../../../../../helpers/functions/printTitle";
 import { title } from "../../../../../../infraestructure/MData/MData";
@@ -21,6 +22,8 @@ export const Compras = () => {
 
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
+  const [compraEditandoId, setCompraEditandoId] = useState<number | undefined>(undefined);
+  const [compraViendoId, setCompraViendoId] = useState<number | undefined>(undefined);
 
   const totalPages = Math.max(1, Math.ceil((totalCompras || 0) / PAGE_SIZE));
 
@@ -38,11 +41,26 @@ export const Compras = () => {
     dispatch(anularCompra(id) as any);
   };
 
+  const abrirNueva = () => {
+    setCompraEditandoId(undefined);
+    setModalOpen(true);
+  };
+
+  const abrirEditar = (id: number) => {
+    setCompraEditandoId(id);
+    setModalOpen(true);
+  };
+
+  const cerrarModal = () => {
+    setModalOpen(false);
+    setCompraEditandoId(undefined);
+  };
+
   return (
     <div>
       <div className={styles.header}>
         <h3>Compras</h3>
-        <button className={styles.newBtn} onClick={() => setModalOpen(true)}>
+        <button className={styles.newBtn} onClick={abrirNueva}>
           + Nueva compra
         </button>
       </div>
@@ -86,14 +104,28 @@ export const Compras = () => {
                     </span>
                   </td>
                   <td data-label="Usuario">{c.usuario ?? "-"}</td>
-                  <td>
+                  <td className={styles.accionesCell}>
+                    <button
+                      className={styles.verBtn}
+                      onClick={() => setCompraViendoId(c.id)}
+                    >
+                      Ver
+                    </button>
                     {c.estado !== "ANULADO" && (
-                      <button
-                        className={styles.anularBtn}
-                        onClick={() => confirmarAnular(c.id)}
-                      >
-                        Anular
-                      </button>
+                      <>
+                        <button
+                          className={styles.editarBtn}
+                          onClick={() => abrirEditar(c.id)}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          className={styles.anularBtn}
+                          onClick={() => confirmarAnular(c.id)}
+                        >
+                          Anular
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
@@ -125,7 +157,16 @@ export const Compras = () => {
         </div>
       )}
 
-      <CompraModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+      <CompraModal
+        isOpen={modalOpen}
+        onClose={cerrarModal}
+        compraId={compraEditandoId}
+      />
+      <CompraVerModal
+        isOpen={!!compraViendoId}
+        onClose={() => setCompraViendoId(undefined)}
+        compraId={compraViendoId}
+      />
       <Toaster richColors position="top-right" duration={2000} />
     </div>
   );
