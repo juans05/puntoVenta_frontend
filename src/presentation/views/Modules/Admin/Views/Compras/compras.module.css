@@ -85,6 +85,32 @@
   cursor: pointer;
 }
 
+.accionesCell {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.verBtn {
+  border: 1px solid rgb(230, 229, 229);
+  color: #475467;
+  background: #fff;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.editarBtn {
+  border: 1px solid #2997FE;
+  color: #2997FE;
+  background: #fff;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .pagination {
   display: flex;
   justify-content: center;

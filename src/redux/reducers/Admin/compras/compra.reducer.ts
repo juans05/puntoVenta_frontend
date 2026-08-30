@@ -114,6 +114,23 @@ export const crearCompra = (payload: any, onSuccess?: () => void) => {
   };
 };
 
+export const actualizarCompra = (id: number, payload: any, onSuccess?: () => void) => {
+  return async (dispatch: Dispatch<AnyAction>) => {
+    try {
+      const response: any = await axiosInstance.put(`/compras/actualizar/${id}`, payload);
+      const { status } = response;
+      if (status === 200) {
+        toast.success("Compra actualizada correctamente");
+        dispatch(getCompras(1, 20) as any);
+        onSuccess?.();
+      }
+    } catch (error: any) {
+      console.log(error);
+      toast.error(error?.response?.data?.message ?? "Error al editar la compra");
+    }
+  };
+};
+
 export const anularCompra = (id: number) => {
   return async (dispatch: Dispatch<AnyAction>) => {
     try {

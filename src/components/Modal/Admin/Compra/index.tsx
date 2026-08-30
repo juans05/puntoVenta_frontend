@@ -5,11 +5,13 @@ import styles from "./compra.module.css";
 import { useAppDispatch, useAppSelector } from "../../../../redux/store";
 import { RootState } from "../../../../redux/rootState";
 import {
+  actualizarCompra,
   crearCompra,
   getProductosCompra,
   getProveedores,
 } from "../../../../redux/reducers/Admin/compras/compra.reducer";
 import { getPayMethods } from "../../../../redux/reducers/extensiones/extensiones..reducer";
+import axiosInstance from "../../../../utils/axios";
 import Input from "../../../Input";
 import SelectPro from "../../../SelectPro";
 import { toast } from "sonner";
@@ -33,32 +35,69 @@ const lineaVacia: IDetalleLinea = {
 interface IProps {
   isOpen: boolean;
   onClose: () => void;
+  compraId?: number;
 }
 
-export const CompraModal = ({ isOpen, onClose }: IProps) => {
+// "dd/MM/yyyy HH:mm:ss" (formato del backend) -> "yyyy-MM-dd" (formato del input date)
+const fechaDisplayAIso = (fechaDisplay: string): string => {
+  const [datePart] = fechaDisplay.split(" ");
+  const [d, m, y] = datePart.split("/");
+  return `${y}-${m}-${d}`;
+};
+
+export const CompraModal = ({ isOpen, onClose, compraId }: IProps) => {
   const dispatch = useAppDispatch();
   const { proveedores, productosCompra }: any = useAppSelector(
     (state: RootState) => state.compras
   );
   const { payMethods }: any = useAppSelector((state: RootState) => state.extentions);
 
+  const esEdicion = !!compraId;
+
   const [proveedorId, setProveedorId] = useState<number>(0);
   const [metodoPagoId, setMetodoPagoId] = useState<number>(0);
   const [observacion, setObservacion] = useState<string>("");
+  const [fecha, setFecha] = useState<string>("");
   const [detalle, setDetalle] = useState<IDetalleLinea[]>([{ ...lineaVacia }]);
   const [loading, setLoading] = useState(false);
+  const [cargandoCompra, setCargandoCompra] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      dispatch(getProveedores() as any);
-      dispatch(getProductosCompra() as any);
-      dispatch(getPayMethods() as any);
+    if (!isOpen) return;
+
+    dispatch(getProveedores() as any);
+    dispatch(getProductosCompra() as any);
+    dispatch(getPayMethods() as any);
+
+    if (compraId) {
+      setCargandoCompra(true);
+      axiosInstance
+        .get(`/compras/${compraId}`)
+        .then(({ data }: any) => {
+          const c = data?.data;
+          setProveedorId(c?.proveedorId ?? 0);
+          setMetodoPagoId(c?.metodoPagoId ?? 0);
+          setObservacion(c?.observacion ?? "");
+          setFecha(c?.fechaCompra ? fechaDisplayAIso(c.fechaCompra) : "");
+          setDetalle(
+            (c?.detalle ?? []).map((d: any) => ({
+              productoId: d.productoId,
+              nombre: d.producto ?? "",
+              cantidad: d.cantidad,
+              costoUnitario: d.costoUnitario,
+            }))
+          );
+        })
+        .catch(() => toast.error("No se pudo cargar la compra"))
+        .finally(() => setCargandoCompra(false));
+    } else {
       setProveedorId(0);
       setMetodoPagoId(0);
       setObservacion("");
+      setFecha("");
       setDetalle([{ ...lineaVacia }]);
     }
-  }, [isOpen, dispatch]);
+  }, [isOpen, dispatch, compraId]);
 
   const proveedoresOptions = (proveedores ?? []).map((p: any) => ({
     id: p.proveedorId,
@@ -117,23 +156,25 @@ export const CompraModal = ({ isOpen, onClose }: IProps) => {
       return;
     }
 
+    const payload = {
+      proveedorId: proveedorId > 0 ? proveedorId : null,
+      metodoPagoId: metodoPagoId > 0 ? metodoPagoId : null,
+      observacion,
+      fechaCompra: esEdicion && fecha ? fecha : null,
+      detalle: lineasValidas.map((l) => ({
+        productoId: l.productoId,
+        cantidad: Number(l.cantidad),
+        costoUnitario: Number(l.costoUnitario),
+      })),
+    };
+
     setLoading(true);
     try {
-      await dispatch(
-        crearCompra(
-          {
-            proveedorId: proveedorId > 0 ? proveedorId : null,
-            metodoPagoId: metodoPagoId > 0 ? metodoPagoId : null,
-            observacion,
-            detalle: lineasValidas.map((l) => ({
-              productoId: l.productoId,
-              cantidad: Number(l.cantidad),
-              costoUnitario: Number(l.costoUnitario),
-            })),
-          },
-          onClose
-        ) as any
-      );
+      if (esEdicion) {
+        await dispatch(actualizarCompra(compraId!, payload, onClose) as any);
+      } else {
+        await dispatch(crearCompra(payload, onClose) as any);
+      }
     } finally {
       setLoading(false);
     }
@@ -149,8 +190,12 @@ export const CompraModal = ({ isOpen, onClose }: IProps) => {
     >
       <div className={styles.encabezado}>
         <h3>
-          Nueva compra
-          <small>Registra una entrada de stock por compra</small>
+          {esEdicion ? "Editar compra" : "Nueva compra"}
+          <small>
+            {esEdicion
+              ? "Corrige los productos, cantidades o datos de la compra"
+              : "Registra una entrada de stock por compra"}
+          </small>
         </h3>
         <button type="button" className={styles.closeBtn} onClick={onClose}>
           <Icon icon="mdi:close" width={20} />
@@ -181,6 +226,17 @@ export const CompraModal = ({ isOpen, onClose }: IProps) => {
                 placeholder="Sin especificar"
               />
             </div>
+            {esEdicion && (
+              <div>
+                <label>Fecha</label>
+                <input
+                  type="date"
+                  className={styles.fechaInput}
+                  value={fecha}
+                  onChange={(e: any) => setFecha(e.target.value)}
+                />
+              </div>
+            )}
             <div className={styles.full}>
               <Input
                 isLabel
@@ -263,8 +319,8 @@ export const CompraModal = ({ isOpen, onClose }: IProps) => {
           <button type="button" className={styles.cancel} onClick={onClose}>
             Cancelar
           </button>
-          <button type="submit" className={styles.submit} disabled={loading}>
-            {loading ? "Guardando..." : "Registrar compra"}
+          <button type="submit" className={styles.submit} disabled={loading || cargandoCompra}>
+            {loading ? "Guardando..." : esEdicion ? "Guardar cambios" : "Registrar compra"}
           </button>
         </div>
       </form>

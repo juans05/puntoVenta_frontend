@@ -59,6 +59,23 @@ export const crearGasto = (payload: any, onSuccess?: () => void) => {
   };
 };
 
+export const importarGastos = (filas: any[], onSuccess?: () => void) => {
+  return async (dispatch: Dispatch<AnyAction>) => {
+    try {
+      const response: any = await axiosInstance.post(`/gastos/importar`, { filas });
+      const { status, data } = response;
+      if (status === 200) {
+        toast.success(data?.message ?? "Gastos importados correctamente");
+        dispatch(getGastos(1, 20) as any);
+        onSuccess?.();
+      }
+    } catch (error: any) {
+      console.log(error);
+      toast.error(error?.response?.data?.message ?? "Error al importar los gastos");
+    }
+  };
+};
+
 export const anularGasto = (id: number) => {
   return async (dispatch: Dispatch<AnyAction>) => {
     try {

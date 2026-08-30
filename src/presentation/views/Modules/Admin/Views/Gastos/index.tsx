@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./gastos.module.css";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { RootState } from "../../../../../../redux/rootState";
 import {
   anularGasto,
   getGastos,
+  importarGastos,
 } from "../../../../../../redux/reducers/Admin/gastos/gasto.reducer";
 import { GastoModal } from "../../../../../../components/Modal/Admin/Gasto";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { printTable } from "../../../../../../helpers/functions/printTitle";
 import { title } from "../../../../../../infraestructure/MData/MData";
+import { parseGastoExcel } from "../../../../../../helpers/functions/parseGastoExcel";
 
 const PAGE_SIZE = 10;
 
@@ -21,6 +23,7 @@ export const Gastos = () => {
 
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totalPages = Math.max(1, Math.ceil((totalGastos || 0) / PAGE_SIZE));
 
@@ -38,13 +41,51 @@ export const Gastos = () => {
     dispatch(anularGasto(id) as any);
   };
 
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleFileChange = async (e: any) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const buffer = await file.arrayBuffer();
+    const { filas, errores } = parseGastoExcel(buffer);
+
+    if (filas.length === 0) {
+      toast.error(errores[0] ?? "No se encontraron filas válidas para importar");
+      return;
+    }
+
+    const mensaje =
+      `¿Confirmar la importación de ${filas.length} gasto(s)?` +
+      (errores.length > 0
+        ? ` ${errores.length} fila(s) con datos incompletos serán omitidas.`
+        : "");
+
+    if (!window.confirm(mensaje)) return;
+
+    dispatch(importarGastos(filas) as any);
+  };
+
   return (
     <div>
       <div className={styles.header}>
         <h3>Gastos</h3>
-        <button className={styles.newBtn} onClick={() => setModalOpen(true)}>
-          + Nuevo gasto
-        </button>
+        <div className={styles.actions}>
+          <button className={styles.importBtn} onClick={handleImportClick}>
+            Importar Excel
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            style={{ display: "none" }}
+            onChange={handleFileChange}
+          />
+          <button className={styles.newBtn} onClick={() => setModalOpen(true)}>
+            + Nuevo gasto
+          </button>
+        </div>
       </div>
 
       <div className={styles.tableWrap}>
