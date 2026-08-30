@@ -553,7 +553,14 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
             )}
             {isNew && clientes?.length > 1 && (
               <div className={styles.clientesEncontrados}>
-                <p>Se encontraron {clientes.length} clientes, selecciona uno:</p>
+                <p>
+                  Se encontraron {clientes.length}
+                  {clientes.length >= 20 ? " o más" : ""} clientes, selecciona uno
+                  {clientes.length >= 20
+                    ? " (escribe más letras para acotar la búsqueda)"
+                    : ""}
+                  :
+                </p>
                 <table className={styles.clientesGrid}>
                   <thead>
                     <tr>

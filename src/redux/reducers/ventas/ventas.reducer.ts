@@ -462,7 +462,7 @@ export const retirarCaja = (retiroData: any) => {
 export const getClients = (searchDni: string) => {
     return async (dispatch: Dispatch<types.IGetClients | AnyAction>) => {
         try {
-            const { data }: any = await axiosInstance.get(`/clientes/listar?value=${searchDni}`);
+            const { data }: any = await axiosInstance.get(`/clientes/listar?value=${searchDni}&Amount=20`);
             if (data?.code === 1) {
                 return dispatch({
                     type: types.GET_CLIENTS,
