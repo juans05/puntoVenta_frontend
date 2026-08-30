@@ -40,7 +40,6 @@ export const Dashboard = () => {
           <Route path="/" element={<Login />} />
           <Route path="/facturacion" element={<Facturacion />} />
           <Route path="/venta-rapida" element={<Facturacion requiereCaja={false} />} />
-          <Route path="/nueva-factura" element={<NuevaFactura />} />
           <Route path="/nueva-venta" element={<NuevaVenta />} />
           <Route path="/pago-exitoso" element={<PagoExitoso />} />
           <Route path="/dashboard" element={<LayoutView />}>
@@ -65,6 +64,7 @@ export const Dashboard = () => {
             <Route path="gastos" element={<Gastos />}/>
             <Route path="publicidad" element={<GastoPublicidad />}/>
             <Route path="gastos/catalogos" element={<CatalogosGasto />}/>
+            <Route path="nueva-factura" element={<NuevaFactura />}/>
             <Route path="empresas" element={<Empresas />}/>
 {/*             <Route path="my-business" element={<MyBusiness />} /> */}
           </Route>

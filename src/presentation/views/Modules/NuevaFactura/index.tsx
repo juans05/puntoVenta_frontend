@@ -4,6 +4,7 @@ import { Toaster, toast } from "sonner";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import styles from "./nuevaFactura.module.css";
 import { getToken } from "../../../../helpers/auth-helpers";
+import axiosInstance from "../../../../utils/axios";
 import { useAppDispatch, useAppSelector } from "../../../../redux/store";
 import { RootState } from "../../../../redux/rootState";
 import { IProductsState } from "../../../../redux/reducers/productos/interfaces";
@@ -21,8 +22,10 @@ import {
 } from "../../../../redux/reducers/ventas/ventas.reducer";
 import { ProductoPickerModal } from "./ProductoPickerModal";
 import ModalLoadingPay from "../Facturacion/ModalLoadingPay";
+import { printTable } from "../../../../helpers/functions/printTitle";
+import { title } from "../../../../infraestructure/MData/MData";
 
-type TipoDocumento = "boleta" | "factura";
+type TipoDocumento = "boleta" | "factura" | "nota-venta";
 
 const NuevaFactura = () => {
   const dispatch = useAppDispatch();
@@ -45,6 +48,10 @@ const NuevaFactura = () => {
   const [enviando, setEnviando] = useState(false);
   const [isOpenLoadingPay, setIsOpenLoadingPay] = useState(false);
 
+  const [terminoBusqueda, setTerminoBusqueda] = useState("");
+  const [buscando, setBuscando] = useState(false);
+  const [clientesEncontrados, setClientesEncontrados] = useState<any[]>([]);
+
   useEffect(() => {
     if (!getToken()) {
       navigate("/");
@@ -53,6 +60,10 @@ const NuevaFactura = () => {
     dispatch(resetSale());
     dispatch(getProducts(0, 0, "", 1, 100, undefined));
     dispatch(getPayMethods());
+  }, []);
+
+  useEffect(() => {
+    printTable(`${title.name}::NUEVA FACTURA`);
   }, []);
 
   useEffect(() => {
@@ -87,7 +98,37 @@ const NuevaFactura = () => {
   const sumar = (item: any) => dispatch(getProductsBySale(item) as any);
   const eliminar = (productoId: number) => dispatch(deleteProductInSale(productoId) as any);
 
+  const seleccionarCliente = (c: any) => {
+    setNombre(c?.nombre ?? "");
+    setApellido("");
+    setDni(c?.numeroDocumento ?? "");
+    setClientesEncontrados([]);
+    setTerminoBusqueda("");
+  };
+
+  const buscarCliente = async () => {
+    const termino = terminoBusqueda.trim();
+    if (termino.length < 3) {
+      return toast.error("Escribe al menos 3 caracteres (DNI o nombre)");
+    }
+    setBuscando(true);
+    try {
+      const { data }: any = await axiosInstance.get(`/clientes/listar?value=${termino}&Amount=20`);
+      const items = data?.data?.items ?? [];
+      setClientesEncontrados(items);
+      if (items.length === 0) toast.error("No se encontró el cliente, complétalo manualmente");
+      if (items.length === 1) seleccionarCliente(items[0]);
+    } catch {
+      toast.error("Error al buscar cliente");
+      setClientesEncontrados([]);
+    } finally {
+      setBuscando(false);
+    }
+  };
+
   const metodoPagoSeleccionado = (payMethods as any[])?.find((m) => m.id === metodoPagoId);
+
+  const tipoDocumentoVentaId = tipoDocumento === "boleta" ? 2 : tipoDocumento === "factura" ? 1 : 3;
 
   const generarFactura = () => {
     if (nombre.trim() === "" || apellido.trim() === "") {
@@ -108,7 +149,7 @@ const NuevaFactura = () => {
 
     const payload: ISaleProduct = {
       clientId: null,
-      tipoDocumentoVentaId: tipoDocumento === "boleta" ? 2 : 1,
+      tipoDocumentoVentaId,
       numeroDocumento: tipoDocumento === "factura" ? ruc : dni,
       razonSocial: `${nombre.trim()} ${apellido.trim()}`.trim(),
       ruc: tipoDocumento === "factura" ? ruc : "",
@@ -145,20 +186,53 @@ const NuevaFactura = () => {
     setTipoDocumento("boleta");
     setRuc("");
     setMetodoPagoId(0);
+    setClientesEncontrados([]);
+    setTerminoBusqueda("");
     dispatch(resetSale());
   };
 
   return (
-    <div className={styles.wrapper}>
+    <div>
       <Toaster richColors position="top-right" />
       <div className={styles.header}>
         <h3>Nueva Factura</h3>
-        <p>Genera una boleta o factura de forma rápida</p>
+        <button type="button" className={styles.newBtn} onClick={() => setIsPickerOpen(true)}>
+          <Icon icon="mdi:plus" /> Agregar productos
+        </button>
       </div>
 
       <div className={styles.grid}>
         <div className={styles.section}>
           <h4>Cliente</h4>
+
+          <div className={styles.buscarClienteRow}>
+            <input
+              placeholder="Buscar por DNI o nombre..."
+              value={terminoBusqueda}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setTerminoBusqueda(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && buscarCliente()}
+            />
+            <button type="button" className={styles.searchBtn} onClick={buscarCliente} disabled={buscando}>
+              <Icon icon="iconamoon:search-bold" /> {buscando ? "Buscando..." : "Buscar cliente"}
+            </button>
+          </div>
+
+          {clientesEncontrados.length > 1 && (
+            <div className={styles.clientesEncontrados}>
+              <p>Se encontraron {clientesEncontrados.length} clientes, selecciona uno:</p>
+              {clientesEncontrados.map((c: any) => (
+                <div key={c.id} className={styles.clienteRow}>
+                  <span>
+                    {c.nombre} · {c.numeroDocumento}
+                  </span>
+                  <button type="button" onClick={() => seleccionarCliente(c)}>
+                    Seleccionar
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className={styles.formGrid}>
             <div>
               <label>Nombre</label>
@@ -207,6 +281,14 @@ const NuevaFactura = () => {
                 onChange={() => setTipoDocumento("factura")}
               />
               Factura
+            </label>
+            <label>
+              <input
+                type="radio"
+                checked={tipoDocumento === "nota-venta"}
+                onChange={() => setTipoDocumento("nota-venta")}
+              />
+              Nota de venta
             </label>
           </div>
           {tipoDocumento === "factura" && (
