@@ -203,7 +203,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
     setActiveBilling(billing);
     setFormValues({
       ...formValues,
-      tipoDocumentoVentaId: billing === "boleta" ? 2 : 1,
+      tipoDocumentoVentaId: billing === "boleta" ? 2 : billing === "nota-venta" ? 3 : 1,
     });
   };
 
@@ -222,6 +222,8 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
     if (activeBilling === "") {
       return toast.error("Elegir un tipo de venta");
     }
+    const tipoDocumentoVentaId =
+      activeBilling === "boleta" ? 2 : activeBilling === "nota-venta" ? 3 : 1;
     dispatch(getDni(activeBilling === "boleta" ? searchDni : formValues?.ruc));
     if (selectedMethodType === "BILLETERA") {
       setIsOpenLoadingPay(true);
@@ -231,7 +233,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
           ...formValues,
           numeroDocumento:
             activeBilling === "boleta" ? searchDni : formValues?.ruc,
-          tipoDocumentoVentaId: activeBilling === "boleta" ? 2 : 1,
+          tipoDocumentoVentaId,
           efectivo: selectedMethod?.value?.toUpperCase() || "BILLETERA",
           tipoVenta: activeBilling,
           total: total,
@@ -259,7 +261,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
           efectivo: selectedMethod?.value?.toUpperCase() || "TARJETA",
           numeroDocumento:
             activeBilling === "boleta" ? searchDni : formValues?.ruc,
-          tipoDocumentoVentaId: activeBilling === "boleta" ? 2 : 1,
+          tipoDocumentoVentaId,
           tipoVenta: activeBilling,
           total: total,
           fechaVenta,
@@ -289,7 +291,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
               tipoVenta: activeBilling,
               numeroDocumento:
                 activeBilling === "boleta" ? searchDni : formValues?.ruc,
-              tipoDocumentoVentaId: activeBilling === "boleta" ? 2 : 1,
+              tipoDocumentoVentaId,
               total: total,
               fechaVenta,
               efectivo: "SOLES",
@@ -784,6 +786,14 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
                     onClick={() => chooseBilling("factura")}
                   >
                     Factura
+                  </button>
+                </div>
+                <div>
+                  <button
+                    className={activeBilling === "nota-venta" ? styles.active : ""}
+                    onClick={() => chooseBilling("nota-venta")}
+                  >
+                    Nota de venta
                   </button>
                 </div>
                 <div>
