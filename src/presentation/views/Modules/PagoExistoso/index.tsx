@@ -137,7 +137,7 @@ const PagoExitoso = () => {
                                                     <td>{item.nombre}</td>
 
                                                     <td>
-                                                        {item.precio}</td>
+                                                        {Number(item.precio).toFixed(2)}</td>
                                                         <td>
                                                         {Number(item.precio * item.cantidad).toFixed(2)}</td>
                                                 </tr>

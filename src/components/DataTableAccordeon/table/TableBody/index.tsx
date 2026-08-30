@@ -295,7 +295,7 @@ const TableBody: FC<ITableBodyProps> = (props) => {
                                     <span>{value?.metodoPago}</span>
                                   </td>
                                   <td>
-                                    <span>S/. {value?.monto}</span>
+                                    <span>S/. {Number(value?.monto ?? 0).toFixed(2)}</span>
                                   </td>
                                 </tr>
                               );

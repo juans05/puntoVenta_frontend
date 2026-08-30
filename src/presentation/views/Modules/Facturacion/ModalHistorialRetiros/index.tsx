@@ -36,7 +36,7 @@ const ModalHistorialRetiros = ({ onClose }: any) => {
                                                     <strong>Motivo: </strong>
                                                     <p>{item?.motivo}</p>
                                                 </div>
-                                                <h4>S/ {item?.monto}</h4>
+                                                <h4>S/ {Number(item?.monto ?? 0).toFixed(2)}</h4>
                                             </div>
                                         </div>
                                     )
