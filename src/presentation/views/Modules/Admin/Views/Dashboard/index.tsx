@@ -54,22 +54,24 @@ export const DashboardMain = () => {
         </div>
       )}
 
-      <div>
-        <Indicadores resumen={resumen} />
-      </div>
       <div className="flex items-center gap-2 mt-2">
-        <label className="text-sm text-neutral-600">Periodo:</label>
+        <label className="text-sm text-neutral-600">Periodo (ventas, gastos, compras y utilidad):</label>
         <select
           className="text-sm border border-neutral-200 rounded-md px-2 py-1"
           value={dias}
           onChange={(e) => setDias(Number(e.target.value))}
         >
-          <option value={7}>Últimos 7 días</option>
+          <option value={1}>Hoy</option>
+          <option value={7}>Última semana</option>
           <option value={15}>Últimos 15 días</option>
-          <option value={30}>Últimos 30 días</option>
+          <option value={30}>Último mes</option>
           <option value={60}>Últimos 60 días</option>
           <option value={90}>Últimos 90 días</option>
         </select>
+      </div>
+
+      <div>
+        <Indicadores resumen={resumen} dias={dias} />
       </div>
 
       <main className={styles.content}>

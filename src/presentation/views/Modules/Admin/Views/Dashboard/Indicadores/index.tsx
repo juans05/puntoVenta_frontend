@@ -10,41 +10,44 @@ interface IIndicadoresProps {
     stockTotal: number;
     productosStockBajo: number;
   } | null;
+  dias?: number;
 }
 
 const formatSoles = (n: number) => `S/ ${Intl.NumberFormat("es-PE").format(n ?? 0)}`;
 
-export const Indicadores = ({ resumen }: IIndicadoresProps) => {
+export const Indicadores = ({ resumen, dias = 1 }: IIndicadoresProps) => {
+  const periodo = dias === 1 ? "hoy" : `los últimos ${dias} días`;
+
   const kpiData = [
     {
-      title: "Ventas de hoy",
+      title: `Ventas de ${periodo}`,
       metric: formatSoles(resumen?.ventasHoy ?? 0),
-      descripcion: "Suma del total de boletas, facturas y notas de venta con fecha de venta de hoy (sin contar las anuladas).",
+      descripcion: `Suma del total de boletas, facturas y notas de venta con fecha de venta dentro de ${periodo} (sin contar las anuladas).`,
     },
     {
-      title: "Gastos de hoy",
+      title: `Gastos de ${periodo}`,
       metric: formatSoles(resumen?.gastosHoy ?? 0),
-      descripcion: "Suma de los gastos confirmados cuya fecha de gasto es hoy.",
+      descripcion: `Suma de los gastos confirmados cuya fecha de gasto cae dentro de ${periodo}.`,
     },
     {
-      title: "Compras de hoy",
+      title: `Compras de ${periodo}`,
       metric: formatSoles(resumen?.comprasHoy ?? 0),
-      descripcion: "Suma de las compras confirmadas cuya fecha de compra es hoy.",
+      descripcion: `Suma de las compras confirmadas cuya fecha de compra cae dentro de ${periodo}.`,
     },
     {
       title: "Utilidad estimada",
       metric: formatSoles(resumen?.utilidadEstimada ?? 0),
-      descripcion: "Ventas de hoy, menos el costo de los productos vendidos hoy (costo unitario x cantidad), menos los gastos de hoy.",
+      descripcion: `Ventas de ${periodo}, menos el costo de los productos vendidos en ese periodo (costo unitario x cantidad), menos los gastos de ${periodo}. No resta las compras: comprar mercaderia no es un gasto, se vuelve costo recien cuando el producto se vende.`,
     },
     {
-      title: "Saldo esperado en caja",
+      title: "Saldo esperado en caja (hoy)",
       metric: formatSoles(resumen?.saldoEsperado ?? 0),
-      descripcion: "Monto inicial de tu caja abierta hoy, mas los pagos y otros ingresos que se registraron hoy, menos los gastos y compras que se registraron hoy. Es efectivo real (por fecha de registro), no por fecha de venta.",
+      descripcion: "Monto inicial de tu caja abierta hoy, mas los pagos y otros ingresos que se registraron hoy, menos los gastos y compras que se registraron hoy. Es efectivo real de hoy (por fecha de registro), no cambia con el filtro de periodo de arriba.",
     },
     {
       title: "Productos con stock bajo",
       metric: String(resumen?.productosStockBajo ?? 0),
-      descripcion: "Cantidad de productos activos cuyo stock actual esta por debajo del stock minimo configurado para ese producto.",
+      descripcion: "Cantidad de productos activos cuyo stock actual esta por debajo del stock minimo configurado para ese producto. No depende del periodo elegido.",
     },
   ];
 
