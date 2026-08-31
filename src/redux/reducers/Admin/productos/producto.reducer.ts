@@ -879,6 +879,36 @@ export const closeModalHistorial = () => {
   };
 };
 
+export const ajustarStock = (
+  producto: any,
+  tipoMovimiento: number,
+  cantidad: number,
+  motivo?: string
+) => {
+  return async (dispatch: Dispatch<types.IUpdateProducts | AnyAction>) => {
+    try {
+      const response: any = await axiosInstance.post(`/inventario/ajustar-stock`, {
+        productoId: producto.productoId,
+        tipoMovimiento,
+        cantidad,
+        motivo,
+      });
+      const { status, data } = response;
+      if (status === 200) {
+        dispatch({
+          type: types.UPDATE_PRODUCTS,
+          payload: { ...producto, stock: data?.data?.stockPosterior },
+        });
+        return data?.data;
+      }
+      return null;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "Error al ajustar el stock");
+      return null;
+    }
+  };
+};
+
 export const getMovimientosProducto = (
   productoId: number,
   page: number,

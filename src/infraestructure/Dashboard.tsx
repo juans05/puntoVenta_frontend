@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { LayoutView } from "../components/Sidebar";
 import { DashboardMain } from "../presentation/views/Modules/Admin/Views/Dashboard";
 import { Productos } from "../presentation/views/Modules/Admin/Views/Productos";
+import { Inventario } from "../presentation/views/Modules/Admin/Views/Inventario";
 /* import { Usuarios } from "../presentation/views/Modules/Admin/Views/Usuarios";
 import { FormasPago } from "../presentation/views/Modules/Admin/Views/FormasPago";
 import { MyBusiness } from "../presentation/views/Modules/Admin/Views/MyBusiness";
@@ -45,6 +46,7 @@ export const Dashboard = () => {
           <Route path="/dashboard" element={<LayoutView />}>
             <Route index element={<DashboardMain />} />
             <Route path="productos" element={<Productos />} />
+            <Route path="inventario" element={<Inventario />} />
             <Route path="ventas-realizadas" element={<VentasRealizadas />}/>
             <Route path="documentos-facturados" element={<DocumentosFacturados />}/>
             {/* <Route path="alarmas" element={<>Alarmas</>}/> */}

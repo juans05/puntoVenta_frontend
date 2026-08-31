@@ -239,6 +239,20 @@ export const TableUserBody: FC<ITableBodyProps> = (props) => {
                             </div>
                           </td>
                         )
+                      ) : head.type === "stockBajo" ? (
+                        row["stockBajo"] ? (
+                          <td key={pos} className={`px-6 py-4 `}>
+                            <div className={`${styles["estado"]} ${styles["error"]}`}>
+                              <span>Bajo stock</span>
+                            </div>
+                          </td>
+                        ) : (
+                          <td key={pos} className={`px-6 py-4 `}>
+                            <div className={`${styles["estado"]} ${styles["activo"]}`}>
+                              <span>OK</span>
+                            </div>
+                          </td>
+                        )
                       ) : (
                         <td key={pos} className="px-6 py-4">
                           <span>{row[head?.type]}</span>

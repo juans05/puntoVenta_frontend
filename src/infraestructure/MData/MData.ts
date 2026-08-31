@@ -30,13 +30,16 @@ export const menuSidebar = [
     icon: "solar:bag-4-bold",
     url: "dashboard/productos",
   },
-  /* {
-    code: "701",
-    id: 4,
-    value: "Stock",
+  {
+    // Comparte el code de "Productos" a propósito (mismo patrón que "Nueva
+    // Factura"/"ROI Publicidad" más abajo): evita crear un módulo/submódulo
+    // nuevo en AspNetModule/AspNetSubModule y reasignar permisos por tenant.
+    code: "200",
+    id: 17,
+    value: "Inventario",
     icon: "healthicons:rdt-result-out-stock",
-    url: "stock",
-  }, */
+    url: "dashboard/inventario",
+  },
   /* {
     code: "701",
     id: 4,

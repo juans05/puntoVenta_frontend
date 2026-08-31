@@ -7,6 +7,7 @@ import Svg from "../../../Svg";
 import { RootState } from "../../../../redux/rootState";
 import { useAppDispatch, useAppSelector } from "../../../../redux/store";
 import {
+  ajustarStock,
   clearActiveProducto,
   closeModalProducto,
   createProducto,
@@ -21,10 +22,6 @@ import { Button } from "@tremor/react";
 import { Toggle } from "../../../Toggle";
 import SelectPro from "../../../SelectPro";
 import { toast } from "sonner";
-import { UserTable } from "../../../../presentation/views/Modules/Admin/Views/Usuarios/UserTable";
-import { IHeaderTable } from "../../../../application/models/Header/IHeaderTable";
-import { ITableHeaderProps } from "../../../Datatable/table/TableHeader/TableHeader";
-import { ITableButton } from "../../../Datatable/table/TableButton";
 import { ImageCropModal } from "../../../ImageCropModal";
 const initialForm = {
   nombreCategoria: "",
@@ -221,8 +218,34 @@ export const ProductoModal = () => {
       setFormValues(initialForm);
     }
   };
+  const [tipoAjuste, setTipoAjuste] = useState<number>(3); // AjusteEntrada
+  const [cantidadAjuste, setCantidadAjuste] = useState<string>("");
+  const [motivoAjuste, setMotivoAjuste] = useState<string>("");
+  const [guardandoAjuste, setGuardandoAjuste] = useState(false);
+
   const showStockForm = () => {
     setIsStock(!isStock);
+    setCantidadAjuste("");
+    setMotivoAjuste("");
+    setTipoAjuste(3);
+  };
+
+  const guardarAjusteStock = async () => {
+    const cantidad = parseInt(cantidadAjuste, 10);
+    if (!cantidad || cantidad <= 0) {
+      return toast.error("Ingresa una cantidad válida");
+    }
+    setGuardandoAjuste(true);
+    const resultado = await dispatch(
+      ajustarStock(activeProducto, tipoAjuste, cantidad, motivoAjuste) as any
+    );
+    setGuardandoAjuste(false);
+    if (resultado) {
+      toast.success("Stock actualizado correctamente");
+      setFormValues((prev: any) => ({ ...prev, stock: resultado.stockPosterior }));
+      setCantidadAjuste("");
+      setMotivoAjuste("");
+    }
   };
 
   const eliminarProducto = () => {
@@ -337,105 +360,6 @@ export const ProductoModal = () => {
 
   const imagenActual =
     imagenPreview ?? (rutaImagen ? rutaImagen : null);
-  const header: IHeaderTable[] = [
-   
-    { type: "id", alias: "N°" },
-    { type: "fechaRegistro", alias: "Fecha de Registro" },
-    { type: "fechaVencimiento", alias: "Fecha de Vencimiento" },
-    { type: "cantidad", alias: "Cantidad" },
-    { type: "lote", alias: "Lote" },
-    { type: "accion", alias: "Accion" },
-  ];
-
-  const [headerClients] = useState<IHeaderTable[] | ITableHeaderProps[] | any>(
-    header
-  );
-
-  const newDataStock=[
-    {
-      "id": "1",
-      "fechaRegistro": "2022-01-01",
-      "fechaVencimiento": "2023-01-01",
-      "cantidad": 10,
-      "lote": "A123456789"
-    },
-    {
-      "id": "2",
-      "fechaRegistro": "2022-02-01",
-      "fechaVencimiento": "2023-02-01",
-      "cantidad": 10,
-      "lote": "B987654321"
-    },
-    {
-      "id": "3",
-      "fechaRegistro": "2022-03-01",
-      "fechaVencimiento": "2023-03-01",
-      "cantidad": 10,
-      "lote": "C246813579"
-    },
-    {
-      "id": "4",
-      "fechaRegistro": "2022-04-01",
-      "fechaVencimiento": "2023-04-01",
-      "cantidad": 10,
-      "lote": "D975318642"
-    },
-    {
-      "id": "5",
-      "fechaRegistro": "2022-05-01",
-      "fechaVencimiento": "2023-05-01",
-      "cantidad": 10,
-      "lote": "E654987321"
-    },
-    {
-      "id": "6",
-      "fechaRegistro": "2022-06-01",
-      "fechaVencimiento": "2023-06-01",
-      "cantidad": 10,
-      "lote": "F321654987"
-    },
-    {
-      "id": "7",
-      "fechaRegistro": "2022-07-01",
-      "fechaVencimiento": "2023-07-01",
-      "cantidad": 10,
-      "lote": "G258147369"
-    },
-    {
-      "id": "8",
-      "fechaRegistro": "2022-08-01",
-      "fechaVencimiento": "2023-08-01",
-      "cantidad": 10,
-      "lote": "H753951468"
-    },
-    {
-      "id": "9",
-      "fechaRegistro": "2022-09-01",
-      "fechaVencimiento": "2023-09-01",
-      "cantidad": 10,
-      "lote": "I123456789"
-    },
-    {
-      "id": "10",
-      "fechaRegistro": "2022-10-01",
-      "fechaVencimiento": "2023-10-01",
-      "cantidad": 10,
-      "lote": "J987654321"
-    }
-  ]
-
-  const buttonsStock: ITableButton[] = [
-    {
-      title: "Descargar Pdf",
-      icon: "",
-      className: "body__btn-companyBtn",
-      classNameIcon: "",
-      handleOnClick: ()=>undefined,
-      iconify: "vaadin:pencil",
-
-      /* ri:ball-pen-line */
-    }
-  ];
 
   return (
     <Modal
@@ -599,10 +523,13 @@ export const ProductoModal = () => {
                       isLabel
                       type="number"
                       onChange={handleInputChange}
+                      disabled={!!activeProducto}
                     />
-                    <Button onClick={showStockForm} type="button">
-                      {isStock ? "Cancelar" : "Añadir"}
-                    </Button>
+                    {activeProducto && (
+                      <Button onClick={showStockForm} type="button">
+                        {isStock ? "Cancelar" : "Añadir"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -711,49 +638,44 @@ export const ProductoModal = () => {
               <div className={styles["content-stock"]}>
                 <div>
                   <div className={styles["first-card-stock"]}>
+                    <p>Stock actual: {stock}</p>
+                    <select
+                      value={tipoAjuste}
+                      onChange={(e) => setTipoAjuste(Number(e.target.value))}
+                    >
+                      <option value={3}>Entrada (agregar)</option>
+                      <option value={4}>Salida (quitar)</option>
+                    </select>
                     <Input
-                      name="cantidad"
-                      // defaultValue={stock}
+                      name="cantidadAjuste"
+                      value={cantidadAjuste}
                       label="Cantidad"
                       isLabel
                       type="number"
-                      onChange={handleInputChange}
+                      onChange={(e: any) => setCantidadAjuste(e.target.value)}
                     />
                     <div className={styles["secondDiv-stock"]}>
                       <Input
-                        name="fechaVencimiento"
-                        // defaultValue={stock}
-                        label="Fecha de Vencimiento"
+                        name="motivoAjuste"
+                        value={motivoAjuste}
+                        label="Motivo (opcional)"
                         isLabel
-                        // type="number"
-                        onChange={handleInputChange}
-                      />
-                      <Input
-                        name="lote"
-                        // defaultValue={stock}
-                        label="Lote"
-                        isLabel
-                        type="number"
-                        onChange={handleInputChange}
+                        onChange={(e: any) => setMotivoAjuste(e.target.value)}
                       />
                     </div>
                     <div className={styles["main-content-buttons"]}>
-                      <Button size="sm" onClick={() => undefined}>
-                        Limpiar
+                      <Button size="sm" onClick={showStockForm} type="button">
+                        Cancelar
                       </Button>
-                      <Button size="sm" onClick={() => undefined}>
-                        Agregar Stock
+                      <Button
+                        size="sm"
+                        onClick={guardarAjusteStock}
+                        disabled={guardandoAjuste}
+                        type="button"
+                      >
+                        {guardandoAjuste ? "Guardando..." : "Agregar Stock"}
                       </Button>
                     </div>
-                  </div>
-                  <div className={styles['second-card-stock']}>
-                  <UserTable
-              header={headerClients}
-              body={newDataStock}
-              actions={buttonsStock}
-              idTable={'stock'}
-            />
-
                   </div>
                 </div>
               </div>
