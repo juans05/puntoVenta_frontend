@@ -406,6 +406,10 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
   };
 
   const seleccionarClienteDeLista = (c: any) => {
+    // Achica clientes a solo el elegido: otros efectos de este componente leen
+    // clientes[0] para el nombre/id, y con varios resultados de busqueda eso
+    // seguia apuntando al primero de la lista aunque se eligiera otro.
+    dispatch({ type: "GET_CLIENTS", payload: [c] } as any);
     dispatch(getCustomer(c?.nombre));
     setFormCliente(c);
     setFormValues({
