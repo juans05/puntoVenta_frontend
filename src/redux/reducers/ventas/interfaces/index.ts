@@ -40,6 +40,7 @@ export interface IDetalleComprobante {
     productoId: number
     cantidad: number
     valorUnitario: number
+    costoReal?: number
 }
 
 export interface IDetallePago {

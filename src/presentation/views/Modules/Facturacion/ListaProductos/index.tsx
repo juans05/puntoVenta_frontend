@@ -98,6 +98,30 @@ const ListaProductos = ({isIgv,setIsOpenModalHistorialRetiro,setOpenRetiro, boxM
         dispatch(updateProductByPrice(updatedProducts));
     }
 
+    // Costo real de esta venta puntual (ej. lo que realmente costo el delivery esta vez), distinto
+    // del costo de catalogo del producto -- si se deja vacio, los reportes usan el costo de catalogo.
+    const changeCostoProduct = (e: ChangeEvent<HTMLInputElement>, item: IProduct) => {
+        const value = e.target.value;
+        const nuevoCosto = value === '' ? undefined : parseFloat(value);
+
+        if (value !== '' && (nuevoCosto === undefined || isNaN(nuevoCosto) || nuevoCosto < 0)) {
+            toast.error('Costo ingresado inválido.');
+            return;
+        }
+
+        const productIndex = productsBySale.findIndex(prod => prod.productoId === item.productoId);
+
+        if (productIndex === -1) {
+            toast.error('Producto no encontrado.');
+            return;
+        }
+
+        const updatedProducts = produce(productsBySale, draft => {
+            draft[productIndex].costoReal = nuevoCosto;
+        });
+        dispatch(updateProductByPrice(updatedProducts));
+    }
+
     return (
         <div className="relative">
             {isOpenSidebar && <SidebarOptions requiereCaja={requiereCaja} setIsOpenModalHistorialRetiro={setIsOpenModalHistorialRetiro} setOpenRetiro={setOpenRetiro} boxModal={boxModal} onClose={() => setOpenSidebar(false)} />}
@@ -141,6 +165,10 @@ const ListaProductos = ({isIgv,setIsOpenModalHistorialRetiro,setOpenRetiro, boxM
                                             <div>
                                                 <p>S/ </p>
                                                 <Input type="text" name="precio" onChange={(e: ChangeEvent<HTMLInputElement>) => changePriceProduct(e, item)} defaultValue={Number(item.precio * item?.cantidad).toFixed(2)} />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-400">Costo real (opcional)</p>
+                                                <Input type="text" name="costoReal" placeholder="Costo de catalogo" onChange={(e: ChangeEvent<HTMLInputElement>) => changeCostoProduct(e, item)} defaultValue={item.costoReal !== undefined ? String(item.costoReal) : ''} />
                                             </div>
                                         </div>
                                     </div>

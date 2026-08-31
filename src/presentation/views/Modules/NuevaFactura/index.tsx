@@ -19,6 +19,7 @@ import {
   resetResponse,
   resetSale,
   saleProducts,
+  updateProductByPrice,
 } from "../../../../redux/reducers/ventas/ventas.reducer";
 import { ProductoPickerModal } from "./ProductoPickerModal";
 import ModalLoadingPay from "../Facturacion/ModalLoadingPay";
@@ -98,6 +99,20 @@ const NuevaFactura = () => {
   const sumar = (item: any) => dispatch(getProductsBySale(item) as any);
   const eliminar = (productoId: number) => dispatch(deleteProductInSale(productoId) as any);
 
+  // Costo real de esta venta puntual (ej. lo que realmente costo el delivery esta vez), distinto
+  // del costo de catalogo del producto -- si se deja vacio, los reportes usan el costo de catalogo.
+  const cambiarCosto = (productoId: number, valor: string) => {
+    const costoReal = valor === "" ? undefined : parseFloat(valor);
+    if (valor !== "" && (costoReal === undefined || isNaN(costoReal) || costoReal < 0)) {
+      toast.error("Costo inválido");
+      return;
+    }
+    const actualizados = productsBySale.map((p: any) =>
+      p.productoId === productoId ? { ...p, costoReal } : p
+    );
+    dispatch(updateProductByPrice(actualizados) as any);
+  };
+
   const seleccionarCliente = (c: any) => {
     setNombre(c?.nombre ?? "");
     setApellido("");
@@ -164,6 +179,7 @@ const NuevaFactura = () => {
         productoId: item.productoId,
         cantidad: item.cantidad,
         valorUnitario: item.precio,
+        costoReal: item.costoReal,
       })),
       detallePago: [
         {
@@ -321,6 +337,7 @@ const NuevaFactura = () => {
                     <th>Producto</th>
                     <th>Cantidad</th>
                     <th>P. Unit.</th>
+                    <th>Costo real</th>
                     <th>Subtotal</th>
                     <th></th>
                   </tr>
@@ -337,6 +354,15 @@ const NuevaFactura = () => {
                         </div>
                       </td>
                       <td data-label="P. Unit.">S/ {Number(item.precio).toFixed(2)}</td>
+                      <td data-label="Costo real">
+                        <input
+                          type="text"
+                          className={styles.costoInput}
+                          placeholder="Costo de catálogo"
+                          defaultValue={item.costoReal !== undefined ? String(item.costoReal) : ""}
+                          onBlur={(e) => cambiarCosto(item.productoId, e.target.value)}
+                        />
+                      </td>
                       <td data-label="Subtotal">S/ {Number(item.precio * item.cantidad).toFixed(2)}</td>
                       <td>
                         <button

@@ -171,6 +171,7 @@ const ModalPay = ({ onClose, setIsOpenLoadingPay, setIsIgv }: IProps) => {
         productoId: item?.productoId,
         valorUnitario: item?.precio,
         cantidad: item?.cantidad,
+        costoReal: item?.costoReal,
       }));
 
       setFormValues({

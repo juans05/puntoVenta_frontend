@@ -22,6 +22,7 @@ export interface IProduct {
     rutaImagen: string
     comentarios: Comments[]
     totalFicha: number
+    costoReal?: number
 }
 
 export interface IProductData {

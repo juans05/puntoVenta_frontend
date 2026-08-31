@@ -223,6 +223,15 @@
   gap: 8px;
 }
 
+.costoInput {
+  width: 110px;
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #e4e7ec;
+  outline: none;
+  font-size: 12px;
+}
+
 .qtyControl button {
   width: 24px;
   height: 24px;
