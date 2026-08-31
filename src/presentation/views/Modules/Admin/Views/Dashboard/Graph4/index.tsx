@@ -10,14 +10,15 @@ interface IProductoTop {
 
 interface IGraph4Props {
   productosMasVendidos: IProductoTop[];
+  dias?: number;
 }
 
 const formatSoles = (n: number) => `S/ ${Intl.NumberFormat("es-PE").format(n ?? 0)}`;
 
-export const Graph4 = ({ productosMasVendidos }: IGraph4Props) => {
+export const Graph4 = ({ productosMasVendidos, dias = 7 }: IGraph4Props) => {
   return (
     <Card>
-      <Title>Productos más vendidos (últimos 7 días)</Title>
+      <Title>Productos más vendidos (últimos {dias} días)</Title>
       {productosMasVendidos.length === 0 ? (
         <Text className="mt-6">Todavía no hay ventas registradas.</Text>
       ) : (
