@@ -2,12 +2,35 @@ import { useEffect, useState } from "react";
 import { printTable } from "../../../../../../helpers/functions/printTitle";
 import { title } from "../../../../../../infraestructure/MData/MData";
 import axiosInstance from "../../../../../../utils/axios";
-import { Graph1 } from "./Graph1";
 import { Graph4 } from "./Graph4";
+import { TendenciaChart } from "./TendenciaChart";
+import { UtilidadChart } from "./UtilidadChart";
+import { GastosPorCategoria } from "./GastosPorCategoria";
+import { VentasPorDistrito } from "./VentasPorDistrito";
 import styles from "./dashboard.module.css";
 import { Indicadores } from "./Indicadores";
 import { ReporteMargen } from "./ReporteMargen";
 import { Grid, Callout } from "@tremor/react";
+
+interface ITendenciaDia {
+  fecha: string;
+  ventas: number;
+  compras: number;
+  gastos: number;
+  costoVentas: number;
+  utilidad: number;
+}
+
+interface ICategoriaMonto {
+  categoria: string;
+  total: number;
+}
+
+interface IDistritoVenta {
+  distrito: string;
+  total: number;
+  cantidad: number;
+}
 
 interface IDashboardResumen {
   ventasHoy: number;
@@ -16,11 +39,15 @@ interface IDashboardResumen {
   otrosIngresosHoy: number;
   costoVentasHoy: number;
   utilidadEstimada: number;
+  flujoCaja: number;
   saldoEsperado: number;
   stockTotal: number;
   productosStockBajo: number;
-  ventasUltimos7Dias: { fecha: string; total: number }[];
+  tendenciaDiaria: ITendenciaDia[];
   productosMasVendidos: { producto: string; cantidad: number; total: number; costo: number; utilidad: number }[];
+  gastosPorCategoria: ICategoriaMonto[];
+  ventasPorDistrito: IDistritoVenta[];
+  ventasPorTipoEnvio: ICategoriaMonto[];
   alertas: string[];
 }
 
@@ -77,10 +104,23 @@ export const DashboardMain = () => {
       <main className={styles.content}>
         <Grid numColsLg={2} className="mt-4 gap-6">
           <div className={`h-full ${styles["card-chart"]}`}>
-            <Graph1 ventasUltimos7Dias={resumen?.ventasUltimos7Dias ?? []} dias={dias} />
+            <TendenciaChart tendenciaDiaria={resumen?.tendenciaDiaria ?? []} dias={dias} />
+          </div>
+          <div className={`h-full ${styles["card-chart"]}`}>
+            <UtilidadChart tendenciaDiaria={resumen?.tendenciaDiaria ?? []} dias={dias} />
           </div>
           <div className={`h-full ${styles["card-chart"]}`}>
             <Graph4 productosMasVendidos={resumen?.productosMasVendidos ?? []} dias={dias} />
+          </div>
+          <div className={`h-full ${styles["card-chart"]}`}>
+            <GastosPorCategoria gastosPorCategoria={resumen?.gastosPorCategoria ?? []} dias={dias} />
+          </div>
+          <div className={`h-full ${styles["card-chart"]}`}>
+            <VentasPorDistrito
+              ventasPorDistrito={resumen?.ventasPorDistrito ?? []}
+              ventasPorTipoEnvio={resumen?.ventasPorTipoEnvio ?? []}
+              dias={dias}
+            />
           </div>
         </Grid>
       </main>
