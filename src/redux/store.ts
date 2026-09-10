@@ -15,6 +15,7 @@ import { configuracionRentaReducer } from './reducers/Admin/configuracion-renta/
 import { compraReducer } from './reducers/Admin/compras/compra.reducer';
 import { gastoReducer } from './reducers/Admin/gastos/gasto.reducer';
 import { gastoPublicidadReducer } from './reducers/Admin/gastoPublicidad/gastoPublicidad.reducer';
+import { pedidosReducer } from './reducers/Pedidos/pedidos.reducer';
 
 export const store = configureStore({
     reducer: {
@@ -33,6 +34,7 @@ export const store = configureStore({
         compras:compraReducer,
         gastos:gastoReducer,
         publicidad: gastoPublicidadReducer,
+        pedidos: pedidosReducer,
     }
 })
 

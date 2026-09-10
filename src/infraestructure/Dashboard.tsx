@@ -28,6 +28,10 @@ import { GastoPublicidad } from "../presentation/views/Modules/Admin/Views/Gasto
 import { CatalogosGasto } from "../presentation/views/Modules/Admin/Views/CatalogosGasto";
 import { Empresas } from "../presentation/views/Modules/Admin/Views/Empresas";
 import NuevaFactura from "../presentation/views/Modules/NuevaFactura";
+import Pedidos from "../presentation/views/Modules/Pedidos";
+import PedidoPublico from "../presentation/views/Public/Pedido/PedidoPublico";
+import ClienteLogin from "../presentation/views/Public/Cliente/ClienteLogin";
+import ClientePortal from "../presentation/views/Public/Cliente/ClientePortal";
 
 export const Dashboard = () => {
 
@@ -43,6 +47,12 @@ export const Dashboard = () => {
           <Route path="/venta-rapida" element={<Facturacion requiereCaja={false} />} />
           <Route path="/nueva-venta" element={<NuevaVenta />} />
           <Route path="/pago-exitoso" element={<PagoExitoso />} />
+          
+          {/* Rutas públicas */}
+          <Route path="/pedido/:token" element={<PedidoPublico />} />
+          <Route path="/mi-cuenta/login" element={<ClienteLogin />} />
+          <Route path="/mi-cuenta/pedidos" element={<ClientePortal />} />
+          
           <Route path="/dashboard" element={<LayoutView />}>
             <Route index element={<DashboardMain />} />
             <Route path="productos" element={<Productos />} />
@@ -50,9 +60,6 @@ export const Dashboard = () => {
             <Route path="ventas-realizadas" element={<VentasRealizadas />}/>
             <Route path="documentos-facturados" element={<DocumentosFacturados />}/>
             {/* <Route path="alarmas" element={<>Alarmas</>}/> */}
-
-   {/*          <Route path="usuarios" element={<Usuarios />} /> */}
- {/*            <Route path="formas-pago" element={<FormasPago />} /> */}
             <Route path="asistencia" element={<Asistencia />} />
             <Route path="reporte-asistencia" element={<ReporteAsistencia />} />
             <Route path="clientes" element={<ClientesProveedores />}/>
@@ -67,6 +74,7 @@ export const Dashboard = () => {
             <Route path="publicidad" element={<GastoPublicidad />}/>
             <Route path="gastos/catalogos" element={<CatalogosGasto />}/>
             <Route path="nueva-factura" element={<NuevaFactura />}/>
+            <Route path="pedidos" element={<Pedidos />}/>
             <Route path="empresas" element={<Empresas />}/>
 {/*             <Route path="my-business" element={<MyBusiness />} /> */}
           </Route>

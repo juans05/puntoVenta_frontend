@@ -1,0 +1,309 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 40px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 16px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  color: #3b82f6;
+}
+
+.loading p {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.notFound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+  padding: 40px;
+}
+
+.notFound .icon {
+  width: 80px;
+  height: 80px;
+  color: #d1d5db;
+  margin-bottom: 24px;
+}
+
+.notFound h2 {
+  font-size: 1.5rem;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.notFound p {
+  color: #6b7280;
+}
+
+.card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.logoIcon {
+  width: 40px;
+  height: 40px;
+  color: #3b82f6;
+}
+
+.logo span {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.resumen {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 12px;
+}
+
+.resumen h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16px;
+}
+
+.tablaResumen {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.tablaResumen th {
+  text-align: left;
+  padding: 10px 12px;
+  font-weight: 600;
+  color: #6b7280;
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tablaResumen td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #1f2937;
+}
+
+.tablaResumen tfoot td {
+  border-bottom: none;
+}
+
+.totalLabel {
+  text-align: right;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.totalValue {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: #3b82f6;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldGroup label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.fieldGroup input,
+.fieldGroup select {
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.2s;
+  background: white;
+}
+
+.fieldGroup input:focus,
+.fieldGroup select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.fieldGroup input::placeholder {
+  color: #9ca3af;
+}
+
+.ubigeoSelects {
+  display: flex;
+  gap: 8px;
+}
+
+.ubigeoSelects select {
+  flex: 1;
+}
+
+.ubicacionBtn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btnUbicacion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  color: #0369a1;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: fit-content;
+}
+
+.btnUbicacion:hover:not(:disabled) {
+  background: #e0f2fe;
+}
+
+.btnUbicacion:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ubicacionInfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: #0369a1;
+}
+
+.btnSubmit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 8px;
+}
+
+.btnSubmit:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btnSubmit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btnSubmit svg {
+  width: 20px;
+  height: 20px;
+}
+
+.footer {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.footer p {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 8px 0;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 20px 12px;
+  }
+
+  .card {
+    padding: 24px;
+  }
+
+  .ubigeoSelects {
+    flex-direction: column;
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+.spinIcon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

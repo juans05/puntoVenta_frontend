@@ -4,6 +4,7 @@ import { IExtensionesState } from "./reducers/extensiones/interfaces";
 import { IAlert } from "./reducers/interfaces";
 import { IProductsState } from "./reducers/productos/interfaces";
 import { ISalesState } from "./reducers/ventas/interfaces";
+import { IPedidosState } from "./reducers/Pedidos/interfaces";
 
 export interface RootState {
 
@@ -22,5 +23,5 @@ export interface RootState {
     compras: any;
     gastos: any;
     publicidad: any;
-
+    pedidos: IPedidosState;
 }
