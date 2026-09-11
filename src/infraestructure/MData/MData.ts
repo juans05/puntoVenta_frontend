@@ -155,6 +155,16 @@ export const menuSidebar = [
     url: "dashboard/nueva-factura",
   },
   {
+    // Comparte el code de "Ventas del día" a propósito (mismo patrón que
+    // "Nueva Factura" arriba): evita crear un módulo/submódulo nuevo en
+    // AspNetModule/AspNetSubModule y reasignar permisos por tenant.
+    code: "300",
+    id: 18,
+    value: "Pedidos",
+    icon: "mdi:package-variant-closed",
+    url: "dashboard/pedidos",
+  },
+  {
     // Comparte el code de Gastos a propósito (mismo patrón que "Configuraciones"
     // más abajo): evita crear un módulo/submódulo nuevo en AspNetModule/
     // AspNetSubModule y reasignar permisos por tenant solo para esta pantalla.
