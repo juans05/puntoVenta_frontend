@@ -108,9 +108,9 @@ const Pedidos = () => {
     if (seleccionados.length === 0) return;
 
     const detalles = seleccionados.map((p) => ({
-      productoId: p.id,
+      productoId: p.productoId,
       cantidad: 1,
-      valorUnitario: p.precioVenta || p.precio,
+      valorUnitario: p.precioVentaConInpuesto || p.precio,
     }));
 
     const total = detalles.reduce((acc, d) => acc + d.cantidad * d.valorUnitario, 0);
