@@ -53,7 +53,7 @@ export const crearPedidoAction = (payload: ICreatePedidoPayload) => async (dispa
     const { data }: any = await axiosInstance.post("/pedidos", payload);
     dispatch(createPedido(data));
     toast.success("Pedido creado exitosamente");
-    return data;
+    return data.data;
   } catch (error: any) {
     toast.error(error.response?.data?.message || "Error al crear pedido");
     throw error;
