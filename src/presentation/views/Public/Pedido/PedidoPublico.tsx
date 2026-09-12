@@ -46,9 +46,8 @@ const PedidoPublico = () => {
 
   const cargarUbigeos = async () => {
     try {
-      const { data }: any = await axiosInstance.get("/ubigeo/listar?page=1&amount=2000");
-      const items = data?.data?.items || [];
-      setUbicaciones(items);
+      const { data }: any = await axiosInstance.get("/extensiones/ubigeos");
+      setUbicaciones(data?.data || []);
     } catch {
       toast.error("Error al cargar ubicaciones");
     }
