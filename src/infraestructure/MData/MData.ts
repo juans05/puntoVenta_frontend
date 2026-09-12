@@ -191,6 +191,13 @@ export const menuSidebar = [
         icon: "mdi:tag-multiple-outline",
         url: "dashboard/gastos/catalogos",
       },
+      {
+        code: "1300",
+        id: 142,
+        value: "Salones de recojo",
+        icon: "mdi:office-building-marker-outline",
+        url: "dashboard/pedidos/salones",
+      },
     ],
   }
   // ,

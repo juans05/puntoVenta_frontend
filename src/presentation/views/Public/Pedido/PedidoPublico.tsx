@@ -32,9 +32,11 @@ const PedidoPublico = () => {
     referencia: "",
     latitud: null as number | null,
     longitud: null as number | null,
+    salonId: "",
   });
   const [ubicaciones, setUbicaciones] = useState<any[]>([]);
   const [esLima, setEsLima] = useState(false);
+  const [salones, setSalones] = useState<any[]>([]);
 
   useEffect(() => {
     if (token) {
@@ -63,6 +65,16 @@ const PedidoPublico = () => {
     }
   };
 
+  const cargarSalones = async (ubigeoId: string) => {
+    try {
+      const { data }: any = await axiosInstance.get("/extensiones/salones", { params: { ubigeoId } });
+      setSalones(data?.data || []);
+    } catch {
+      toast.error("Error al cargar salones");
+      setSalones([]);
+    }
+  };
+
   useEffect(() => {
     if (formData.ubigeoId) {
       const ubicacion = ubicaciones.find((u) => u.ubigeoId === formData.ubigeoId);
@@ -72,6 +84,16 @@ const PedidoPublico = () => {
       }
     }
   }, [formData.ubigeoId, ubicaciones]);
+
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, salonId: "" }));
+    if (formData.ubigeoId && !esLima) {
+      cargarSalones(formData.ubigeoId);
+    } else {
+      setSalones([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.ubigeoId, esLima]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -100,9 +122,15 @@ const PedidoPublico = () => {
       return;
     }
 
+    if (!esLima && !formData.salonId) {
+      toast.error("Elige el salón donde recogerás tu pedido");
+      return;
+    }
+
     setEnviando(true);
     try {
-      const { data }: any = await axiosInstance.post(`/pedidos/publico/${token}`, formData);
+      const payload = { ...formData, salonId: formData.salonId ? Number(formData.salonId) : null };
+      const { data }: any = await axiosInstance.post(`/pedidos/publico/${token}`, payload);
       if (data?.data) {
         toast.success("Datos registrados exitosamente. Revisa tu WhatsApp para la contraseña.");
         setTimeout(() => {
@@ -283,6 +311,33 @@ const PedidoPublico = () => {
                 required
               />
             </div>
+          )}
+
+          {formData.ubigeoId && !esLima && (
+            <>
+              <div className={`${styles.field} ${styles.fieldEnter}`}>
+                <label>Currier</label>
+                <input type="text" value="Shalom" disabled />
+              </div>
+
+              <div className={`${styles.field} ${styles.fieldEnter}`}>
+                <label htmlFor="salonId">Salón de recojo</label>
+                <select
+                  id="salonId"
+                  name="salonId"
+                  value={formData.salonId}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Elige el salón</option>
+                  {salones.map((s: any) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
           )}
 
           <div className={styles.field}>

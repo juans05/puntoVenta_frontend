@@ -26,6 +26,7 @@ import { Compras } from "../presentation/views/Modules/Admin/Views/Compras";
 import { Gastos } from "../presentation/views/Modules/Admin/Views/Gastos";
 import { GastoPublicidad } from "../presentation/views/Modules/Admin/Views/GastoPublicidad";
 import { CatalogosGasto } from "../presentation/views/Modules/Admin/Views/CatalogosGasto";
+import { Salones } from "../presentation/views/Modules/Admin/Views/Salones";
 import { Empresas } from "../presentation/views/Modules/Admin/Views/Empresas";
 import NuevaFactura from "../presentation/views/Modules/NuevaFactura";
 import Pedidos from "../presentation/views/Modules/Pedidos";
@@ -75,6 +76,7 @@ export const Dashboard = () => {
             <Route path="gastos/catalogos" element={<CatalogosGasto />}/>
             <Route path="nueva-factura" element={<NuevaFactura />}/>
             <Route path="pedidos" element={<Pedidos />}/>
+            <Route path="pedidos/salones" element={<Salones />}/>
             <Route path="empresas" element={<Empresas />}/>
 {/*             <Route path="my-business" element={<MyBusiness />} /> */}
           </Route>
