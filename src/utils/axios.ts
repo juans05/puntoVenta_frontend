@@ -44,12 +44,11 @@ export function initAxiosInterceptors() {
                 isUnauthorizedHandled = true;
                 deleteToken();
                 toast.error('Se ha terminado la sesión, vuelve a iniciar sesión por favor')
-                return setTimeout(() => {
+                setTimeout(() => {
                     window.location.href = '/';
                 }, 3000);
-            } else {
-                return Promise.reject(error);
             }
+            return Promise.reject(error);
         }
     )
 

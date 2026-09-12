@@ -6,6 +6,16 @@ import styles from "./pedidoPublico.module.css";
 import axiosInstance from "../../../../utils/axios";
 import { IPedidoPublico } from "../../../../redux/reducers/Pedidos/interfaces";
 
+const estadoLabels: Record<string, string> = {
+  E: "Esperando datos",
+  D: "Datos completos",
+  P: "En preparación",
+  S: "Despachado",
+  C: "En camino",
+  T: "Entregado",
+  A: "Cancelado",
+};
+
 const PedidoPublico = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
@@ -131,19 +141,27 @@ const PedidoPublico = () => {
 
   if (cargando) {
     return (
-      <div className={styles.loading}>
-        <Icon icon="mdi:loading" className={styles.spinner} />
-        <p>Cargando pedido...</p>
+      <div className={styles.page}>
+        <div className={styles.miniTicket}>
+          <div className={styles.miniTicketCard}>
+            <Icon icon="mdi:loading" className={styles.spinner + " " + styles.spinIcon} />
+            <p className={styles.loadingLabel}>Imprimiendo tu pedido…</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!pedido) {
     return (
-      <div className={styles.notFound}>
-        <Icon icon="mdi:package-variant-closed" className={styles.icon} />
-        <h2>Pedido no encontrado</h2>
-        <p>Este enlace ha expirado o el pedido fue cancelado.</p>
+      <div className={styles.page}>
+        <div className={styles.miniTicket}>
+          <div className={styles.miniTicketCard}>
+            <Icon icon="mdi:package-variant-closed" className={styles.icon} />
+            <h2>Este pedido no existe</h2>
+            <p>El enlace venció o el pedido fue cancelado.</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -151,52 +169,49 @@ const PedidoPublico = () => {
   const total = pedido.pedidoDetalles.reduce((acc, d) => acc + d.cantidad * d.valorUnitario, 0);
 
   return (
-    <div className={styles.container}>
+    <div className={styles.page}>
       <Toaster position="top-right" />
 
-      <div className={styles.card}>
-        <div className={styles.header}>
-          <div className={styles.logo}>
-            <Icon icon="mdi:cart" className={styles.logoIcon} />
-            <span>Confirmar Pedido</span>
-          </div>
+      <div className={styles.ticket}>
+        <div className={styles.brandRow}>
+          <span className={styles.brand}>PuntoVenta</span>
+          <span className={styles.orderId}>Pedido Nº {pedido.id}</span>
+        </div>
+        <div className={styles.stampRow}>
+          <span className={`${styles.stamp} ${pedido.estadoPedido === "A" ? styles.alert : ""}`}>
+            {estadoLabels[pedido.estadoPedido] || pedido.estadoPedido}
+          </span>
         </div>
 
-        <div className={styles.resumen}>
-          <h3>Detalle del Pedido</h3>
-          <table className={styles.tablaResumen}>
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Cant.</th>
-                <th>P. Unit.</th>
-                <th>Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pedido.pedidoDetalles.map((detalle) => (
-                <tr key={detalle.productoId}>
-                  <td>{detalle.productoNombre}</td>
-                  <td>{detalle.cantidad}</td>
-                  <td>S/ {detalle.valorUnitario.toFixed(2)}</td>
-                  <td>S/ {(detalle.cantidad * detalle.valorUnitario).toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={3} className={styles.totalLabel}>Total</td>
-                <td className={styles.totalValue}>S/ {total.toFixed(2)}</td>
-              </tr>
-            </tfoot>
-          </table>
+        <hr className={styles.perforation} />
+
+        <h3 className={styles.sectionTitle}>Tu pedido</h3>
+        <div className={styles.lineItems}>
+          {pedido.pedidoDetalles.map((detalle) => (
+            <div className={styles.lineItem} key={detalle.productoId}>
+              <span className={styles.lineQty}>{detalle.cantidad}×</span>
+              <span className={styles.lineName}>
+                {detalle.productoNombre}
+                <span className={styles.lineUnit}>S/ {detalle.valorUnitario.toFixed(2)} c/u</span>
+              </span>
+              <span className={styles.lineSubtotal}>
+                S/ {(detalle.cantidad * detalle.valorUnitario).toFixed(2)}
+              </span>
+            </div>
+          ))}
         </div>
+        <div className={styles.totalRow}>
+          <span className={styles.totalLabel}>Total</span>
+          <span className={styles.totalValue}>S/ {total.toFixed(2)}</span>
+        </div>
+
+        <hr className={styles.perforation} />
 
         <form onSubmit={handleSubmit} className={styles.form}>
-          <h3>Tus Datos</h3>
+          <h3 className={styles.sectionTitle}>Tus datos</h3>
 
-          <div className={styles.fieldGroup}>
-            <label htmlFor="nombre">Nombre completo *</label>
+          <div className={styles.field}>
+            <label htmlFor="nombre">Nombre completo</label>
             <input
               type="text"
               id="nombre"
@@ -208,55 +223,56 @@ const PedidoPublico = () => {
             />
           </div>
 
-          <div className={styles.fieldGroup}>
-            <label htmlFor="dni">DNI *</label>
-            <input
-              type="text"
-              id="dni"
-              name="dni"
-              value={formData.dni}
-              onChange={handleChange}
-              placeholder="12345678"
-              maxLength={8}
-              required
-            />
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label htmlFor="celular">Celular *</label>
-            <input
-              type="tel"
-              id="celular"
-              name="celular"
-              value={formData.celular}
-              onChange={handleChange}
-              placeholder="999 999 999"
-              required
-            />
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label>Ubicación *</label>
-            <div className={styles.ubigeoSelects}>
-              <select
-                name="ubigeoId"
-                value={formData.ubigeoId}
+          <div className={styles.fieldRow}>
+            <div className={styles.field}>
+              <label htmlFor="dni">DNI</label>
+              <input
+                type="text"
+                id="dni"
+                name="dni"
+                value={formData.dni}
                 onChange={handleChange}
+                placeholder="12345678"
+                maxLength={8}
                 required
-              >
-                <option value="">Seleccionar ubicación</option>
-                {ubicaciones.map((u: any) => (
-                  <option key={u.ubigeoId} value={u.ubigeoId}>
-                    {u.departamento} - {u.provincia} - {u.distrito}
-                  </option>
-                ))}
-              </select>
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="celular">Celular</label>
+              <input
+                type="tel"
+                id="celular"
+                name="celular"
+                value={formData.celular}
+                onChange={handleChange}
+                placeholder="999 999 999"
+                required
+              />
             </div>
           </div>
 
+          <div className={styles.field}>
+            <label htmlFor="ubigeoId">Ubicación</label>
+            <select
+              id="ubigeoId"
+              name="ubigeoId"
+              value={formData.ubigeoId}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Elige tu ubicación</option>
+              {ubicaciones.map((u: any) => (
+                <option key={u.ubigeoId} value={u.ubigeoId}>
+                  {u.departamento} - {u.provincia} - {u.distrito}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {esLima && (
-            <div className={styles.fieldGroup}>
-              <label htmlFor="direccion">Dirección *</label>
+            <div className={`${styles.field} ${styles.fieldEnter}`}>
+              <label htmlFor="direccion">Dirección</label>
               <input
                 type="text"
                 id="direccion"
@@ -269,8 +285,8 @@ const PedidoPublico = () => {
             </div>
           )}
 
-          <div className={styles.fieldGroup}>
-            <label htmlFor="referencia">Referencia</label>
+          <div className={styles.field}>
+            <label htmlFor="referencia">Referencia (opcional)</label>
             <input
               type="text"
               id="referencia"
@@ -281,7 +297,7 @@ const PedidoPublico = () => {
             />
           </div>
 
-          <div className={styles.ubicacionBtn}>
+          <div className={styles.locationRow}>
             <button
               type="button"
               onClick={usarUbicacionActual}
@@ -304,14 +320,15 @@ const PedidoPublico = () => {
                 <Icon icon="mdi:loading" className={styles.spinIcon} /> Enviando...
               </>
             ) : (
-              "Confirmar y Enviar Datos"
+              <>
+                <Icon icon="mdi:check-decagram" /> Confirmar pedido
+              </>
             )}
           </button>
         </form>
 
         <div className={styles.footer}>
-          <p>Al enviar tus datos, se creará una cuenta para que puedas rastrear tu pedido.</p>
-          <p>La contraseña te llegará por WhatsApp al número registrado.</p>
+          <p>Al confirmar, creamos tu cuenta para que puedas seguir este pedido. Te enviamos la contraseña por WhatsApp.</p>
         </div>
       </div>
     </div>

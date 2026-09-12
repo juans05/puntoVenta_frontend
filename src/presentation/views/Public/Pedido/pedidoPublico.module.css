@@ -1,223 +1,350 @@
-.container {
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+.page {
+  --counter: #21262e;
+  --paper: #fbf7ee;
+  --paper-line: #e4dcc8;
+  --ink: #23201a;
+  --ink-soft: #83786a;
+  --ink-faint: #b7ac98;
+  --stamp: #146b4b;
+  --stamp-soft: #e3efe8;
+  --stamp-alert: #a23b2e;
+  --stamp-alert-soft: #f3e4e1;
+
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 40px 20px;
+  background: var(--counter);
+  background-image: radial-gradient(circle at 50% 0%, #2a323d 0%, var(--counter) 60%);
+  padding: 48px 16px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  font-family: "IBM Plex Sans", sans-serif;
 }
 
-.loading {
+/* ---------- loading & not-found: small ticket, same language ---------- */
+
+.miniTicket {
+  min-height: calc(100vh - 96px);
+  width: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  gap: 16px;
+}
+
+.miniTicketCard {
+  background: var(--paper);
+  color: var(--ink);
+  width: 100%;
+  max-width: 320px;
+  padding: 40px 28px;
+  text-align: center;
+  border-radius: 2px;
+  box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.5);
+}
+
+.miniTicketCard .icon {
+  width: 36px;
+  height: 36px;
+  color: var(--ink-faint);
+  margin-bottom: 18px;
+}
+
+.loadingLabel {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8125rem;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
 }
 
 .spinner {
-  width: 48px;
-  height: 48px;
-  color: #3b82f6;
-}
-
-.loading p {
-  color: #6b7280;
-  font-size: 1rem;
-}
-
-.notFound {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  text-align: center;
-  padding: 40px;
-}
-
-.notFound .icon {
-  width: 80px;
-  height: 80px;
-  color: #d1d5db;
-  margin-bottom: 24px;
-}
-
-.notFound h2 {
-  font-size: 1.5rem;
-  color: #1f2937;
-  margin-bottom: 8px;
-}
-
-.notFound p {
-  color: #6b7280;
-}
-
-.card {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  padding: 40px;
-  width: 100%;
-  max-width: 600px;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.logoIcon {
-  width: 40px;
-  height: 40px;
-  color: #3b82f6;
-}
-
-.logo span {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.resumen {
-  margin-bottom: 32px;
-  padding: 20px;
-  background: #f9fafb;
-  border-radius: 12px;
-}
-
-.resumen h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
+  width: 28px;
+  height: 28px;
+  color: var(--stamp);
   margin-bottom: 16px;
 }
 
-.tablaResumen {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.tablaResumen th {
-  text-align: left;
-  padding: 10px 12px;
+.miniTicketCard h2 {
+  font-size: 1.0625rem;
   font-weight: 600;
-  color: #6b7280;
-  border-bottom: 2px solid #e5e7eb;
-  font-size: 0.75rem;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.miniTicketCard p {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ---------- the ticket ---------- */
+
+.ticket {
+  position: relative;
+  background: var(--paper);
+  color: var(--ink);
+  width: 100%;
+  max-width: 440px;
+  padding: 8px 32px 32px;
+  box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.55);
+}
+
+.ticket::before,
+.ticket::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background-image: linear-gradient(135deg, var(--counter) 50%, transparent 50%),
+    linear-gradient(45deg, var(--counter) 50%, transparent 50%);
+  background-size: 16px 16px;
+  background-repeat: repeat-x;
+}
+
+.ticket::before {
+  top: -1px;
+  background-position:
+    0 -8px,
+    8px -8px;
+}
+
+.ticket::after {
+  bottom: -1px;
+  background-position:
+    0 4px,
+    8px 4px;
+}
+
+.brandRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 28px 0 4px;
+}
+
+.brand {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.orderId {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.stampRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.stamp {
+  display: inline-block;
+  padding: 5px 12px;
+  border: 1.5px solid var(--stamp);
+  color: var(--stamp);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.6875rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
+  transform: rotate(-3deg);
+  border-radius: 3px;
+  animation: stampIn 0.35s ease-out;
 }
 
-.tablaResumen td {
-  padding: 10px 12px;
-  border-bottom: 1px solid #f3f4f6;
-  color: #1f2937;
+.stamp.alert {
+  border-color: var(--stamp-alert);
+  color: var(--stamp-alert);
 }
 
-.tablaResumen tfoot td {
-  border-bottom: none;
+@keyframes stampIn {
+  from {
+    opacity: 0;
+    transform: rotate(-3deg) scale(1.4);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-3deg) scale(1);
+  }
+}
+
+.perforation {
+  border: none;
+  border-top: 1.5px dashed var(--paper-line);
+  margin: 20px 0;
+}
+
+/* ---------- line items ---------- */
+
+.sectionTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 14px;
+}
+
+.lineItems {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+.lineItem {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  column-gap: 10px;
+}
+
+.lineQty {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.lineName {
+  font-size: 0.9375rem;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.lineUnit {
+  display: block;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+
+.lineSubtotal {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 14px;
+  border-top: 1px solid var(--ink);
+  margin-top: 4px;
 }
 
 .totalLabel {
-  text-align: right;
+  font-size: 0.9375rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--ink);
 }
 
 .totalValue {
-  font-weight: 700;
-  font-size: 1.125rem;
-  color: #3b82f6;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.1875rem;
+  font-weight: 600;
+  color: var(--stamp);
 }
+
+/* ---------- form ---------- */
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
-.form h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 8px;
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
-.fieldGroup {
+.field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.fieldGroup label {
-  font-size: 0.875rem;
+.field label {
+  font-size: 0.75rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--ink-soft);
 }
 
-.fieldGroup input,
-.fieldGroup select {
-  padding: 12px 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  font-size: 1rem;
-  transition: all 0.2s;
-  background: white;
+.field input,
+.field select {
+  border: none;
+  border-bottom: 1.5px solid var(--paper-line);
+  background: transparent;
+  padding: 9px 2px 10px;
+  font-size: 0.9375rem;
+  color: var(--ink);
+  border-radius: 0;
+  font-family: "IBM Plex Sans", sans-serif !important;
+  transition: border-color 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
-.fieldGroup input:focus,
-.fieldGroup select:focus {
+.field select {
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+    linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-position:
+    calc(100% - 12px) 12px,
+    calc(100% - 6px) 12px;
+  background-size:
+    6px 6px,
+    6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 20px;
+}
+
+.field input::placeholder {
+  color: var(--ink-faint);
+}
+
+.field input:focus,
+.field select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-bottom-color: var(--stamp);
 }
 
-.fieldGroup input::placeholder {
-  color: #9ca3af;
-}
-
-.ubigeoSelects {
-  display: flex;
-  gap: 8px;
-}
-
-.ubigeoSelects select {
-  flex: 1;
-}
-
-.ubicacionBtn {
+.locationRow {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: -4px;
 }
 
 .btnUbicacion {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 10px;
-  color: #0369a1;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--stamp);
+  font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
   width: fit-content;
+  font-family: "IBM Plex Sans", sans-serif !important;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
-.btnUbicacion:hover:not(:disabled) {
-  background: #e0f2fe;
+.btnUbicacion svg {
+  width: 16px;
+  height: 16px;
 }
 
 .btnUbicacion:disabled {
@@ -229,8 +356,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.875rem;
-  color: #0369a1;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.ubicacionInfo svg {
+  width: 14px;
+  height: 14px;
 }
 
 .btnSubmit {
@@ -238,65 +371,78 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 16px;
-  background: #3b82f6;
-  color: white;
+  min-height: 52px;
+  padding: 15px;
+  background: var(--stamp);
+  color: var(--paper);
   border: none;
-  border-radius: 10px;
-  font-size: 1rem;
+  border-radius: 2px;
+  font-size: 0.9375rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: 8px;
+  margin-top: 4px;
+  font-family: "IBM Plex Sans", sans-serif !important;
+  appearance: none;
+  -webkit-appearance: none;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12) inset;
+  transition:
+    transform 0.08s ease-out,
+    background-color 0.15s,
+    opacity 0.15s;
 }
 
 .btnSubmit:hover:not(:disabled) {
-  background: #2563eb;
+  background: #0f5a3d;
+}
+
+.btnSubmit:active:not(:disabled) {
+  transform: translateY(1px) scale(0.995);
 }
 
 .btnSubmit:disabled {
-  opacity: 0.7;
+  background: var(--stamp);
+  color: var(--paper);
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
 .btnSubmit svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .footer {
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid #e5e7eb;
+  margin-top: 22px;
   text-align: center;
 }
 
 .footer p {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 8px 0;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  line-height: 1.5;
+  margin: 0;
 }
 
-@media (max-width: 640px) {
-  .container {
-    padding: 20px 12px;
+@media (max-width: 480px) {
+  .page {
+    padding: 24px 0;
   }
 
-  .card {
-    padding: 24px;
+  .ticket {
+    padding: 8px 20px 24px;
+    box-shadow: none;
   }
 
-  .ubigeoSelects {
-    flex-direction: column;
+  .fieldRow {
+    grid-template-columns: 1fr;
+    gap: 18px;
   }
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
 }
 
 .spinIcon {
-  animation: spin 1s linear infinite;
+  animation: spin 0.9s linear infinite;
 }
 
 @keyframes spin {
@@ -305,5 +451,20 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+.fieldEnter {
+  animation: fieldEnter 0.2s ease-out;
+}
+
+@keyframes fieldEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
