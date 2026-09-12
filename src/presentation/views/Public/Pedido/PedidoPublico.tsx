@@ -36,7 +36,7 @@ const PedidoPublico = () => {
   const cargarPedido = async (token: string) => {
     try {
       const { data }: any = await axiosInstance.get(`/pedidos/publico/${token}`);
-      setPedido(data);
+      setPedido(data?.data ?? null);
       setCargando(false);
     } catch {
       toast.error("Pedido no encontrado o cancelado");
@@ -93,13 +93,13 @@ const PedidoPublico = () => {
     setEnviando(true);
     try {
       const { data }: any = await axiosInstance.post(`/pedidos/publico/${token}`, formData);
-      if (data.exito) {
+      if (data?.data) {
         toast.success("Datos registrados exitosamente. Revisa tu WhatsApp para la contraseña.");
         setTimeout(() => {
           navigate("/mi-cuenta/login");
         }, 3000);
       } else {
-        toast.error(data.message || "Error al registrar datos");
+        toast.error(data?.message || "Error al registrar datos");
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Error al procesar formulario");
