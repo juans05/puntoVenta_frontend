@@ -496,25 +496,6 @@
   margin: 4px 0;
 }
 
-@media print {
-  .modalOverlay,
-  .modalHeader,
-  .btnImprimir,
-  .btnCerrar {
-    display: none !important;
-  }
-
-  .modal {
-    max-width: none;
-    box-shadow: none;
-    border-radius: 0;
-  }
-
-  .etiquetaContent {
-    padding: 0;
-  }
-}
-
 /* Product Picker Modal */
 .pickerModal {
   max-width: 900px;

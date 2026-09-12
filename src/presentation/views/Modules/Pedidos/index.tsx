@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import { Icon } from "@iconify/react/dist/iconify.js";
+import jsPDF from "jspdf";
 import styles from "./pedidos.module.css";
 import { getToken } from "../../../../helpers/auth-helpers";
 import { useAppDispatch, useAppSelector } from "../../../../redux/store";
 import { RootState } from "../../../../redux/rootState";
 import { IProductsState } from "../../../../redux/reducers/productos/interfaces";
 import { getProducts } from "../../../../redux/reducers/Admin/productos/producto.reducer";
-import type { IPedido, IPedidoDetalle } from "../../../../redux/reducers/Pedidos/interfaces";
+import type { IPedido, IPedidoDetalle, IEtiquetaEnvio } from "../../../../redux/reducers/Pedidos/interfaces";
 import { fetchPedidos, crearPedidoAction, actualizarEstadoPedidoAction, fetchEtiquetaEnvioAction, resetPedidosAction } from "../../../../redux/reducers/Pedidos/pedidos.actions";
 import { ProductoPickerModal } from "./ProductoPickerModal";
 import { printTable } from "../../../../helpers/functions/printTitle";
@@ -59,6 +60,7 @@ const Pedidos = () => {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<IPedido | null>(null);
   const [showEtiqueta, setShowEtiqueta] = useState(false);
+  const [etiquetaData, setEtiquetaData] = useState<IEtiquetaEnvio | null>(null);
   const [codigoSeguimiento, setCodigoSeguimiento] = useState("");
   const [enviandoEstado, setEnviandoEstado] = useState(false);
 
@@ -134,13 +136,51 @@ const Pedidos = () => {
     setPedidoSeleccionado(pedido);
   };
 
-  const handleImprimirEtiqueta = async (pedido: IPedido) => {
-    if (pedido.tipoEnvio === "LOCAL") {
-      dispatch(fetchEtiquetaEnvioAction(pedido.id));
-      setShowEtiqueta(true);
-    } else {
+  const handleImprimirEtiqueta = (pedido: IPedido) => {
+    if (pedido.tipoEnvio !== "LOCAL") {
       toast("Para envíos a provincia se imprime la guía del courier", { icon: "ℹ️" });
+      return;
     }
+
+    dispatch(fetchEtiquetaEnvioAction(pedido.id)).then((etiqueta: IEtiquetaEnvio | undefined) => {
+      if (!etiqueta) return;
+      setEtiquetaData(etiqueta);
+      setShowEtiqueta(true);
+    });
+  };
+
+  const handleDescargarEtiquetaPdf = () => {
+    if (!etiquetaData) return;
+
+    const doc = new jsPDF({ unit: "mm", format: [100, 150] });
+    const marginX = 10;
+    const maxWidth = 80;
+    let y = 15;
+
+    const writeLine = (text: string, sizePt: number, gap: number) => {
+      doc.setFontSize(sizePt);
+      const lines = doc.splitTextToSize(text, maxWidth);
+      doc.text(lines, marginX, y);
+      y += lines.length * gap;
+    };
+
+    writeLine("Etiqueta de Envío", 14, 7);
+    y += 3;
+    writeLine(`Destinatario: ${etiquetaData.nombre}`, 10, 5);
+    writeLine(`Teléfono: ${etiquetaData.celular}`, 10, 5);
+    writeLine(`Dirección: ${etiquetaData.direccion}`, 10, 5);
+    writeLine(`Distrito: ${etiquetaData.distrito}`, 10, 5);
+
+    if (etiquetaData.tipoEnvio === "PROVINCIA" && etiquetaData.codigoSeguimiento) {
+      writeLine(`Código Seguimiento: ${etiquetaData.codigoSeguimiento}`, 10, 5);
+    }
+
+    y += 3;
+    writeLine(`Pedido N° ${etiquetaData.pedidoId}`, 9, 5);
+    writeLine(`Fecha: ${new Date().toLocaleDateString("es-PE")}`, 9, 5);
+
+    const slug = (value: string) => value.trim().replace(/\s+/g, "_").replace(/[^\w-]/g, "");
+    doc.save(`Etiqueta_${slug(etiquetaData.nombre)}_${slug(etiquetaData.distrito)}.pdf`);
   };
 
   const handleCambiarEstado = async (pedido: IPedido, nuevoEstado: EstadoPedido) => {
@@ -438,15 +478,15 @@ const Pedidos = () => {
       )}
 
       {/* Modal Etiqueta de Envío */}
-      {showEtiqueta && pedidoSeleccionado && (
+      {showEtiqueta && etiquetaData && (
         <div className={styles.modalOverlay} onClick={() => setShowEtiqueta(false)}>
           <div className={`${styles.modal} ${styles.etiquetaModal}`} onClick={(e) => e.stopPropagation()}>
             <div className={styles.etiquetaHeader}>
               <h2>Etiqueta de Envío</h2>
               <div className={styles.etiquetaAcciones}>
-                <button className={styles.btnImprimir} onClick={() => window.print()}>
-                  <Icon icon="mdi:printer" />
-                  Imprimir
+                <button className={styles.btnImprimir} onClick={handleDescargarEtiquetaPdf}>
+                  <Icon icon="mdi:file-pdf-box" />
+                  Descargar PDF
                 </button>
                 <button className={styles.btnCerrar} onClick={() => setShowEtiqueta(false)}>
                   <Icon icon="mdi:close" />
@@ -458,36 +498,36 @@ const Pedidos = () => {
               <div className={styles.etiquetaRow}>
                 <div className={styles.etiquetaCol}>
                   <strong>Destinatario:</strong>
-                  <p>{pedidoSeleccionado.nombre}</p>
+                  <p>{etiquetaData.nombre}</p>
                 </div>
                 <div className={styles.etiquetaCol}>
                   <strong>Teléfono:</strong>
-                  <p>{pedidoSeleccionado.celular}</p>
+                  <p>{etiquetaData.celular}</p>
                 </div>
               </div>
 
               <div className={styles.etiquetaRow}>
                 <div className={styles.etiquetaCol}>
                   <strong>Dirección:</strong>
-                  <p>{pedidoSeleccionado.direccion}</p>
+                  <p>{etiquetaData.direccion}</p>
                 </div>
                 <div className={styles.etiquetaCol}>
                   <strong>Distrito:</strong>
-                  <p>{pedidoSeleccionado.ubigeoNombre}</p>
+                  <p>{etiquetaData.distrito}</p>
                 </div>
               </div>
 
-              {pedidoSeleccionado.tipoEnvio === "PROVINCIA" && pedidoSeleccionado.codigoSeguimiento && (
+              {etiquetaData.tipoEnvio === "PROVINCIA" && etiquetaData.codigoSeguimiento && (
                 <div className={styles.etiquetaRow}>
                   <div className={styles.etiquetaCol}>
                     <strong>Código Seguimiento:</strong>
-                    <p className={styles.codigoSeguimiento}>{pedidoSeleccionado.codigoSeguimiento}</p>
+                    <p className={styles.codigoSeguimiento}>{etiquetaData.codigoSeguimiento}</p>
                   </div>
                 </div>
               )}
 
               <div className={styles.etiquetaFooter}>
-                <p>Pedido N° {pedidoSeleccionado.id}</p>
+                <p>Pedido N° {etiquetaData.pedidoId}</p>
                 <p>Fecha: {new Date().toLocaleDateString("es-PE")}</p>
               </div>
             </div>

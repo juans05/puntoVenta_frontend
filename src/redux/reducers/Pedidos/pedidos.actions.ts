@@ -75,8 +75,8 @@ export const actualizarEstadoPedidoAction = (payload: IUpdatePedidoEstadoPayload
 export const fetchEtiquetaEnvioAction = (pedidoId: number) => async (dispatch: Dispatch) => {
   try {
     const { data }: any = await axiosInstance.get(`/pedidos/${pedidoId}/etiqueta`);
-    dispatch(getEtiquetaEnvio(data));
-    return data;
+    dispatch(getEtiquetaEnvio(data.data));
+    return data.data;
   } catch (error: any) {
     toast.error("Error al cargar etiqueta");
   }
