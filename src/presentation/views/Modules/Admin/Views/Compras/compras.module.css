@@ -12,6 +12,42 @@
   font-weight: 600;
 }
 
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpiCard {
+  background: #fff;
+  border: 1px solid #F1F1F2;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: left;
+}
+
+.kpiLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #99a1b7;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.kpiValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.kpiSubtext {
+  font-size: 12px;
+  color: #99a1b7;
+}
+
 .newBtn {
   background: #2997FE;
   color: #fff;

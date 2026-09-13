@@ -13,6 +13,7 @@ import { printTable } from "../../../../../../helpers/functions/printTitle";
 import { title } from "../../../../../../infraestructure/MData/MData";
 
 const PAGE_SIZE = 10;
+const formatSoles = (n: number) => `S/ ${Number(n).toFixed(2)}`;
 
 export const Compras = () => {
   const dispatch = useAppDispatch();
@@ -59,10 +60,33 @@ export const Compras = () => {
   return (
     <div>
       <div className={styles.header}>
-        <h3>Compras</h3>
+        <h3>Gestión de Compras</h3>
         <button className={styles.newBtn} onClick={abrirNueva}>
           + Nueva compra
         </button>
+      </div>
+
+      <div className={styles.kpiGrid}>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiLabel}>Total Comprado</div>
+          <div className={styles.kpiValue}>{formatSoles(totalComprado)}</div>
+          <div className={styles.kpiSubtext}>En este período</div>
+        </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiLabel}>Documentos</div>
+          <div className={styles.kpiValue}>{compras?.length || 0}</div>
+          <div className={styles.kpiSubtext}>Compras registradas</div>
+        </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiLabel}>Crédito por Pagar</div>
+          <div className={styles.kpiValue}>—</div>
+          <div className={styles.kpiSubtext}>Pendiente</div>
+        </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiLabel}>Top Proveedor</div>
+          <div className={styles.kpiValue}>{topProveedor}</div>
+          <div className={styles.kpiSubtext}>Mayor monto</div>
+        </div>
       </div>
 
       <div className={styles.tableWrap}>
