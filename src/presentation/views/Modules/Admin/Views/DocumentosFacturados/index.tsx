@@ -55,6 +55,8 @@ const dataHistory: IDataHistory = {
 export const DocumentosFacturados = () => {
   const [dateHistory, setDateHistory] = useState<IDataHistory>(dataHistory);
   const { dateStart, dateEnd } = dateHistory;
+  const [filterTipo, setFilterTipo] = useState<string>("todos");
+
   const handleChangeDate = (value: string, name: string) => {
     console.log("value", value);
 
@@ -96,8 +98,24 @@ export const DocumentosFacturados = () => {
           : value?.tipoDocumentoVentaId === 2
           ? "Boleta"
           : "Ticket Interno",
+      tipoDocumentoVentaId: value?.tipoDocumentoVentaId,
     };
   });
+
+  // Filter by document type
+  const filteredVentas = filterTipo === "todos"
+    ? newDataVentas
+    : newDataVentas?.filter((v: any) => {
+        if (filterTipo === "1") return v.tipoDocumentoVentaId === 1;
+        if (filterTipo === "2") return v.tipoDocumentoVentaId === 2;
+        if (filterTipo === "3") return v.tipoDocumentoVentaId === 3;
+        return true;
+      });
+
+  // Count by type
+  const countFacturas = newDataVentas?.filter((v: any) => v.tipoDocumentoVentaId === 1)?.length || 0;
+  const countBoletas = newDataVentas?.filter((v: any) => v.tipoDocumentoVentaId === 2)?.length || 0;
+  const countOtros = newDataVentas?.filter((v: any) => v.tipoDocumentoVentaId !== 1 && v.tipoDocumentoVentaId !== 2)?.length || 0;
 
   const verProductosMain = (data: any) => {
     dispatch(generarPDF(data?.idComprobante));
@@ -158,7 +176,7 @@ export const DocumentosFacturados = () => {
   const [activeTab /* setActiveTab */] = useState(1);
   const selectedTab = tabs.find((tab) => tab.id === activeTab);
   const getButtons = selectedTab && selectedTab.dataBtns;
-  const getData = selectedTab && selectedTab.data;
+  const getData = filterTipo === "todos" ? selectedTab?.data : filteredVentas;
   // const getLabel = selectedTab && selectedTab.label;
   const getBtnsHeader = selectedTab && selectedTab.btnsHeader;
 
@@ -183,6 +201,33 @@ export const DocumentosFacturados = () => {
           <div className={styles.content}>
             <div className={styles.title}>
               <h3>Documentos Facturados</h3>
+            </div>
+
+            <div className={styles.filterTabs}>
+              <button
+                className={`${styles.tab} ${filterTipo === "todos" ? styles.active : ""}`}
+                onClick={() => setFilterTipo("todos")}
+              >
+                Todos ({newDataVentas?.length || 0})
+              </button>
+              <button
+                className={`${styles.tab} ${filterTipo === "1" ? styles.active : ""}`}
+                onClick={() => setFilterTipo("1")}
+              >
+                Facturas ({countFacturas})
+              </button>
+              <button
+                className={`${styles.tab} ${filterTipo === "2" ? styles.active : ""}`}
+                onClick={() => setFilterTipo("2")}
+              >
+                Boletas ({countBoletas})
+              </button>
+              <button
+                className={`${styles.tab} ${filterTipo === "3" ? styles.active : ""}`}
+                onClick={() => setFilterTipo("3")}
+              >
+                Otros ({countOtros})
+              </button>
             </div>
 
             <div className={`${styles["encabezado-principal"]}`}></div>
