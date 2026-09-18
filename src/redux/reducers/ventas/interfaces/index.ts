@@ -22,17 +22,44 @@ export interface ISalesState {
 export interface ISaleProduct {
     clientId?: any
     tipoDocumentoVentaId: number
+    tipoDocumentoId?: number
     numeroDocumento?: string
     fechaVenta?: string
     total: number
     ruc: string
     razonSocial: string
+    direccionCliente?: string
+    ubigeoId?: string
+    celular?: string
+    email?: string
     efectivo: string
     tipoVenta?: string
     esEcommerce?: boolean
     tipoEnvio?: string
     distrito?: string
-    detalleComprobante: IDetalleComprobante[] 
+    esCredito?: boolean
+    porcentajeDescuento?: number
+    montoDescuento?: number
+    montoRecibido?: number
+    vuelto?: number
+    observacion?: string
+    modoEnvio?: "F" | "S" | "G"
+    sucursalId?: number
+    tipoOperacionId?: number
+    placaVehiculo?: string
+    guiaRemisionManual?: string
+    guiaRemisionElectronica?: string
+    etiquetas?: string
+    fechaVencimiento?: string
+    numeroOrden?: string
+    colaboradorId?: string
+    monedaId?: number
+    tipoCambio?: number
+    montoRetencion?: number
+    montoAnticipo?: number
+    fechaVigencia?: string
+    cotizacionOrigenId?: number
+    detalleComprobante: IDetalleComprobante[]
     detallePago: IDetallePago[]
 }
 
@@ -41,6 +68,8 @@ export interface IDetalleComprobante {
     cantidad: number
     valorUnitario: number
     costoReal?: number
+    tipoIgvId?: number
+    unidadMedidaId?: number
 }
 
 export interface IDetallePago {

@@ -14,7 +14,7 @@
 .panel {
   background: #fff;
   border-radius: 12px;
-  max-width: 760px;
+  max-width: 480px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
@@ -55,39 +55,26 @@
   padding: 4px;
 }
 
-.section {
-  border: 1px solid #f1f1f2;
-  padding: 15px 15px 20px 15px;
-  margin-bottom: 12px;
-  border-radius: 10px;
+.resumen {
+  background: #F9FAFB;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #344054;
 }
 
-.section h3 {
-  font-weight: 600;
-  border-bottom: 1px solid #f1f1f2;
-  padding: 0 0 10px 0;
-  margin-bottom: 12px;
-  font-size: 14px;
+.resumen div {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  padding: 2px 0;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+.field {
+  margin-bottom: 14px;
 }
 
-.grid > div {
-  min-width: 0;
-}
-
-.grid .full {
-  grid-column: 1 / -1;
-}
-
-.grid label {
+.field label {
   font-size: 12px;
   color: #475467;
   display: block;
@@ -95,9 +82,32 @@
   font-weight: 500;
 }
 
-.fechaInput {
+.tabsTipo {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tabsTipo button {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+  color: #475467;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tabsTipo button.active {
+  background: #2997FE;
+  color: #fff;
+  border-color: #2997FE;
+}
+
+.select {
   border-radius: 0.5rem;
-  padding: 0.775rem 1rem;
+  padding: 0.6rem 0.8rem;
   border: 1px solid #E4E7EC;
   outline: none;
   background: #fff;
@@ -105,56 +115,6 @@
   color: #344054;
   font-size: 13px;
   height: 38px;
-}
-
-.addLineBtn {
-  border: 1px solid #2997FE;
-  color: #2997FE;
-  background: #fff;
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.detalleRow {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr auto;
-  gap: 8px;
-  align-items: end;
-  margin-bottom: 10px;
-}
-
-.detalleRow label {
-  font-size: 11px;
-  color: #99a1b7;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.subtotal {
-  font-size: 14px;
-  font-weight: 600;
-  padding: 8px 0;
-}
-
-.removeRow {
-  cursor: pointer;
-  color: #f24b89;
-  background: none;
-  border: 0;
-  font-size: 20px;
-  padding: 6px;
-}
-
-.total {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  padding-top: 10px;
-  border-top: 1px solid #f1f1f2;
 }
 
 .buttons {
@@ -186,14 +146,4 @@
 .buttons .submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.xmlHint {
-  background: #EEF4FF;
-  border: 1px solid #D1E0FF;
-  color: #3538CD;
-  font-size: 12px;
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 14px;
 }

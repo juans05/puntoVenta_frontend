@@ -17,7 +17,8 @@ export const SidebarElement = ({
 }: ISidebarElement) => {
   const location = useLocation();
   const hasChildren = !!children?.length;
-  const isChildActive = hasChildren && children!.some((child) => location.pathname === `/${child.url}`);
+  const isChildActive =
+    hasChildren && children!.some((child) => location.pathname === `/${child.url}`);
   const [isOpen, setIsOpen] = useState(isChildActive);
 
   if (hasChildren) {
@@ -45,6 +46,7 @@ export const SidebarElement = ({
               <li key={child.id ?? childIndex}>
                 <NavLink
                   to={`/${child.url}`}
+                  end
                   className={({ isActive }) =>
                     `${sidebar.contenedorSidebar} text-sm ${
                       isActive

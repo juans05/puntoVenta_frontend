@@ -10,4 +10,6 @@ export interface ILayoutVentasRealizadasProviders{
   activeProviders: any;
   activeAnfitrionas:any;
   modalVentas:boolean;
+  motivosNota: any[];
+  comprobanteBuscado: any;
 }

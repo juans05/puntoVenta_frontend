@@ -171,34 +171,141 @@
 
     .filterTabs {
       display: flex;
-      gap: 8px;
+      gap: 4px;
       margin-bottom: 20px;
       flex-wrap: wrap;
+      background: linear-gradient(90deg, #6C5DD3 0%, #2997FE 100%);
+      border-radius: 10px;
+      padding: 6px;
     }
 
     .tab {
-      padding: 8px 16px;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      background: #fff;
-      color: #475467;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.85);
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
       white-space: nowrap;
     }
 
     .tab:hover {
-      border-color: #2997FE;
-      color: #2997FE;
-      background: #f8fbff;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
     }
 
     .tab.active {
-      background: #2997FE;
-      color: #fff;
-      border-color: #2997FE;
+      background: #fff;
+      color: #4F46E5;
     }
-        background: #F6FEF2
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #EAECF0;
+    }
+
+    .toolbarActions {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .toolbarLink {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 4px;
+    }
+
+    .toolbarLink svg {
+      font-size: 16px;
+    }
+
+    .advancedToggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475467;
+    }
+
+    .advancedPanel {
+      background: #fff;
+      border: 1px solid #EAECF0;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+    }
+
+    .advancedTitle {
+      font-size: 14px;
+      font-weight: 600;
+      color: #344054;
+      margin: 0 0 4px 0;
+    }
+
+    .advancedSubtitle {
+      font-size: 12px;
+      color: #667085;
+      margin: 0 0 14px 0;
+    }
+
+    .advancedGrid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: end;
+    }
+
+    .advancedGrid > div {
+      min-width: 160px;
+    }
+
+    .chartsRow {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+
+    .chartCard {
+      flex: 2;
+      min-width: 320px;
+    }
+
+    .donutsCol {
+      flex: 1;
+      min-width: 260px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .buscarBtn {
+      background: #2997FE !important;
+      color: #fff !important;
+      border: none !important;
+      border-radius: 6px;
+      padding: 0 18px;
+      height: 40px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
     }

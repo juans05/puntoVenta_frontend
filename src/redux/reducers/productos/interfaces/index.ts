@@ -23,6 +23,8 @@ export interface IProduct {
     comentarios: Comments[]
     totalFicha: number
     costoReal?: number
+    tipoIgvId?: number
+    unidadMedidaId?: number
 }
 
 export interface IProductData {

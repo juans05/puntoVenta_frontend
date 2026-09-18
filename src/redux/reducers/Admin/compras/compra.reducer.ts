@@ -39,12 +39,23 @@ export const compraReducer = createReducer(initialState, (builder) => {
     );
 });
 
-export const getCompras =(page: number, amount: number) => {
+interface IFiltrosCompras {
+  value?: string;
+  startDate?: string;
+  endDate?: string;
+  sucursalId?: number;
+}
+
+export const getCompras = (page: number, amount: number, filtros?: IFiltrosCompras) => {
   return async (dispatch: Dispatch<AnyAction>) => {
     try {
-      const response: any = await axiosInstance.get(
-        `/compras/listar?Page=${page}&Amount=${amount}`
-      );
+      const params = new URLSearchParams({ Page: String(page), Amount: String(amount) });
+      if (filtros?.value) params.set("Value", filtros.value);
+      if (filtros?.startDate) params.set("StartDate", filtros.startDate);
+      if (filtros?.endDate) params.set("EndDate", filtros.endDate);
+      if (filtros?.sucursalId) params.set("SucursalId", String(filtros.sucursalId));
+
+      const response: any = await axiosInstance.get(`/compras/listar?${params.toString()}`);
       const { status, data } = response;
       if (status === 200) {
         dispatch({ type: types.GET_COMPRAS, payload: data?.data });
@@ -95,6 +106,14 @@ export const getProductosCompra = () => {
       dispatch({ type: types.GET_PRODUCTOS_COMPRA, payload: [] });
     }
   };
+};
+
+export const importarXmlCompra = (archivo: File): Promise<any> => {
+  const formData = new FormData();
+  formData.append("archivo", archivo);
+  return axiosInstance
+    .post(`/compras/importar-xml`, formData, { headers: { "Content-Type": "multipart/form-data" } })
+    .then((res: any) => res.data?.data);
 };
 
 export const crearCompra = (payload: any, onSuccess?: () => void) => {

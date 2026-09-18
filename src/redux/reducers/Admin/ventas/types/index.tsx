@@ -9,6 +9,24 @@ export const OPEN_MODAL_VENTAS='OPEN_MODAL_VENTAS'
 export const CLOSE_MODAL_VENTAS='CLOSE_MODAL_VENTAS'
 export const PDF_BY_DOCUMENT = 'PDF_BY_DOCUMENT'
 
+export const GET_MOTIVOS_NOTA = 'GET_MOTIVOS_NOTA'
+export const GET_COMPROBANTE_BUSCADO = 'GET_COMPROBANTE_BUSCADO'
+export const CLEAR_COMPROBANTE_BUSCADO = 'CLEAR_COMPROBANTE_BUSCADO'
+
+export interface IGetMotivosNota{
+    type: typeof GET_MOTIVOS_NOTA,
+    payload: any
+}
+
+export interface IGetComprobanteBuscado{
+    type: typeof GET_COMPROBANTE_BUSCADO,
+    payload: any
+}
+
+export interface IClearComprobanteBuscado{
+    type: typeof CLEAR_COMPROBANTE_BUSCADO,
+}
+
 export interface IDocumentPDF{
     type: typeof PDF_BY_DOCUMENT,
     payload: string
@@ -48,4 +66,4 @@ export interface IAnularVentas {
 }
 
 
-export type IClientsProviders = IGetAllVentas | IActiveVentas | IClearActiveVentas | IDeleteVentas | IAnularVentas | IOpenModalVentas | ICloseModalVentas
+export type IClientsProviders = IGetAllVentas | IActiveVentas | IClearActiveVentas | IDeleteVentas | IAnularVentas | IOpenModalVentas | ICloseModalVentas | IGetMotivosNota | IGetComprobanteBuscado | IClearComprobanteBuscado

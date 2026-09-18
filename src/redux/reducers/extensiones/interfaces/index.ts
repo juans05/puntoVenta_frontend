@@ -4,4 +4,10 @@ export interface IExtensionesState {
     allUsers:[]
     ubigeos:[]
     typeDocument:[]
+    tiposIgv: []
+    unidadesMedida: []
+    tiposOperacion: []
+    monedas: []
+    sucursales: []
+    colaboradores: []
 }
