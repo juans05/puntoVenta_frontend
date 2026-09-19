@@ -16,6 +16,13 @@ import {
   subirImagenProducto,
   updateProducts,
 } from "../../../../redux/reducers/Admin/productos/producto.reducer";
+import {
+  getMonedas,
+  getSucursales,
+  getTiposIgv,
+  getUnidadesMedida,
+} from "../../../../redux/reducers/extensiones/extensiones..reducer";
+import { IExtensionesState } from "../../../../redux/reducers/extensiones/interfaces";
 import "../../index.css";
 import Input from "../../../Input";
 import { Button } from "@tremor/react";
@@ -23,6 +30,23 @@ import { Toggle } from "../../../Toggle";
 import SelectPro from "../../../SelectPro";
 import { toast } from "sonner";
 import { ImageCropModal } from "../../../ImageCropModal";
+
+const DETRACCION_OPCIONES = [
+  { id: 0, value: "Ninguno" },
+  { id: 4, value: "4%" },
+  { id: 10, value: "10%" },
+  { id: 12, value: "12%" },
+  { id: 15, value: "15%" },
+];
+
+const DESTINO_PREPARACION_OPCIONES = ["Ninguno", "Cocina", "Barra"];
+
+const PRESET_PRECIOS_ALTERNATIVOS = ["MAYORISTA", "VIP", "DISTRIBUIDOR"];
+
+const CODIGO_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const generarCodigo = (len = 6) =>
+  Array.from({ length: len }, () => CODIGO_CHARS[Math.floor(Math.random() * CODIGO_CHARS.length)]).join("");
+
 const initialForm = {
   nombreCategoria: "",
   categoriaId: 0,
@@ -39,7 +63,29 @@ const initialForm = {
   margenGanancia: 0,
   cambioPrecioPermitido: false,
   estado: true,
+
+  codigo: "",
+  marca: "",
+  sucursalId: 0,
+  sucursal: "",
+  monedaId: 0,
+  moneda: "",
+  tipoIgvId: 0,
+  tipoIgv: "",
+  unidadMedidaId: 0,
+  unidadMedida: "",
+  precioMinimo: "",
+  stockMinimo: "",
+  pesoKg: "",
+  icbper: false,
+  porcentajeDetraccion: 0,
+  destinoPreparacion: "Ninguno",
+  gestionLotes: false,
+  multiPrecioActivo: false,
 };
+
+type TabId = "general" | "lotes" | "presentaciones" | "multiprecio" | "imagenes";
+
 const customStyles = {};
 Modal.setAppElement("#root");
 
@@ -47,14 +93,17 @@ const IMAGEN_MAX_BYTES = 5 * 1024 * 1024;
 const IMAGEN_EXTENSIONES = ["jpg", "jpeg", "png", "webp"];
 const IMAGEN_TIPOS = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 export const ProductoModal = () => {
-  const { modalProducts, activeProducto, categorias, grupos, allGrupos }: any =
+  const { modalProducts, activeProducto, categorias, allGrupos }: any =
     useAppSelector((state: RootState) => state.adminProducts);
-
-  console.log(grupos);
-  /*  console.log(activeProducto?.comentarios[0]?.descripcion); */
+  const { sucursales, monedas, tiposIgv, unidadesMedida }: IExtensionesState = useAppSelector(
+    (state: RootState) => state.extentions
+  );
 
   const dispatch = useAppDispatch();
+  const [tab, setTab] = useState<TabId>("general");
   const [formValues, setFormValues] = useState<any>(initialForm);
+  const [preciosAlternativos, setPreciosAlternativos] = useState<any[]>([]);
+  const [presentaciones, setPresentaciones] = useState<any[]>([]);
   const [imagenArchivo, setImagenArchivo] = useState<File | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const [archivoParaRecortar, setArchivoParaRecortar] = useState<File | null>(null);
@@ -73,58 +122,70 @@ export const ProductoModal = () => {
     grupoId,
     nombreGrupo,
     nombreCategoria,
+    codigo,
+    marca,
+    sucursal,
+    moneda,
+    tipoIgv,
+    unidadMedida,
+    precioMinimo,
+    stockMinimo,
+    pesoKg,
+    icbper,
+    porcentajeDetraccion,
+    destinoPreparacion,
+    gestionLotes,
+    multiPrecioActivo,
   } = formValues;
-  // const [windowHeight, setWindowHeight] = useState(window.innerHeight);
-  // useEffect(() => {
-  //   const handleResize = () => {
-  //     setWindowHeight(window.innerHeight);
-  //   };
 
-  //   window.addEventListener("resize", handleResize);
-
-  //   return () => {
-  //     window.removeEventListener("resize", handleResize);
-  //   };
-  // }, []);
-
-  // const setHeight =
-  //   windowHeight >= 953
-  //     ? "773px"
-  //     : windowHeight >= 804
-  //     ? "600px"
-  //     : windowHeight <= 803 && windowHeight > 748
-  //     ? "773px"
-  //     : windowHeight <= 747 && windowHeight > 603
-  //     ? "557px"
-  //     : windowHeight <= 603 && "410px";
-  console.log(categoriaId);
   const [checkedPrecio, setCheckedPrecio] = useState<boolean>(false);
   const [isStock, setIsStock] = useState<boolean>(false);
 
   useEffect(() => {
+    dispatch(getSucursales() as any);
+    dispatch(getMonedas() as any);
+    dispatch(getTiposIgv() as any);
+    dispatch(getUnidadesMedida() as any);
+  }, [dispatch]);
+
+  useEffect(() => {
     if (activeProducto) {
       setFormValues({
+        ...initialForm,
         ...activeProducto,
-        /*        comentarios: activeProducto?.comentarios[0]?.descripcion, */
+        codigo: activeProducto.codigo || "",
+        sucursal:
+          (sucursales as any[])?.find((s: any) => Number(s.id) === Number(activeProducto.sucursalId))?.value ?? "",
+        moneda:
+          (monedas as any[])?.find((m: any) => Number(m.id) === Number(activeProducto.monedaId))?.value ?? "",
+        tipoIgv: activeProducto.nombreTipoIgv
+          ? `${(tiposIgv as any[])?.find((t: any) => Number(t.id) === Number(activeProducto.tipoIgvId))?.codigo ?? ""} - ${activeProducto.nombreTipoIgv}`
+          : "",
+        unidadMedida: activeProducto.nombreUnidadMedida ?? "",
+        destinoPreparacion: activeProducto.destinoPreparacion || "Ninguno",
       });
+      setPreciosAlternativos(activeProducto.preciosAlternativos ?? []);
+      setPresentaciones(
+        (activeProducto.presentaciones ?? []).map((p: any) => ({
+          ...p,
+          unidadMedida: p.unidadMedidaNombre,
+        }))
+      );
     } else {
-      setFormValues(initialForm);
+      setFormValues({ ...initialForm, codigo: generarCodigo() });
+      setPreciosAlternativos([]);
+      setPresentaciones([]);
     }
-  }, [activeProducto, setFormValues]);
+    setTab("general");
+  }, [activeProducto]);
+
   const handleInputChange = (e: any) => {
     setFormValues({
       ...formValues,
       [e.target.name]: e.target.value,
     });
   };
-  const handleChangeSelect = (
-    idValue: any,
-    value: string,
-    name: string,
-    id: number
-  ) => {
-    console.log(idValue, id, name, value);
-
+  const handleChangeSelect = (idValue: any, value: string, name: string, id: number) => {
     setFormValues({
       ...formValues,
       [name]: value,
@@ -132,32 +193,25 @@ export const ProductoModal = () => {
     });
   };
 
-  console.log(categorias);
-  const filterAvoidAllCategorias = categorias?.filter(
-    (value: any) => value?.categoriaId !== 0
-  );
-  const newCategorias = filterAvoidAllCategorias?.map((value: any) => {
-    return {
-      id: value?.categoriaId,
-      value: value?.nombre,
-    };
-  });
-  const gruposFilter = allGrupos?.filter(
-    (value: any) => `${value?.categoriaId}` === categoriaId
-  );
-  const gruposFilterAvoidAll = gruposFilter?.filter(
-    (value: any) => `${value?.nombre}` !== "Todos"
-  );
-  console.log(gruposFilter);
-  const newGrupos = gruposFilterAvoidAll?.map((value: any) => {
-    return {
-      id: value?.grupoId,
-      value: value?.nombre,
-    };
-  });
-  const suma = (
-    Number(precioVentaSinInpuesto) + Number(margenGanancia)
-  ).toFixed(2);
+  const filterAvoidAllCategorias = categorias?.filter((value: any) => value?.categoriaId !== 0);
+  const newCategorias = filterAvoidAllCategorias?.map((value: any) => ({
+    id: value?.categoriaId,
+    value: value?.nombre,
+  }));
+  const gruposFilter = allGrupos?.filter((value: any) => `${value?.categoriaId}` === categoriaId);
+  const gruposFilterAvoidAll = gruposFilter?.filter((value: any) => `${value?.nombre}` !== "Todos");
+  const newGrupos = gruposFilterAvoidAll?.map((value: any) => ({
+    id: value?.grupoId,
+    value: value?.nombre,
+  }));
+
+  const sucursalesOptions = (sucursales as any[])?.map((s: any) => ({ id: s.id, value: s.value })) ?? [];
+  const monedasOptions = (monedas as any[])?.map((m: any) => ({ id: m.id, value: m.value })) ?? [];
+  const tiposIgvOptions = (tiposIgv as any[])?.map((t: any) => ({ id: t.id, value: `${t.codigo} - ${t.value}` })) ?? [];
+  const unidadesMedidaOptions = (unidadesMedida as any[])?.map((u: any) => ({ id: u.id, value: u.value })) ?? [];
+
+  const suma = (Number(precioVentaSinInpuesto) + Number(margenGanancia)).toFixed(2);
+
   const closeModal = () => {
     if (subiendoImagen || eliminandoImagen) return;
 
@@ -167,20 +221,45 @@ export const ProductoModal = () => {
       dispatch(clearActiveProducto());
       setIsStock(false);
       setFormValues(initialForm);
+      setPreciosAlternativos([]);
+      setPresentaciones([]);
       limpiarImagen();
     }, 200);
   };
+
+  const buildPayload = () => ({
+    ...formValues,
+    cambioPrecioPermitido: checkedPrecio,
+    precioVentaConInpuesto: suma,
+    precio: suma,
+    proveedorId: null,
+    stock: parseInt(stock),
+    stockMinimo: stockMinimo === "" ? undefined : Number(stockMinimo),
+    precioMinimo: precioMinimo === "" ? undefined : Number(precioMinimo),
+    pesoKg: pesoKg === "" ? undefined : Number(pesoKg),
+    sucursalId: formValues.sucursalId || undefined,
+    monedaId: formValues.monedaId || undefined,
+    tipoIgvId: formValues.tipoIgvId || undefined,
+    unidadMedidaId: formValues.unidadMedidaId || undefined,
+    porcentajeDetraccion: porcentajeDetraccion || undefined,
+    destinoPreparacion: destinoPreparacion === "Ninguno" ? undefined : destinoPreparacion,
+    preciosAlternativos: preciosAlternativos.map((p) => ({ nombre: p.nombre, precioVenta: Number(p.precioVenta) })),
+    presentaciones: presentaciones.map((p) => ({
+      nombre: p.nombre,
+      codigo: p.codigo || undefined,
+      unidadMedidaId: p.unidadMedidaId,
+      factor: Number(p.factor),
+      precioVenta: Number(p.precioVenta),
+      precioMinimo: p.precioMinimo ? Number(p.precioMinimo) : undefined,
+    })),
+  });
+
   const createProduct = async () => {
     if (activeProducto) {
       dispatch(
         updateProducts({
-          ...formValues,
-          cambioPrecioPermitido: checkedPrecio,
-          precioVentaConInpuesto: suma,
-          precio: suma,
-          proveedorId: null,
+          ...buildPayload(),
           usuarioModificacion: "admin",
-          stock: parseInt(stock),
         })
       );
       closeModal();
@@ -188,13 +267,8 @@ export const ProductoModal = () => {
       try {
         const creado: any = await dispatch(
           createProducto({
-            ...formValues,
-            cambioPrecioPermitido: checkedPrecio,
-            precioVentaConInpuesto: suma,
-            precio: suma,
-            proveedorId: null,
+            ...buildPayload(),
             usuarioCreacion: "admin",
-            stock: parseInt(stock),
           })
         );
 
@@ -251,9 +325,7 @@ export const ProductoModal = () => {
   const eliminarProducto = () => {
     if (subiendoImagen || eliminandoImagen) return;
 
-    const confirmado = window.confirm(
-      `¿Seguro que deseas eliminar el producto "${activeProducto?.nombre}"?`
-    );
+    const confirmado = window.confirm(`¿Seguro que deseas eliminar el producto "${activeProducto?.nombre}"?`);
     if (!confirmado) return;
 
     dispatch(deleteProducts(activeProducto?.productoId));
@@ -278,9 +350,7 @@ export const ProductoModal = () => {
     if (!archivo) return;
 
     const extension = archivo.name.split(".").pop()?.toLowerCase() ?? "";
-    const tipoValido =
-      IMAGEN_EXTENSIONES.includes(extension) ||
-      IMAGEN_TIPOS.includes(archivo.type);
+    const tipoValido = IMAGEN_EXTENSIONES.includes(extension) || IMAGEN_TIPOS.includes(archivo.type);
 
     if (!tipoValido) {
       toast.error("La imagen debe ser JPG, PNG o WEBP.");
@@ -358,17 +428,80 @@ export const ProductoModal = () => {
     }
   };
 
-  const imagenActual =
-    imagenPreview ?? (rutaImagen ? rutaImagen : null);
+  const imagenActual = imagenPreview ?? (rutaImagen ? rutaImagen : null);
+
+  // ---- Multi-precio (tab) ----
+  const [formPrecioAlt, setFormPrecioAlt] = useState<{ nombre: string; precioVenta: string } | null>(null);
+
+  const abrirNuevoPrecioAlt = (preset?: string) => {
+    setFormPrecioAlt({ nombre: preset ?? "", precioVenta: "" });
+  };
+
+  const guardarPrecioAlt = () => {
+    if (!formPrecioAlt?.nombre.trim()) return toast.error("El nombre del precio es obligatorio");
+    if (!formPrecioAlt?.precioVenta || Number(formPrecioAlt.precioVenta) <= 0)
+      return toast.error("Ingresa un precio de venta válido");
+
+    setPreciosAlternativos([...preciosAlternativos, { ...formPrecioAlt, precioVenta: Number(formPrecioAlt.precioVenta) }]);
+    setFormPrecioAlt(null);
+  };
+
+  const eliminarPrecioAlt = (index: number) => {
+    setPreciosAlternativos(preciosAlternativos.filter((_, i) => i !== index));
+  };
+
+  // ---- Presentaciones (tab) ----
+  const initialPresentacionForm = {
+    nombre: "",
+    codigo: generarCodigo(),
+    unidadMedidaId: 0,
+    unidadMedida: "",
+    factor: "",
+    precioVenta: "",
+    precioMinimo: "",
+  };
+  const [formPresentacion, setFormPresentacion] = useState<typeof initialPresentacionForm | null>(null);
+
+  const abrirNuevaPresentacion = () => {
+    setFormPresentacion({ ...initialPresentacionForm, codigo: generarCodigo() });
+  };
+
+  const handleChangePresentacionSelect = (idValue: any, value: string, name: string, id: string) => {
+    if (!formPresentacion) return;
+    setFormPresentacion({ ...formPresentacion, [name]: value, [id]: idValue });
+  };
+
+  const guardarPresentacion = () => {
+    if (!formPresentacion) return;
+    if (!formPresentacion.nombre.trim()) return toast.error("El nombre de la presentación es obligatorio");
+    if (!formPresentacion.unidadMedidaId) return toast.error("Elige la unidad de medida");
+    if (!formPresentacion.factor || Number(formPresentacion.factor) <= 0)
+      return toast.error("Indica cuántas unidades trae");
+    if (!formPresentacion.precioVenta || Number(formPresentacion.precioVenta) <= 0)
+      return toast.error("Ingresa un precio de venta válido");
+
+    setPresentaciones([...presentaciones, { ...formPresentacion }]);
+    setFormPresentacion(null);
+  };
+
+  const eliminarPresentacion = (index: number) => {
+    setPresentaciones(presentaciones.filter((_, i) => i !== index));
+  };
+
+  const tabs: { id: TabId; label: string; disabled?: boolean }[] = [
+    { id: "general", label: "General" },
+    { id: "lotes", label: "Lotes", disabled: !gestionLotes },
+    { id: "presentaciones", label: "Presentaciones" },
+    { id: "multiprecio", label: "Multi-precio" },
+    { id: "imagenes", label: "Imágenes" },
+  ];
 
   return (
     <Modal
       isOpen={modalProducts}
       style={customStyles}
       closeTimeoutMS={200}
-      className={
-        isStock ? styles.productoWithStock : styles.productoWithoutStock
-      }
+      className={isStock ? styles.productoWithStock : styles.productoWithoutStock}
       overlayClassName="modal-fondo"
     >
       <div className={isStock ? styles["container-stock"] : styles.container}>
@@ -379,19 +512,453 @@ export const ProductoModal = () => {
           <div className={styles.encabezado}>
             <h2>{activeProducto ? "Editar" : "Crear"} Producto</h2>
           </div>
-          <div className={styles.content}>
-            <div className={styles.warning}>
-              <Icon icon="pajamas:warning" />
-              <div className={styles["warning-text"]}>
-                <h3>Tomar en cuenta</h3>
-                <p>
-                  Todo producto deberá tener asignado una categoría para un
-                  mejor control en el sistema de Punto de venta.
-                </p>
+
+          <div className="flex gap-1 border-b border-gray-100 px-6">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                disabled={t.disabled}
+                onClick={() => setTab(t.id)}
+                className={`text-sm font-semibold px-3 py-2 border-b-2 -mb-px ${
+                  t.disabled
+                    ? "text-gray-300 cursor-not-allowed border-transparent"
+                    : tab === t.id
+                    ? "text-indigo-600 border-indigo-600"
+                    : "text-gray-500 border-transparent hover:text-gray-700"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.content} style={{ maxHeight: "60vh", overflowY: "auto" }}>
+            {tab === "general" && (
+              <>
+                <div className={styles.warning}>
+                  <Icon icon="pajamas:warning" />
+                  <div className={styles["warning-text"]}>
+                    <h3>Tomar en cuenta</h3>
+                    <p>Todo producto deberá tener asignado una categoría para un mejor control en el sistema de Punto de venta.</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-1 py-3">
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Input name="codigo" value={codigo} label="Código" isLabel type="text" onChange={handleInputChange} />
+                    </div>
+                    <Button size="xs" onClick={() => setFormValues({ ...formValues, codigo: generarCodigo() })}>
+                      Generar
+                    </Button>
+                  </div>
+                  <div>
+                    <SelectPro
+                      isLabel
+                      label="Unidad de medida"
+                      isSearch
+                      id="unidadMedidaId"
+                      name="unidadMedida"
+                      defaultValue={unidadMedida}
+                      options={unidadesMedidaOptions}
+                      onChange={handleChangeSelect}
+                    />
+                  </div>
+                  <div>
+                    <Input name="nombre" value={nombre} label="Nombre del producto" isLabel type="text" onChange={handleInputChange} />
+                  </div>
+
+                  <div>
+                    <Input name="marca" value={marca} label="Marca" isLabel type="text" onChange={handleInputChange} />
+                  </div>
+                  <div>
+                    <SelectPro
+                      isLabel
+                      label="Seleccione una categoría"
+                      isSearch
+                      id="categoriaId"
+                      name="category"
+                      defaultValue={nombreCategoria}
+                      options={newCategorias}
+                      onChange={handleChangeSelect}
+                    />
+                  </div>
+                  <div>
+                    <SelectPro
+                      isLabel
+                      label="Sucursal"
+                      isSearch
+                      id="sucursalId"
+                      name="sucursal"
+                      defaultValue={sucursal}
+                      options={sucursalesOptions}
+                      onChange={handleChangeSelect}
+                    />
+                  </div>
+
+                  <div>
+                    <SelectPro
+                      isLabel
+                      label="Seleccione una grupo"
+                      isSearch
+                      id="grupoId"
+                      name="grupo"
+                      defaultValue={nombreGrupo}
+                      options={newGrupos}
+                      onChange={handleChangeSelect}
+                    />
+                  </div>
+                  <div>
+                    <Input name="codigoBarra" value={codigoBarra} label="Código de barras" isLabel type="text" onChange={handleInputChange} />
+                  </div>
+                  <div>
+                    <SelectPro
+                      isLabel
+                      label="Moneda"
+                      isSearch
+                      id="monedaId"
+                      name="moneda"
+                      defaultValue={moneda}
+                      options={monedasOptions}
+                      onChange={handleChangeSelect}
+                    />
+                  </div>
+
+                  <div>
+                    <SelectPro
+                      isLabel
+                      label="Afectación IGV"
+                      isSearch
+                      id="tipoIgvId"
+                      name="tipoIgv"
+                      defaultValue={tipoIgv}
+                      options={tiposIgvOptions}
+                      onChange={handleChangeSelect}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500">Detracción</label>
+                    <select
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"
+                      value={porcentajeDetraccion}
+                      onChange={(e) => setFormValues({ ...formValues, porcentajeDetraccion: Number(e.target.value) })}
+                    >
+                      {DETRACCION_OPCIONES.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.value}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Input name="precioVentaSinInpuesto" value={precioVentaSinInpuesto} label="Precio compra" onChange={handleInputChange} isLabel type="number" />
+                  </div>
+
+                  <div>
+                    <Input name="margenGanancia" value={margenGanancia} label="Margen de ganancia" isLabel type="number" onChange={handleInputChange} />
+                  </div>
+                  <div>
+                    <Input name="precioVentaConInpuesto" value={suma} label="Precio venta (con IGV)" isLabel type="text" onChange={handleInputChange} disabled />
+                  </div>
+                  <div>
+                    <Input name="precioMinimo" value={precioMinimo} label="Precio mínimo" isLabel type="number" onChange={handleInputChange} />
+                  </div>
+
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Input name="stock" value={stock} label="Stock inicial" isLabel type="number" onChange={handleInputChange} disabled={!!activeProducto} />
+                    </div>
+                    {activeProducto && (
+                      <Button onClick={showStockForm} type="button" size="xs">
+                        {isStock ? "Cancelar" : "Añadir"}
+                      </Button>
+                    )}
+                  </div>
+                  <div>
+                    <Input name="stockMinimo" value={stockMinimo} label="Stock mínimo" isLabel type="number" onChange={handleInputChange} />
+                  </div>
+                  <div>
+                    <Input name="pesoKg" value={pesoKg} label="Peso (Kg)" isLabel type="number" onChange={handleInputChange} />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4 px-1 py-2">
+                  <div className={styles.toggle}>
+                    <Toggle
+                      isOn={checkedPrecio}
+                      handleToggle={() => setCheckedPrecio(!checkedPrecio)}
+                      colorOne="#50cd89"
+                      colorTwo="#c7ece8"
+                      id="switchPrecio"
+                    />
+                    <span>Cambio de precio</span>
+                  </div>
+                  <div className={styles.toggle}>
+                    <Toggle
+                      isOn={icbper}
+                      handleToggle={() => setFormValues({ ...formValues, icbper: !icbper })}
+                      colorOne="#50cd89"
+                      colorTwo="#c7ece8"
+                      id="switchIcbper"
+                    />
+                    <span>¿Afecto a ICBPER?</span>
+                  </div>
+                  <div className={styles.toggle}>
+                    <Toggle
+                      isOn={gestionLotes}
+                      handleToggle={() => setFormValues({ ...formValues, gestionLotes: !gestionLotes })}
+                      colorOne="#50cd89"
+                      colorTwo="#c7ece8"
+                      id="switchLotes"
+                    />
+                    <span>Gestión de lotes y vencimientos</span>
+                  </div>
+                </div>
+
+                <div className="px-1">
+                  <label className="text-xs font-semibold text-gray-500">Destino de preparación (Restaurante)</label>
+                  <select
+                    className="w-full md:w-64 border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"
+                    value={destinoPreparacion}
+                    onChange={(e) => setFormValues({ ...formValues, destinoPreparacion: e.target.value })}
+                  >
+                    {DESTINO_PREPARACION_OPCIONES.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles["main-content-fourth"]}>
+                  <label>Detalle (para uso interno del negocio)</label>
+                  <textarea onChange={handleInputChange} name="comentario" value={comentario}></textarea>
+                </div>
+              </>
+            )}
+
+            {tab === "presentaciones" && (
+              <div className="px-1 py-3">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h4 className="font-bold text-gray-900">Presentaciones del producto</h4>
+                    <p className="text-xs text-gray-500">
+                      Registra los empaques en los que vendes este producto. Ej.: una caja de 100 unidades, un blíster de 10.
+                    </p>
+                  </div>
+                  {!formPresentacion && (
+                    <Button size="xs" onClick={abrirNuevaPresentacion}>
+                      + Nueva presentación
+                    </Button>
+                  )}
+                </div>
+
+                {formPresentacion && (
+                  <div className="border border-indigo-200 rounded-xl p-4 mb-4 bg-indigo-50/30">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Input
+                        name="nombre"
+                        value={formPresentacion.nombre}
+                        label="Nombre"
+                        isLabel
+                        type="text"
+                        onChange={(e: any) => setFormPresentacion({ ...formPresentacion, nombre: e.target.value })}
+                      />
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <Input
+                            name="codigo"
+                            value={formPresentacion.codigo}
+                            label="Código"
+                            isLabel
+                            type="text"
+                            onChange={(e: any) => setFormPresentacion({ ...formPresentacion, codigo: e.target.value })}
+                          />
+                        </div>
+                        <Button size="xs" onClick={() => setFormPresentacion({ ...formPresentacion, codigo: generarCodigo() })}>
+                          Generar
+                        </Button>
+                      </div>
+                      <SelectPro
+                        isLabel
+                        label="Unidad de medida"
+                        isSearch
+                        id="unidadMedidaId"
+                        name="unidadMedida"
+                        defaultValue={formPresentacion.unidadMedida}
+                        options={unidadesMedidaOptions}
+                        onChange={handleChangePresentacionSelect}
+                      />
+                      <Input
+                        name="factor"
+                        value={formPresentacion.factor}
+                        label="¿Cuántas unidades trae?"
+                        isLabel
+                        type="number"
+                        onChange={(e: any) => setFormPresentacion({ ...formPresentacion, factor: e.target.value })}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 bg-white border border-gray-100 rounded-lg px-3 py-2 my-3">
+                      1 {formPresentacion.nombre || "presentación"} → {formPresentacion.factor || "—"} unidades
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Input
+                        name="precioVenta"
+                        value={formPresentacion.precioVenta}
+                        label="Precio venta (con IGV)"
+                        isLabel
+                        type="number"
+                        onChange={(e: any) => setFormPresentacion({ ...formPresentacion, precioVenta: e.target.value })}
+                      />
+                      <Input
+                        name="precioMinimo"
+                        value={formPresentacion.precioMinimo}
+                        label="Precio mínimo"
+                        isLabel
+                        type="number"
+                        onChange={(e: any) => setFormPresentacion({ ...formPresentacion, precioMinimo: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2 mt-3">
+                      <Button size="xs" onClick={() => setFormPresentacion(null)}>
+                        Cancelar
+                      </Button>
+                      <Button size="xs" onClick={guardarPresentacion}>
+                        Guardar presentación
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {presentaciones.length === 0 && !formPresentacion ? (
+                  <p className="text-sm text-gray-400 text-center py-8">Sin presentaciones todavía.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {presentaciones.map((p, i) => (
+                      <div key={i} className="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">{p.nombre}</p>
+                          <p className="text-xs text-gray-500">
+                            {p.factor} {p.unidadMedida} · S/ {Number(p.precioVenta).toFixed(2)}
+                          </p>
+                        </div>
+                        <button type="button" onClick={() => eliminarPresentacion(i)} className="text-gray-400 hover:text-red-600">
+                          <Icon icon="mdi:trash-can-outline" width={18} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-            <div className={styles["main-content"]}>
-              <div className={styles["main-content-first"]}>
+            )}
+
+            {tab === "multiprecio" && (
+              <div className="px-1 py-3">
+                <div className="flex items-center justify-between border border-teal-200 bg-teal-50/40 rounded-xl px-4 py-3 mb-4">
+                  <div>
+                    <p className="font-bold text-gray-900">Multi-precio</p>
+                    <p className="text-xs text-gray-500">
+                      {multiPrecioActivo ? "Activo" : "Inactivo"} - los cajeros podrán elegir el precio al cobrar
+                    </p>
+                  </div>
+                  <Toggle
+                    isOn={multiPrecioActivo}
+                    handleToggle={() => setFormValues({ ...formValues, multiPrecioActivo: !multiPrecioActivo })}
+                    colorOne="#50cd89"
+                    colorTwo="#c7ece8"
+                    id="switchMultiPrecio"
+                  />
+                </div>
+
+                <div className="bg-gray-50 border border-gray-100 rounded-lg px-4 py-3 mb-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase">Precio estándar del producto</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Se configura en la pestaña General. Los precios alternativos se comparan contra éste.</p>
+                  <p className="text-lg font-bold text-gray-900 mt-1">S/ {Number(suma || 0).toFixed(2)}</p>
+                </div>
+
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-bold text-gray-900">Precios alternativos</h4>
+                  {!formPrecioAlt && preciosAlternativos.length > 0 && (
+                    <Button size="xs" onClick={() => abrirNuevoPrecioAlt()}>
+                      + Nuevo precio
+                    </Button>
+                  )}
+                </div>
+
+                {formPrecioAlt && (
+                  <div className="border border-indigo-200 rounded-xl p-4 mb-4 bg-indigo-50/30">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Input
+                        name="nombre"
+                        value={formPrecioAlt.nombre}
+                        label="Nombre del precio"
+                        isLabel
+                        type="text"
+                        onChange={(e: any) => setFormPrecioAlt({ ...formPrecioAlt, nombre: e.target.value })}
+                      />
+                      <Input
+                        name="precioVenta"
+                        value={formPrecioAlt.precioVenta}
+                        label="Precio venta (con IGV)"
+                        isLabel
+                        type="number"
+                        onChange={(e: any) => setFormPrecioAlt({ ...formPrecioAlt, precioVenta: e.target.value })}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 bg-white border border-gray-100 rounded-lg px-3 py-2 my-3">
+                      Comparación vs precio estándar (S/ {Number(suma || 0).toFixed(2)}):{" "}
+                      {formPrecioAlt.precioVenta
+                        ? `${(Number(formPrecioAlt.precioVenta) - Number(suma)).toFixed(2)}`
+                        : "— aún no hay precio ingresado"}
+                    </p>
+                    <div className="flex justify-end gap-2">
+                      <Button size="xs" onClick={() => setFormPrecioAlt(null)}>
+                        Cancelar
+                      </Button>
+                      <Button size="xs" onClick={guardarPrecioAlt}>
+                        Guardar precio
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {preciosAlternativos.length === 0 && !formPrecioAlt ? (
+                  <div className="border border-dashed border-gray-200 rounded-xl px-6 py-8 text-center">
+                    <div className="flex justify-center gap-2 mb-3">
+                      {PRESET_PRECIOS_ALTERNATIVOS.map((preset) => (
+                        <span key={preset} className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-3 py-1">
+                          {preset}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-sm font-semibold text-gray-800">Aún no tienes precios alternativos</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Define precios para clientes mayoristas, VIP, distribuidores o por campañas. El cajero podrá elegir al momento de cobrar.
+                    </p>
+                    <Button size="xs" className="mt-3" onClick={() => abrirNuevoPrecioAlt()}>
+                      + Crear primer precio alternativo
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {preciosAlternativos.map((p, i) => (
+                      <div key={i} className="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
+                        <p className="text-sm font-semibold text-gray-800">{p.nombre}</p>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-gray-700">S/ {Number(p.precioVenta).toFixed(2)}</span>
+                          <button type="button" onClick={() => eliminarPrecioAlt(i)} className="text-gray-400 hover:text-red-600">
+                            <Icon icon="mdi:trash-can-outline" width={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === "imagenes" && (
+              <div className="px-1 py-3">
                 <div className={styles["imagen-contenedor"]}>
                   <input
                     ref={fileInputRef}
@@ -402,11 +969,7 @@ export const ProductoModal = () => {
                   />
 
                   {archivoParaRecortar && (
-                    <ImageCropModal
-                      archivo={archivoParaRecortar}
-                      onCropped={handleRecorteConfirmado}
-                      onCancel={handleRecorteCancelado}
-                    />
+                    <ImageCropModal archivo={archivoParaRecortar} onCropped={handleRecorteConfirmado} onCancel={handleRecorteCancelado} />
                   )}
 
                   {subiendoImagen ? (
@@ -421,24 +984,14 @@ export const ProductoModal = () => {
                     </div>
                   ) : imagenActual ? (
                     <div className={styles["imagen-con-overlay"]}>
-                      <img
-                        src={imagenActual}
-                        alt="Imagen del producto"
-                        onClick={abrirDialogoImagen}
-                      />
+                      <img src={imagenActual} alt="Imagen del producto" onClick={abrirDialogoImagen} />
                       <div className={styles["imagen-overlay"]}>
-                        <div
-                          className={styles["overlay-boton"]}
-                          onClick={abrirDialogoImagen}
-                        >
+                        <div className={styles["overlay-boton"]} onClick={abrirDialogoImagen}>
                           <Icon icon="solar:pen-linear" />
                           <span>Cambiar imagen</span>
                         </div>
                         {activeProducto && (
-                          <div
-                            className={`${styles["overlay-boton"]} ${styles["overlay-boton-eliminar"]}`}
-                            onClick={eliminarImagen}
-                          >
+                          <div className={`${styles["overlay-boton"]} ${styles["overlay-boton-eliminar"]}`} onClick={eliminarImagen}>
                             <Icon icon="solar:trash-bin-minimalistic-linear" />
                             <span>Eliminar imagen</span>
                           </div>
@@ -447,181 +1000,43 @@ export const ProductoModal = () => {
                       {imagenArchivo && !activeProducto && (
                         <div className={styles["imagen-preview-note"]}>
                           <span>Imagen seleccionada para el nuevo producto</span>
-                          <button
-                            type="button"
-                            onClick={limpiarImagen}
-                            className={styles["preview-quitar"]}
-                          >
+                          <button type="button" onClick={limpiarImagen} className={styles["preview-quitar"]}>
                             Quitar imagen
                           </button>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      className={styles["imagen-vacia"]}
-                      onClick={abrirDialogoImagen}
-                    >
+                    <button type="button" className={styles["imagen-vacia"]} onClick={abrirDialogoImagen}>
                       <Icon icon="solar:camera-minimalistic-outline" />
                       <span>Agregar imagen</span>
                     </button>
                   )}
                 </div>
-                <div>
-                  <Input
-                    name="nombre"
-                    value={nombre}
-                    label="Nombre de Producto"
-                    isLabel
-                    type="text"
-                    onChange={handleInputChange}
-                  />
-                </div>
               </div>
-              <div className={styles["main-content-second"]}>
-                <div>
-                  <SelectPro
-                    isLabel
-                    label="Seleccione una categoría"
-                    isSearch
-                    id="categoriaId"
-                    name="category"
-                    defaultValue={nombreCategoria}
-                    options={newCategorias}
-                    onChange={handleChangeSelect}
-                  />
-                  <SelectPro
-                    isLabel
-                    label="Seleccione una grupo"
-                    isSearch
-                    id="grupoId"
-                    name="grupo"
-                    defaultValue={nombreGrupo}
-                    options={newGrupos}
-                    onChange={handleChangeSelect}
-                  />
-                </div>
+            )}
+          </div>
 
-                <div>
-                  <Input
-                    name="codigoBarra"
-                    value={codigoBarra}
-                    label="Código de barras"
-                    isLabel
-                    type="text"
-                    onChange={handleInputChange}
-                  />
-                  <div
-                    style={{ display: "flex", alignItems: "end", gap: "10px" }}
-                    className={styles.stock}
-                  >
-                    <Input
-                      name="stock"
-                      value={stock}
-                      label="Stock"
-                      isLabel
-                      type="number"
-                      onChange={handleInputChange}
-                      disabled={!!activeProducto}
-                    />
-                    {activeProducto && (
-                      <Button onClick={showStockForm} type="button">
-                        {isStock ? "Cancelar" : "Añadir"}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className={styles["main-content-third"]}>
-                <div>
-                  <Input
-                    name="precioVentaSinInpuesto"
-                    value={precioVentaSinInpuesto}
-                    label="Costo"
-                    onChange={handleInputChange}
-                    isLabel
-                    type="number"
-                  />
-                  <Input
-                    name="margenGanancia"
-                    value={margenGanancia}
-                    label="Margen de ganancia"
-                    isLabel
-                    type="number"
-                    onChange={handleInputChange}
-                  />{" "}
-                  {/* un checkbox para habilitar o quitar */}{" "}
-                  {/* Editar el IGV */}
-                  <Input
-                    name="precioVentaConInpuesto"
-                    value={suma}
-                    label="Precio de Venta"
-                    isLabel
-                    type="text"
-                    onChange={handleInputChange}
-                    disabled
-                  />
-                </div>
-                <div>
-                  <div className={styles.toggle}>
-                    <Toggle
-                      isOn={checkedPrecio}
-                      handleToggle={() => setCheckedPrecio(!checkedPrecio)}
-                      colorOne="#50cd89"
-                      colorTwo="#c7ece8"
-                      id="switchPrecio"
-                    />
-                    <span>Cambio de precio</span>
-                  </div>
-                  {/*   <div className={styles.toggle}>
-                    <Toggle
-                      isOn={checkedTest}
-                      handleToggle={() => setCheckedTest(!checkedTest)}
-                      colorOne="#50cd89"
-                      colorTwo="#c7ece8"
-                      id='switchActivo'
-                    />
-                    <span>Activo</span>
-                  </div> */}
-                </div>
-              </div>
-              <div className={styles["main-content-fourth"]}>
-                {/* <Input name="" label="Comentarios" isLabel type="text" /> */}
-                <label>Comentarios</label>
-                <textarea
-                  onChange={handleInputChange}
-                  name="comentario"
-                  value={comentario}
-                ></textarea>
-              </div>
-              <div className={styles["main-content-buttons"]}>
-                {activeProducto && (
-                  <Button size="sm" onClick={eliminarProducto}>
-                    Eliminar
-                  </Button>
-                )}
-                <Button size="sm" onClick={closeModal}>
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={createProduct}
-                  disabled={
-                    subiendoImagen ||
-                    eliminandoImagen ||
-                    nombre === "" ||
-                    categoriaId === 0 ||
-                    grupoId === 0 ||
-                    precioVentaSinInpuesto === 0
-                      ? true
-                      : false
-                  }
-                >
-                  {activeProducto ? "Editar" : "Agregar"}
-                </Button>
-              </div>
-            </div>
+          <div className={styles["main-content-buttons"]}>
+            {activeProducto && (
+              <Button size="sm" onClick={eliminarProducto}>
+                Eliminar
+              </Button>
+            )}
+            <Button size="sm" onClick={closeModal}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={createProduct}
+              disabled={
+                subiendoImagen || eliminandoImagen || nombre === "" || categoriaId === 0 || grupoId === 0 || precioVentaSinInpuesto === 0
+                  ? true
+                  : false
+              }
+            >
+              {activeProducto ? "Editar" : "Agregar"}
+            </Button>
           </div>
         </div>
         {isStock && (
@@ -639,10 +1054,7 @@ export const ProductoModal = () => {
                 <div>
                   <div className={styles["first-card-stock"]}>
                     <p>Stock actual: {stock}</p>
-                    <select
-                      value={tipoAjuste}
-                      onChange={(e) => setTipoAjuste(Number(e.target.value))}
-                    >
+                    <select value={tipoAjuste} onChange={(e) => setTipoAjuste(Number(e.target.value))}>
                       <option value={3}>Entrada (agregar)</option>
                       <option value={4}>Salida (quitar)</option>
                     </select>
@@ -667,12 +1079,7 @@ export const ProductoModal = () => {
                       <Button size="sm" onClick={showStockForm} type="button">
                         Cancelar
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={guardarAjusteStock}
-                        disabled={guardandoAjuste}
-                        type="button"
-                      >
+                      <Button size="sm" onClick={guardarAjusteStock} disabled={guardandoAjuste} type="button">
                         {guardandoAjuste ? "Guardando..." : "Agregar Stock"}
                       </Button>
                     </div>

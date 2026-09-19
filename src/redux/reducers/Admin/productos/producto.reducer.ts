@@ -909,6 +909,34 @@ export const ajustarStock = (
   };
 };
 
+export const previsualizarImportacionProductos = (csv: string) => {
+  return async (): Promise<any> => {
+    try {
+      const response: any = await axiosInstance.post(`/productos/importar/previsualizar`, { csv });
+      const { status, data } = response;
+      return status === 200 ? data?.data : null;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "Error al previsualizar el archivo");
+      return null;
+    }
+  };
+};
+
+export const importarProductosDesdeExcel = (csv: string, onSuccess?: () => void) => {
+  return async () => {
+    try {
+      const response: any = await axiosInstance.post(`/productos/importar/confirmar`, { csv });
+      const { status, data } = response;
+      if (status === 200) {
+        toast.success(data?.message ?? "Productos importados correctamente");
+        onSuccess?.();
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "Error al importar los productos");
+    }
+  };
+};
+
 export const getMovimientosProducto = (
   productoId: number,
   page: number,

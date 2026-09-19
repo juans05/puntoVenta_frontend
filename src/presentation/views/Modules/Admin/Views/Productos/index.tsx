@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { RootState } from "../../../../../../redux/rootState";
 import {
@@ -7,11 +7,14 @@ import {
   deleteProducts,
   getCategorias,
   getProducts,
+  importarProductosDesdeExcel,
   openModalCategorias,
   openModalGrupos,
   openModalHistorial,
   openModalProducto,
+  previsualizarImportacionProductos,
 } from "../../../../../../redux/reducers/Admin/productos/producto.reducer";
+import { excelArchivoACsv } from "../../../../../../helpers/functions/excelToCsv";
 import { ProductoModal } from "../../../../../../components/Modal/Admin/Producto";
 import { HistorialModal } from "../../../../../../components/Modal/Admin/Producto/Historial";
 import { CategoriaModal } from "../../../../../../components/Modal/Admin/Producto/Categoria";
@@ -118,6 +121,36 @@ export const Productos = () => {
     toast.success("Se eliminó el producto correctamente");
   };
 
+  const importFileInputRef = useRef<HTMLInputElement>(null);
+  const abrirDialogoImportar = () => importFileInputRef.current?.click();
+
+  const recargarProductos = () => {
+    setLoading(true);
+    dispatch(getProducts(categoriaId, 0, debounceSearch, 1, PAGE_SIZE)).finally(() => setLoading(false));
+    setPage(1);
+  };
+
+  const handleImportarExcel = async (e: any) => {
+    const archivo: File | undefined = e.target.files?.[0];
+    e.target.value = "";
+    if (!archivo) return;
+
+    const csv = await excelArchivoACsv(archivo);
+    const preview: any = await dispatch(previsualizarImportacionProductos(csv) as any);
+
+    if (!preview || preview.validas === 0) {
+      toast.error("No se encontraron filas válidas para importar");
+      return;
+    }
+
+    const mensaje =
+      `¿Confirmar la importación de ${preview.validas} producto(s)?` +
+      (preview.conError > 0 ? ` ${preview.conError} fila(s) con datos incompletos serán omitidas.` : "");
+    if (!window.confirm(mensaje)) return;
+
+    dispatch(importarProductosDesdeExcel(csv, recargarProductos) as any);
+  };
+
   return (
     <div className="w-full">
       <div className="flex items-start justify-between flex-wrap gap-3">
@@ -202,9 +235,27 @@ export const Productos = () => {
               >
                 + Nuevo grupo
               </button>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                onClick={() => {
+                  setMenuAcciones(false);
+                  abrirDialogoImportar();
+                }}
+              >
+                Importar desde Excel
+              </button>
             </div>
           )}
         </div>
+
+        <input
+          ref={importFileInputRef}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          style={{ display: "none" }}
+          onChange={handleImportarExcel}
+        />
 
         <button
           type="button"
@@ -276,13 +327,22 @@ export const Productos = () => {
                 <p className="text-sm text-gray-500 max-w-md mt-2">
                   Los productos te permiten manejar stock, precios y categorías.
                 </p>
-                <button
-                  type="button"
-                  className="bg-indigo-600 text-white text-sm font-semibold rounded-lg px-4 py-2 mt-5"
-                  onClick={abrirNuevo}
-                >
-                  + Crear primer producto
-                </button>
+                <div className="flex items-center gap-3 mt-5">
+                  <button
+                    type="button"
+                    className="bg-indigo-600 text-white text-sm font-semibold rounded-lg px-4 py-2"
+                    onClick={abrirNuevo}
+                  >
+                    + Crear primer producto
+                  </button>
+                  <button
+                    type="button"
+                    className="border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg px-4 py-2"
+                    onClick={abrirDialogoImportar}
+                  >
+                    Importar desde Excel
+                  </button>
+                </div>
               </>
             )}
           </div>
