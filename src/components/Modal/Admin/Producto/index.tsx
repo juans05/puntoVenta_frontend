@@ -166,13 +166,17 @@ export const ProductoModal = () => {
         ...initialForm,
         ...activeProducto,
         codigo: activeProducto.codigo || "",
+        sucursalId: activeProducto.sucursalId || 0,
         sucursal:
           (sucursales as any[])?.find((s: any) => Number(s.id) === Number(activeProducto.sucursalId))?.value ?? "",
+        monedaId: activeProducto.monedaId || 0,
         moneda:
           (monedas as any[])?.find((m: any) => Number(m.id) === Number(activeProducto.monedaId))?.value ?? "",
+        tipoIgvId: activeProducto.tipoIgvId || 0,
         tipoIgv: activeProducto.nombreTipoIgv
           ? `${(tiposIgv as any[])?.find((t: any) => Number(t.id) === Number(activeProducto.tipoIgvId))?.codigo ?? ""} - ${activeProducto.nombreTipoIgv}`
           : "",
+        unidadMedidaId: activeProducto.unidadMedidaId || 0,
         unidadMedida: activeProducto.nombreUnidadMedida ?? "",
         destinoPreparacion: activeProducto.destinoPreparacion || "Ninguno",
       });
@@ -249,6 +253,9 @@ export const ProductoModal = () => {
     stockMinimo: stockMinimo === "" ? undefined : Number(stockMinimo),
     precioMinimo: precioMinimo === "" ? undefined : Number(precioMinimo),
     pesoKg: pesoKg === "" ? undefined : Number(pesoKg),
+    marca: marca || undefined,
+    comentario: comentario || undefined,
+    categoriaId: formValues.categoriaId || undefined,
     sucursalId: formValues.sucursalId || undefined,
     monedaId: formValues.monedaId || undefined,
     tipoIgvId: formValues.tipoIgvId || undefined,
@@ -613,7 +620,7 @@ export const ProductoModal = () => {
                     label="Categoría"
                     isSearch
                     id="categoriaId"
-                    name="category"
+                    name="nombreCategoria"
                     defaultValue={nombreCategoria}
                     options={newCategorias}
                     onChange={handleChangeSelect}
