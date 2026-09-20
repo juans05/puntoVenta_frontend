@@ -13,6 +13,7 @@ import {
   createProducto,
   deleteProducts,
   eliminarImagenProducto,
+  getProducts,
   subirImagenProducto,
   updateProducts,
 } from "../../../../redux/reducers/Admin/productos/producto.reducer";
@@ -282,6 +283,11 @@ export const ProductoModal = () => {
         })
       );
       closeModal();
+
+      // Refrescar la lista de productos después de actualizar uno
+      setTimeout(() => {
+        dispatch(getProducts(0, 0, "", 1, 20) as any);
+      }, 300);
     } else {
       try {
         const creado: any = await dispatch(
@@ -309,6 +315,11 @@ export const ProductoModal = () => {
       toast.success("Se creó un nuevo producto");
       limpiarImagen();
       setFormValues(initialForm);
+
+      // Refrescar la lista de productos después de crear uno nuevo (con pequeño delay)
+      setTimeout(() => {
+        dispatch(getProducts(0, 0, "", 1, 20) as any);
+      }, 300);
     }
   };
   const [tipoAjuste, setTipoAjuste] = useState<number>(3); // AjusteEntrada
