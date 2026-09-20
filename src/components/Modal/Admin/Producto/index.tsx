@@ -43,6 +43,12 @@ const DESTINO_PREPARACION_OPCIONES = ["Ninguno", "Cocina", "Barra"];
 
 const PRESET_PRECIOS_ALTERNATIVOS = ["MAYORISTA", "VIP", "DISTRIBUIDOR"];
 
+const PRESET_PRESENTACIONES = [
+  { label: "CAJA", emoji: "📦" },
+  { label: "BLÍSTER", emoji: "💊" },
+  { label: "BOTELLA", emoji: "🧴" },
+];
+
 const CODIGO_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const generarCodigo = (len = 6) =>
   Array.from({ length: len }, () => CODIGO_CHARS[Math.floor(Math.random() * CODIGO_CHARS.length)]).join("");
@@ -831,7 +837,30 @@ export const ProductoModal = () => {
                 )}
 
                 {presentaciones.length === 0 && !formPresentacion ? (
-                  <p className="text-sm text-gray-400 text-center py-8">Sin presentaciones todavía.</p>
+                  <div className="bg-gray-50 rounded-2xl px-6 py-8 text-center">
+                    <div className="flex justify-center gap-3 mb-4">
+                      {PRESET_PRESENTACIONES.map((preset) => (
+                        <div
+                          key={preset.label}
+                          className="w-28 bg-white border border-gray-100 rounded-xl shadow-sm px-3 py-4 flex flex-col items-center gap-2"
+                        >
+                          <span className="text-3xl leading-none">{preset.emoji}</span>
+                          <span className="text-xs font-bold text-gray-500 tracking-wide">{preset.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-sm font-semibold text-gray-800">Define los empaques para tu producto</p>
+                    <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
+                      Caja x100, Blíster x10, Display x24, Pack x6...{" "}
+                      <span className="font-semibold text-gray-700">
+                        Tus vendedores podrán elegir el empaque correcto al cobrar
+                      </span>{" "}
+                      y el stock se descuenta automáticamente.
+                    </p>
+                    <Button size="xs" className="mt-4" onClick={abrirNuevaPresentacion}>
+                      + Crear primera presentación
+                    </Button>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {presentaciones.map((p, i) => (
