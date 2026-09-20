@@ -31,6 +31,11 @@ import SelectPro from "../../../SelectPro";
 import { toast } from "sonner";
 import { ImageCropModal } from "../../../ImageCropModal";
 
+const BTN_PRIMARY =
+  "bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors";
+const BTN_SECONDARY =
+  "border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg px-4 py-2 hover:bg-gray-50 transition-colors";
+
 const DETRACCION_OPCIONES = [
   { id: 0, value: "Ninguno" },
   { id: 4, value: "4%" },
@@ -41,7 +46,11 @@ const DETRACCION_OPCIONES = [
 
 const DESTINO_PREPARACION_OPCIONES = ["Ninguno", "Cocina", "Barra"];
 
-const PRESET_PRECIOS_ALTERNATIVOS = ["MAYORISTA", "VIP", "DISTRIBUIDOR"];
+const PRESET_PRECIOS_ALTERNATIVOS = [
+  { label: "MAYORISTA", emoji: "🍾" },
+  { label: "VIP", emoji: "⭐" },
+  { label: "DISTRIBUIDOR", emoji: "📦" },
+];
 
 const PRESET_PRESENTACIONES = [
   { label: "CAJA", emoji: "📦" },
@@ -507,6 +516,7 @@ export const ProductoModal = () => {
       isOpen={modalProducts}
       style={customStyles}
       closeTimeoutMS={200}
+      onRequestClose={closeModal}
       className={isStock ? styles.productoWithStock : styles.productoWithoutStock}
       overlayClassName="modal-fondo"
     >
@@ -516,17 +526,17 @@ export const ProductoModal = () => {
             <Svg icon={Icons.close} />
           </div>
           <div className={styles.encabezado}>
-            <h2>{activeProducto ? "Editar" : "Crear"} Producto</h2>
+            <h2>{activeProducto ? "Editar producto" : "Nuevo producto"}</h2>
           </div>
 
-          <div className="flex gap-1 border-b border-gray-100 px-6">
+          <div className="flex gap-6 border-b border-gray-100 px-6">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 disabled={t.disabled}
                 onClick={() => setTab(t.id)}
-                className={`text-sm font-semibold px-3 py-2 border-b-2 -mb-px ${
+                className={`text-[15px] font-semibold px-1 py-3 border-b-2 -mb-px ${
                   t.disabled
                     ? "text-gray-300 cursor-not-allowed border-transparent"
                     : tab === t.id
@@ -745,17 +755,17 @@ export const ProductoModal = () => {
 
             {tab === "presentaciones" && (
               <div className="px-1 py-3">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h4 className="font-bold text-gray-900">Presentaciones del producto</h4>
-                    <p className="text-xs text-gray-500">
+                    <h4 className="text-lg font-bold text-gray-900">Presentaciones del producto</h4>
+                    <p className="text-sm text-gray-500 mt-0.5">
                       Registra los empaques en los que vendes este producto. Ej.: una caja de 100 unidades, un blíster de 10.
                     </p>
                   </div>
                   {!formPresentacion && (
-                    <Button size="xs" onClick={abrirNuevaPresentacion}>
+                    <button type="button" className={`${BTN_PRIMARY} whitespace-nowrap`} onClick={abrirNuevaPresentacion}>
                       + Nueva presentación
-                    </Button>
+                    </button>
                   )}
                 </div>
 
@@ -781,9 +791,13 @@ export const ProductoModal = () => {
                             onChange={(e: any) => setFormPresentacion({ ...formPresentacion, codigo: e.target.value })}
                           />
                         </div>
-                        <Button size="xs" onClick={() => setFormPresentacion({ ...formPresentacion, codigo: generarCodigo() })}>
+                        <button
+                          type="button"
+                          className={BTN_SECONDARY}
+                          onClick={() => setFormPresentacion({ ...formPresentacion, codigo: generarCodigo() })}
+                        >
                           Generar
-                        </Button>
+                        </button>
                       </div>
                       <SelectPro
                         isLabel
@@ -826,12 +840,12 @@ export const ProductoModal = () => {
                       />
                     </div>
                     <div className="flex justify-end gap-2 mt-3">
-                      <Button size="xs" onClick={() => setFormPresentacion(null)}>
+                      <button type="button" className={BTN_SECONDARY} onClick={() => setFormPresentacion(null)}>
                         Cancelar
-                      </Button>
-                      <Button size="xs" onClick={guardarPresentacion}>
+                      </button>
+                      <button type="button" className={BTN_PRIMARY} onClick={guardarPresentacion}>
                         Guardar presentación
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 )}
@@ -857,9 +871,9 @@ export const ProductoModal = () => {
                       </span>{" "}
                       y el stock se descuenta automáticamente.
                     </p>
-                    <Button size="xs" className="mt-4" onClick={abrirNuevaPresentacion}>
+                    <button type="button" className={`${BTN_PRIMARY} mt-4`} onClick={abrirNuevaPresentacion}>
                       + Crear primera presentación
-                    </Button>
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -905,12 +919,12 @@ export const ProductoModal = () => {
                   <p className="text-lg font-bold text-gray-900 mt-1">S/ {Number(suma || 0).toFixed(2)}</p>
                 </div>
 
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-bold text-gray-900">Precios alternativos</h4>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-bold text-gray-900">Precios alternativos</h4>
                   {!formPrecioAlt && preciosAlternativos.length > 0 && (
-                    <Button size="xs" onClick={() => abrirNuevoPrecioAlt()}>
+                    <button type="button" className={BTN_PRIMARY} onClick={() => abrirNuevoPrecioAlt()}>
                       + Nuevo precio
-                    </Button>
+                    </button>
                   )}
                 </div>
 
@@ -941,32 +955,36 @@ export const ProductoModal = () => {
                         : "— aún no hay precio ingresado"}
                     </p>
                     <div className="flex justify-end gap-2">
-                      <Button size="xs" onClick={() => setFormPrecioAlt(null)}>
+                      <button type="button" className={BTN_SECONDARY} onClick={() => setFormPrecioAlt(null)}>
                         Cancelar
-                      </Button>
-                      <Button size="xs" onClick={guardarPrecioAlt}>
+                      </button>
+                      <button type="button" className={BTN_PRIMARY} onClick={guardarPrecioAlt}>
                         Guardar precio
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 )}
 
                 {preciosAlternativos.length === 0 && !formPrecioAlt ? (
-                  <div className="border border-dashed border-gray-200 rounded-xl px-6 py-8 text-center">
-                    <div className="flex justify-center gap-2 mb-3">
+                  <div className="bg-gray-50 rounded-2xl px-6 py-8 text-center">
+                    <div className="flex justify-center gap-3 mb-4">
                       {PRESET_PRECIOS_ALTERNATIVOS.map((preset) => (
-                        <span key={preset} className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-3 py-1">
-                          {preset}
-                        </span>
+                        <div
+                          key={preset.label}
+                          className="w-28 bg-white border border-gray-100 rounded-xl shadow-sm px-3 py-4 flex flex-col items-center gap-2"
+                        >
+                          <span className="text-3xl leading-none">{preset.emoji}</span>
+                          <span className="text-xs font-bold text-gray-500 tracking-wide">{preset.label}</span>
+                        </div>
                       ))}
                     </div>
                     <p className="text-sm font-semibold text-gray-800">Aún no tienes precios alternativos</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
                       Define precios para clientes mayoristas, VIP, distribuidores o por campañas. El cajero podrá elegir al momento de cobrar.
                     </p>
-                    <Button size="xs" className="mt-3" onClick={() => abrirNuevoPrecioAlt()}>
+                    <button type="button" className={`${BTN_PRIMARY} mt-4`} onClick={() => abrirNuevoPrecioAlt()}>
                       + Crear primer precio alternativo
-                    </Button>
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1046,26 +1064,41 @@ export const ProductoModal = () => {
             )}
           </div>
 
-          <div className={styles["main-content-buttons"]}>
-            {activeProducto && (
-              <Button size="sm" onClick={eliminarProducto}>
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+            {activeProducto ? (
+              <button
+                type="button"
+                onClick={eliminarProducto}
+                className="text-sm font-semibold text-red-600 hover:text-red-700 rounded-lg px-4 py-2.5 hover:bg-red-50"
+              >
                 Eliminar
-              </Button>
+              </button>
+            ) : (
+              <span />
             )}
-            <Button size="sm" onClick={closeModal}>
-              Cancelar
-            </Button>
-            <Button
-              size="sm"
-              onClick={createProduct}
-              disabled={
-                subiendoImagen || eliminandoImagen || nombre === "" || categoriaId === 0 || grupoId === 0 || precioVentaSinInpuesto === 0
-                  ? true
-                  : false
-              }
-            >
-              {activeProducto ? "Editar" : "Agregar"}
-            </Button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="flex items-center gap-2 border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg px-4 py-2.5 hover:bg-gray-50"
+              >
+                Cancelar
+                <span className="text-[10px] font-semibold text-gray-400 border border-gray-200 rounded px-1.5 py-0.5">Esc</span>
+              </button>
+              <button
+                type="button"
+                onClick={createProduct}
+                disabled={
+                  subiendoImagen || eliminandoImagen || nombre === "" || categoriaId === 0 || grupoId === 0 || precioVentaSinInpuesto === 0
+                }
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg px-4 py-2.5"
+              >
+                {activeProducto ? "Guardar cambios" : "Crear producto"}
+                <span className="flex items-center justify-center text-white/80 border border-white/30 rounded px-1.5 py-0.5">
+                  <Icon icon="mdi:keyboard-return" width={12} />
+                </span>
+              </button>
+            </div>
           </div>
         </div>
         {isStock && (
