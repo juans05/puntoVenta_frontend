@@ -36,6 +36,9 @@ export interface IInput {
     maxLengthCharacters?: any;
     readOnly?: boolean;
     withDate?:boolean;
+    required?: boolean;
+    prefix?: string;
+    suffix?: string;
 }
 
 const Input: FC<IInput> = (props) => {
@@ -85,6 +88,9 @@ const Input: FC<IInput> = (props) => {
         item,
         refInput,
         maxLengthCharacters,
+        required,
+        prefix,
+        suffix,
     } = props
 
     const renderInput = () => {
@@ -160,9 +166,19 @@ const Input: FC<IInput> = (props) => {
         }
 
         if (type === "number") {
-            return (
+            const numberInput = (
                 <input type={type} step="any" name={name} disabled={disabled} value={value} placeholder={placeholder} onChange={onChange} onFocus={(e) => e.target.select()} />
             )
+            if (prefix || suffix) {
+                return (
+                    <div className={styles.wrapperAffix}>
+                        {prefix && <span className={styles.affixPrefix}>{prefix}</span>}
+                        {numberInput}
+                        {suffix && <span className={styles.affixSuffix}>{suffix}</span>}
+                    </div>
+                )
+            }
+            return numberInput
         }
 
         if (type === "email") {
@@ -193,7 +209,12 @@ const Input: FC<IInput> = (props) => {
     return (
         <div ref={ref} className={styles.wrapper__input}>
             <div className={styles.content__input}>
-                {isLabel && <label>{label}</label>}
+                {isLabel && (
+                    <label>
+                        {label}
+                        {required && <span className={styles.requiredMark}>*</span>}
+                    </label>
+                )}
             </div>
             {renderInput()}
         </div>

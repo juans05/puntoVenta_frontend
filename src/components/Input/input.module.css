@@ -228,3 +228,50 @@ table input {
   border: 2px solid #f05e5e !important;
   color: #f05e5e !important;
 }
+
+.requiredMark {
+  color: #e11d48;
+  margin-left: 2px;
+}
+
+.wrapperAffix {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--neutral-200, #E4E7EC);
+  border-radius: var(--radius-md, 0.5rem);
+  display: flex;
+  height: 38px;
+  padding: 0 1rem;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.wrapperAffix:focus-within {
+  border-color: var(--brand-500, #2997FE);
+  box-shadow: 0 0 0 3px var(--brand-100, #DBEEFF);
+}
+
+.wrapperAffix input[type=number] {
+  border: none !important;
+  box-shadow: none !important;
+  flex: 1;
+  height: auto !important;
+  padding: 0 !important;
+}
+
+.wrapperAffix input[type=number]:focus {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.affixPrefix {
+  color: var(--neutral-400, #A1A5B7);
+  font-size: 13px;
+  margin-right: 4px;
+}
+
+.affixSuffix {
+  color: var(--neutral-400, #A1A5B7);
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 4px;
+}

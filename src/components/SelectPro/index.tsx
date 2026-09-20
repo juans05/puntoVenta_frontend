@@ -26,6 +26,7 @@ interface IProps {
     reload?: any
     disabled?: boolean
     id?: string
+    required?: boolean
 }
 
 interface IOption {
@@ -46,7 +47,8 @@ const SelectPro = ({
     label,
     defaultValue,
     disabled,
-    id
+    id,
+    required
 }: IProps) => {
 
     const [, setShowOptions] = useState(false);
@@ -126,7 +128,7 @@ const SelectPro = ({
                         {valueOptions && <span>{valueOptions}</span>}
                     </div>
                     <div id={id}>
-                        <Input isLabel label={label} readOnly={searching ? false : true} autocomplete="off" placeholder={placeholder} onChange={searchOptions} name="option" type="text"
+                        <Input isLabel label={label} required={required} readOnly={searching ? false : true} autocomplete="off" placeholder={placeholder} onChange={searchOptions} name="option" type="text"
                         />
                     </div>
                     <div className={styles.select__arrow}>
