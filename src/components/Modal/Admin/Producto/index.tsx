@@ -604,7 +604,7 @@ export const ProductoModal = () => {
                         isSearch
                         id="unidadMedidaId"
                         name="unidadMedida"
-                        defaultValue={unidadMedida}
+                        value={unidadMedida}
                         options={unidadesMedidaOptions}
                         onChange={handleChangeSelect}
                       />
@@ -621,7 +621,7 @@ export const ProductoModal = () => {
                     isSearch
                     id="categoriaId"
                     name="nombreCategoria"
-                    defaultValue={nombreCategoria}
+                    value={nombreCategoria}
                     options={newCategorias}
                     onChange={handleChangeSelect}
                   />
@@ -632,7 +632,7 @@ export const ProductoModal = () => {
                     isSearch
                     id="sucursalId"
                     name="sucursal"
-                    defaultValue={sucursal}
+                    value={sucursal}
                     options={sucursalesOptions}
                     onChange={handleChangeSelect}
                   />
@@ -644,7 +644,7 @@ export const ProductoModal = () => {
                     isSearch
                     id="monedaId"
                     name="moneda"
-                    defaultValue={moneda}
+                    value={moneda}
                     options={monedasOptions}
                     onChange={handleChangeSelect}
                   />
@@ -655,7 +655,7 @@ export const ProductoModal = () => {
                     isSearch
                     id="tipoIgvId"
                     name="tipoIgv"
-                    defaultValue={tipoIgv}
+                    value={tipoIgv}
                     options={tiposIgvOptions}
                     onChange={handleChangeSelect}
                   />
@@ -861,7 +861,7 @@ export const ProductoModal = () => {
                         isSearch
                         id="unidadMedidaId"
                         name="unidadMedida"
-                        defaultValue={formPresentacion.unidadMedida}
+                        value={formPresentacion.unidadMedida}
                         options={unidadesMedidaOptions}
                         onChange={handleChangePresentacionSelect}
                       />
