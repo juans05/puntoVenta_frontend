@@ -39,6 +39,7 @@ import { ReporteDetalladoCompras } from "../presentation/views/Modules/Admin/Vie
 import NuevaFactura from "../presentation/views/Modules/NuevaFactura";
 import { ConfiguracionFlujo } from "../presentation/views/Modules/Admin/Views/ConfiguracionFlujo";
 import { PedidosVenta } from "../presentation/views/Modules/Admin/Views/PedidosVenta";
+import { CuentasPorCobrar, CuentasPorPagar } from "../presentation/views/Modules/Admin/Views/Cuentas/CuentasCorrientes";
 import Pedidos from "../presentation/views/Modules/Pedidos";
 import PedidoPublico from "../presentation/views/Public/Pedido/PedidoPublico";
 import ClienteLogin from "../presentation/views/Public/Cliente/ClienteLogin";
@@ -94,6 +95,8 @@ const DashboardRoutes = () => {
         <Route path="nueva-factura/:tipo" element={<NuevaFactura key={location.pathname} />}/>
         <Route path="pedidos" element={<Pedidos />}/>
         <Route path="pedidos-venta" element={<PedidosVenta />}/>
+        <Route path="cuentas-por-cobrar" element={<CuentasPorCobrar />}/>
+        <Route path="cuentas-por-pagar" element={<CuentasPorPagar />}/>
         <Route path="pedidos/salones" element={<Salones />}/>
         <Route path="empresas" element={<Empresas />}/>
         <Route path="contabilidad/libro-ventas" element={<LibroVentas />}/>

@@ -75,6 +75,14 @@ export const Compras = () => {
   // Configuracion > Flujo de compras: en COMPLETO las compras entran por orden -> recepcion -> factura.
   const [flujoConfig, setFlujoConfig] = useState<any>(null);
   const flujoCompleto = flujoConfig?.flujoCompras === "COMPLETO";
+  // Saldo real de compras a credito (Cuentas por pagar).
+  const [creditoPorPagar, setCreditoPorPagar] = useState<number | null>(null);
+  useEffect(() => {
+    axiosInstance
+      .get("/cuentas-por-pagar/resumen")
+      .then((r: any) => setCreditoPorPagar((r.data?.data ?? []).reduce((a: number, s: any) => a + s.saldo, 0)))
+      .catch(() => {});
+  }, []);
   const { sucursales }: any = useAppSelector((state: RootState) => state.extentions);
 
   const { start, end } = useMemo(() => rangoPorPeriodo(periodo), [periodo]);
@@ -408,8 +416,8 @@ export const Compras = () => {
         </div>
         <div className={styles.kpiCard}>
           <div className={styles.kpiLabel}>Crédito por Pagar</div>
-          <div className={styles.kpiValue}>S/ 0.00</div>
-          <div className={styles.kpiSubtext}>sin deudas pendientes 🎉</div>
+          <div className={styles.kpiValue}>{formatSoles(creditoPorPagar ?? 0)}</div>
+          <div className={styles.kpiSubtext}>{creditoPorPagar ? "saldo a proveedores" : "sin deudas pendientes 🎉"}</div>
         </div>
         <div className={styles.kpiCard}>
           <div className={styles.kpiLabel}>Top Proveedor</div>

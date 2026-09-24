@@ -12,7 +12,14 @@ import {
   getMonedas,
   getTiposIgv,
   getAllUbigeos,
+  getTypeDocument,
 } from "../../../../../../redux/reducers/extensiones/extensiones..reducer";
+import {
+  openModalProveedor,
+  activeProveedorMain,
+  clearActiveProveedor,
+} from "../../../../../../redux/reducers/Admin/clientes-proveedores/clientesProveedoresAnfitrionas.reducer";
+import { ProveedorModal } from "../../../../../../components/Modal/Admin/Proveedores";
 import axiosInstance from "../../../../../../utils/axios";
 import Input from "../../../../../../components/Input";
 import SelectPro from "../../../../../../components/SelectPro";
@@ -51,7 +58,12 @@ const toIso = (v?: string | null) => {
   return isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
 };
 
-const hoyIso = () => new Date().toISOString().slice(0, 10);
+// No usar toISOString(): convierte a UTC y en timezones negativos (Perú, UTC-5) las horas
+// de la noche caen ya en el dia siguiente en UTC, registrando la fecha de "manana".
+const hoyIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGuardado, onCancelar }: IProps) => {
   const dispatch = useAppDispatch();
@@ -84,6 +96,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const [descuentoValor, setDescuentoValor] = useState<string>("0");
   const [otrosCargos, setOtrosCargos] = useState<string>("0");
   const [esCredito, setEsCredito] = useState(false);
+  const [fechaVencimiento, setFechaVencimiento] = useState("");
   const [metodoPagoId, setMetodoPagoId] = useState<number>(0);
   const [observacion, setObservacion] = useState("");
 
@@ -91,12 +104,25 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const [loading, setLoading] = useState(false);
   const [cargandoCompra, setCargandoCompra] = useState(false);
 
+  const cargarSerieNumero = async (sucId: number) => {
+    try {
+      const { data }: any = await axiosInstance.get(`/compras/obtener-serie-numero?sucursalId=${sucId || 0}`);
+      if (data?.data) {
+        setDocSerie(data.data.serie || "");
+        setDocNumero(data.data.numero || "");
+      }
+    } catch {
+      // silenciosa
+    }
+  };
+
   useEffect(() => {
     dispatch(getProductosCompra() as any);
     dispatch(getPayMethods() as any);
     dispatch(getMonedas() as any);
     dispatch(getTiposIgv() as any);
     dispatch(getAllUbigeos() as any);
+    dispatch(getTypeDocument() as any);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -122,6 +148,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
           setDescuentoValor(String(c?.porcentajeDescuento ?? c?.montoDescuento ?? 0));
           setOtrosCargos(String(c?.otrosCargos ?? 0));
           setEsCredito(!!c?.esCredito);
+          setFechaVencimiento(c?.fechaVencimiento ?? "");
           setDetalle(
             (c?.detalle ?? []).map((d: any) => ({
               productoId: d.productoId,
@@ -152,6 +179,13 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compraId, prefillXml]);
+
+  useEffect(() => {
+    if (!esEdicion && !docSerie) {
+      cargarSerieNumero(sucursalId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sucursalId, esEdicion]);
 
   const productosOptions = (productosCompra ?? []).map((p: any) => ({ id: p.productoId, value: p.nombre }));
   const metodoPagoSeleccionado = (payMethods ?? []).find((m: any) => Number(m.id) === Number(metodoPagoId))?.value ?? "";
@@ -237,6 +271,16 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
     }
   };
 
+  const abrirRegistroProveedor = () => {
+    dispatch(activeProveedorMain({ ruc: numeroDocumento.trim() }) as any);
+    dispatch(openModalProveedor() as any);
+  };
+
+  const proveedorRegistrado = (p: any) => {
+    dispatch(clearActiveProveedor() as any);
+    seleccionarProveedorExistente(p);
+  };
+
   const agregarLinea = () => setDetalle([...detalle, { ...lineaVacia }]);
   const quitarLinea = (index: number) => setDetalle(detalle.filter((_, i) => i !== index));
   const cambiarLinea = (index: number, campo: keyof IDetalleLinea, valor: any) =>
@@ -288,6 +332,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
       montoDescuento: tipoDescuento === "S/" ? Number(descuentoValor) || undefined : undefined,
       otrosCargos: otrosCargosNum || undefined,
       esCredito,
+      fechaVencimiento: esCredito && fechaVencimiento ? fechaVencimiento : undefined,
       detalle: lineasValidas.map((l) => ({
         productoId: l.productoId,
         cantidad: Number(l.cantidad),
@@ -334,6 +379,14 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
                   />
                   <button type="button" className={styles.buscarBtn} onClick={buscarProveedor} disabled={buscandoProveedor}>
                     🔍
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.buscarBtn}
+                    onClick={abrirRegistroProveedor}
+                    title="Registrar nuevo proveedor"
+                  >
+                    ➕
                   </button>
                 </div>
               </div>
@@ -397,10 +450,10 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
                 />
               </div>
               <div>
-                <Input isLabel label="Serie" name="serie" value={docSerie} onChange={(e: any) => setDocSerie(e.target.value)} />
+                <Input isLabel label="Serie" name="serie" value={docSerie} disabled={!esEdicion} onChange={(e: any) => setDocSerie(e.target.value)} />
               </div>
               <div>
-                <Input isLabel label="Número" name="numero" value={docNumero} onChange={(e: any) => setDocNumero(e.target.value)} />
+                <Input isLabel label="Número" name="numero" value={docNumero} disabled={!esEdicion} onChange={(e: any) => setDocNumero(e.target.value)} />
               </div>
               <div>
                 <label>Fecha de Emisión</label>
@@ -489,6 +542,12 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
               </label>
             </h4>
             <div className={styles.grid}>
+              {esCredito && (
+                <div className={styles.full}>
+                  <label>Fecha de vencimiento del crédito</label>
+                  <input type="date" value={fechaVencimiento} onChange={(e) => setFechaVencimiento(e.target.value)} />
+                </div>
+              )}
               <div className={styles.full}>
                 <label>Forma de pago</label>
                 <SelectPro
@@ -559,6 +618,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
           </div>
         </div>
       </div>
+      <ProveedorModal onGuardado={proveedorRegistrado} />
     </div>
   );
 };

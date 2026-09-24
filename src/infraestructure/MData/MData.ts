@@ -213,6 +213,31 @@ export const menuSidebar = [
     ],
   },
 
+  // === CUENTAS (por cobrar / por pagar) ===
+  {
+    code: "300",
+    id: 30,
+    value: "Cuentas",
+    icon: "mdi:cash-multiple",
+    url: "",
+    children: [
+      {
+        code: "300",
+        id: 301,
+        value: "Cuentas por cobrar",
+        icon: "mdi:cash-plus",
+        url: "dashboard/cuentas-por-cobrar",
+      },
+      {
+        code: "300",
+        id: 302,
+        value: "Cuentas por pagar",
+        icon: "mdi:cash-minus",
+        url: "dashboard/cuentas-por-pagar",
+      },
+    ],
+  },
+
   // === REPORTES & ANÁLISIS ===
   {
     code: "900",
