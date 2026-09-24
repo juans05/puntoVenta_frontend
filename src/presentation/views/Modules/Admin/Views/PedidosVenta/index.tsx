@@ -85,6 +85,17 @@ export const PedidosVenta = () => {
     }
   };
 
+  // Genera la guia (documento interno, no se envia a SUNAT) y va a la pantalla de Guias de remision.
+  const generarGuia = async (entregaId: number) => {
+    try {
+      await axiosInstance.post(`/guias-remision/desde-entrega/${entregaId}`);
+      toast.success("Guía de remisión generada");
+      navigate("/dashboard/guias-remision");
+    } catch (e) {
+      toast.error(mensajeError(e, "No se pudo generar la guía"));
+    }
+  };
+
   const abrirDetalle = async (pedido: any, tipo: "ver" | "entregar" | "cerrar") => {
     try {
       const res: any = await axiosInstance.get(`/pedidos-venta/${pedido.id}`);
@@ -190,15 +201,23 @@ export const PedidosVenta = () => {
           <Detalle pedido={dialogo.pedido} />
           <h4 style={{ margin: "14px 0 6px" }}>Entregas</h4>
           {dialogo.pedido.entregas.length === 0 ? <p>Aún no hay entregas.</p> : dialogo.pedido.entregas.map((e: any) => (
-            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
+            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
               <span>{e.numero} · {e.fecha} · {e.estadoEntrega}{e.placa ? ` · placa ${e.placa}` : ""}</span>
-              {e.estadoEntrega === "ACTIVA" && (
-                <button className={styles.anularBtn}
-                  onClick={() => window.confirm("¿Anular esta entrega? Se devuelve el stock.") &&
-                    accion(() => axiosInstance.put(`/pedidos-venta/entregas/${e.id}/anular`), "Entrega anulada")}>
-                  Anular
-                </button>
-              )}
+              <div style={{ display: "flex", gap: 6 }}>
+                {e.estadoEntrega === "ACTIVA" && (
+                  <button className={styles.editarBtn}
+                    onClick={() => generarGuia(e.id)}>
+                    Guía de remisión
+                  </button>
+                )}
+                {e.estadoEntrega === "ACTIVA" && (
+                  <button className={styles.anularBtn}
+                    onClick={() => window.confirm("¿Anular esta entrega? Se devuelve el stock.") &&
+                      accion(() => axiosInstance.put(`/pedidos-venta/entregas/${e.id}/anular`), "Entrega anulada")}>
+                    Anular
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </Modal>

@@ -204,6 +204,13 @@ export const menuSidebar = [
         url: "dashboard/pedidos",
       },
       {
+        code: "300",
+        id: 123,
+        value: "Guías de remisión",
+        icon: "mdi:truck-outline",
+        url: "dashboard/guias-remision",
+      },
+      {
         code: "200",
         id: 17,
         value: "Inventario",
