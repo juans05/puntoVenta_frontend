@@ -3,7 +3,9 @@ import styles from '../sidebar.module.css'
 import { Icon } from '@iconify/react';
 import { NavLink, useLocation } from "react-router-dom";
 import { IAuthState } from "../../../redux/reducers/auth/interfaces";
-import { useAppSelector } from "../../../redux/store";
+import { useAppDispatch, useAppSelector } from "../../../redux/store";
+import { getSucursales } from "../../../redux/reducers/extensiones/extensiones..reducer";
+import { SUCURSAL_ACTIVA_KEY } from "../../../utils/axios";
 import { RootState } from "../../../redux/rootState";
 import { menuSidebar } from "../../../infraestructure/MData/MData";
 import { Avatar } from "../../Avatar";
@@ -16,6 +18,19 @@ export const Navbar = ({ onClickSidebar }: any) => {
   );
   const onClick = () => setIsActive(!isActive);
 
+  const dispatch = useAppDispatch();
+  const { sucursales }: any = useAppSelector((state: RootState) => state.extentions);
+  const sucursalActiva = localStorage.getItem(SUCURSAL_ACTIVA_KEY) ?? "";
+  useEffect(() => {
+    dispatch(getSucursales() as any);
+  }, []);
+  // Recarga para que todas las pantallas vuelvan a pedir sus datos con la nueva sede.
+  const cambiarSucursal = (id: string) => {
+    if (id) localStorage.setItem(SUCURSAL_ACTIVA_KEY, id);
+    else localStorage.removeItem(SUCURSAL_ACTIVA_KEY);
+    window.location.reload();
+  };
+
   const { me }: IAuthState = useAppSelector((state: RootState) => state.auth)
   const location = useLocation();
 
@@ -26,6 +41,7 @@ export const Navbar = ({ onClickSidebar }: any) => {
   const logout = () => {
     onClick();
     localStorage.clear();
+    sessionStorage.clear();
     return (window.location.href = "/");
   };
 
@@ -90,6 +106,21 @@ export const Navbar = ({ onClickSidebar }: any) => {
           </div>
           <div className="flex items-center">
             <div className="flex items-center gap-3 relative">
+              {(sucursales?.length ?? 0) > 0 && (
+                <select
+                  value={sucursalActiva}
+                  onChange={(e) => cambiarSucursal(e.target.value)}
+                  title="Cambiar de sede"
+                  className="h-9 max-w-[150px] sm:max-w-[200px] rounded-lg border border-neutral-200 bg-white px-2 text-sm font-medium text-neutral-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                >
+                  <option value="">📍 Mi sede</option>
+                  {sucursales.map((s: any) => (
+                    <option key={s.id} value={s.id}>
+                      {s.value}
+                    </option>
+                  ))}
+                </select>
+              )}
 
               {
                 !me?.userName?.startsWith('RECEPCION') && !me?.userName?.startsWith('CONTADORA') &&

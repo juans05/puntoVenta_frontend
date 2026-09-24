@@ -4,6 +4,7 @@ import { Toaster, toast } from "sonner";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import jsPDF from "jspdf";
 import styles from "./pedidos.module.css";
+import axiosInstance from "../../../../utils/axios";
 import { getToken } from "../../../../helpers/auth-helpers";
 import { useAppDispatch, useAppSelector } from "../../../../redux/store";
 import { RootState } from "../../../../redux/rootState";
@@ -59,10 +60,21 @@ const Pedidos = () => {
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoPedido | "">("");
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<IPedido | null>(null);
+  const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [showEtiqueta, setShowEtiqueta] = useState(false);
   const [etiquetaData, setEtiquetaData] = useState<IEtiquetaEnvio | null>(null);
   const [codigoSeguimiento, setCodigoSeguimiento] = useState("");
   const [enviandoEstado, setEnviandoEstado] = useState(false);
+  // Texto del loader a pantalla completa; vacio = oculto. Se usa en toda operacion que va al servidor.
+  const [ocupado, setOcupado] = useState("");
+  const conCarga = async <T,>(texto: string, tarea: () => Promise<T>): Promise<T> => {
+    setOcupado(texto);
+    try {
+      return await tarea();
+    } finally {
+      setOcupado("");
+    }
+  };
 
   useEffect(() => {
     if (!getToken()) {
@@ -71,7 +83,7 @@ const Pedidos = () => {
     }
     dispatch(resetPedidosAction());
     dispatch(getProducts(0, 0, "", 1, 100, undefined));
-    dispatch(fetchPedidos({ page, amount, estadoPedido: estadoFiltro }));
+    conCarga("Cargando pedidos...", () => dispatch(fetchPedidos({ page, amount, estadoPedido: estadoFiltro })) as any);
   }, []);
 
   useEffect(() => {
@@ -92,13 +104,13 @@ const Pedidos = () => {
 
   const handleCambiarPagina = (newPage: number) => {
     setPage(newPage);
-    dispatch(fetchPedidos({ page: newPage, amount, estadoPedido: estadoFiltro }));
+    conCarga("Cargando pedidos...", () => dispatch(fetchPedidos({ page: newPage, amount, estadoPedido: estadoFiltro })) as any);
   };
 
   const handleCambiarFiltro = (nuevoEstado: EstadoPedido | "") => {
     setEstadoFiltro(nuevoEstado);
     setPage(1);
-    dispatch(fetchPedidos({ page: 1, amount, estadoPedido: nuevoEstado }));
+    conCarga("Cargando pedidos...", () => dispatch(fetchPedidos({ page: 1, amount, estadoPedido: nuevoEstado })) as any);
   };
 
   const handleAbrirCrear = () => {
@@ -123,17 +135,27 @@ const Pedidos = () => {
       detalles,
     };
 
-    dispatch(crearPedidoAction(payload)).then((result) => {
+    conCarga("Creando pedido...", () => dispatch(crearPedidoAction(payload))).then((result) => {
       if (result) {
         setIsPickerOpen(false);
         setPedidoSeleccionado(result);
         toast.success(`Pedido creado. Token: ${result.token}`);
       }
-    });
+    }).catch(() => {});
   };
 
-  const handleVerDetalle = (pedido: IPedido) => {
+  // Se pide el pedido completo por id (con productos): la fila del listado no basta.
+  const handleVerDetalle = async (pedido: IPedido) => {
     setPedidoSeleccionado(pedido);
+    setCargandoDetalle(true);
+    try {
+      const { data }: any = await axiosInstance.get(`/pedidos/${pedido.id}`);
+      setPedidoSeleccionado(data?.data ?? pedido);
+    } catch {
+      toast.error("No se pudo cargar el detalle del pedido");
+    } finally {
+      setCargandoDetalle(false);
+    }
   };
 
   const handleImprimirEtiqueta = (pedido: IPedido) => {
@@ -142,7 +164,7 @@ const Pedidos = () => {
       return;
     }
 
-    dispatch(fetchEtiquetaEnvioAction(pedido.id)).then((etiqueta: IEtiquetaEnvio | undefined) => {
+    conCarga("Generando etiqueta...", () => dispatch(fetchEtiquetaEnvioAction(pedido.id))).then((etiqueta: IEtiquetaEnvio | undefined) => {
       if (!etiqueta) return;
       setEtiquetaData(etiqueta);
       setShowEtiqueta(true);
@@ -191,11 +213,13 @@ const Pedidos = () => {
 
     setEnviandoEstado(true);
     try {
-      await dispatch(actualizarEstadoPedidoAction({
+      const res: any = await conCarga("Actualizando estado...", () => dispatch(actualizarEstadoPedidoAction({
         id: pedido.id,
         estadoPedido: nuevoEstado,
         codigoSeguimiento: nuevoEstado === "S" ? codigoSeguimiento : undefined,
-      }));
+      })));
+      if (res?.data) setPedidoSeleccionado(res.data);
+      dispatch(fetchPedidos({ page, amount, estadoPedido: estadoFiltro }));
       setCodigoSeguimiento("");
       toast.success("Estado actualizado");
     } catch {
@@ -212,6 +236,12 @@ const Pedidos = () => {
   return (
     <div className={styles.container}>
       <Toaster position="top-right" />
+      {ocupado && (
+        <div className={styles.loaderGlobal}>
+          <div className={styles.spinner} />
+          <p>{ocupado}</p>
+        </div>
+      )}
 
       {/* Header */}
       <div className={styles.header}>
@@ -344,6 +374,12 @@ const Pedidos = () => {
               </button>
             </div>
 
+            {cargandoDetalle ? (
+              <div className={styles.cargandoDetalle}>
+                <div className={styles.spinner} />
+                <p>Cargando detalle del pedido...</p>
+              </div>
+            ) : (
             <div className={styles.modalBody}>
               <div className={styles.infoGrid}>
                 <div className={styles.infoItem}>
@@ -473,6 +509,7 @@ const Pedidos = () => {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       )}

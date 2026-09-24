@@ -69,6 +69,13 @@ export const menuSidebar = [
           },
           {
             code: "1300",
+            id: 143,
+            value: "Flujo de compras",
+            icon: "mdi:swap-horizontal-bold",
+            url: "dashboard/configuracion-flujo",
+          },
+          {
+            code: "1300",
             id: 142,
             value: "Salones de recojo",
             icon: "mdi:office-building-marker-outline",
@@ -183,43 +190,18 @@ export const menuSidebar = [
         url: "dashboard/productos",
       },
       {
+        code: "300",
+        id: 121,
+        value: "Pedidos",
+        icon: "mdi:clipboard-list-outline",
+        url: "dashboard/pedidos",
+      },
+      {
         code: "200",
         id: 17,
         value: "Inventario",
         icon: "healthicons:rdt-result-out-stock",
         url: "dashboard/inventario",
-      },
-    ],
-  },
-
-  // === RECURSOS HUMANOS ===
-  {
-    code: "500",
-    id: 5,
-    value: "Recursos Humanos",
-    icon: "mdi:account-multiple-outline",
-    url: "",
-    children: [
-      {
-        code: "500",
-        id: 5,
-        value: "Asistencia",
-        icon: "zondicons:calendar",
-        url: "dashboard/asistencia",
-      },
-      {
-        code: "600",
-        id: 6,
-        value: "Reporte de Asistencia",
-        icon: "mdi:report-pie",
-        url: "dashboard/reporte-asistencia",
-      },
-      {
-        code: "950",
-        id: 8,
-        value: "Configuración de Renta",
-        icon: "mdi:home-currency-usd",
-        url: "dashboard/configuracion-renta",
       },
     ],
   },

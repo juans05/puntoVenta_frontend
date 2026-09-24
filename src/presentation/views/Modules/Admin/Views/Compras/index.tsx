@@ -10,6 +10,8 @@ import {
 import { getSucursales } from "../../../../../../redux/reducers/extensiones/extensiones..reducer";
 import { CompraVerModal } from "../../../../../../components/Modal/Admin/Compra/CompraVerModal";
 import { FormularioCompra } from "./FormularioCompra";
+import { Ordenes } from "./Ordenes";
+import axiosInstance from "../../../../../../utils/axios";
 import { Toaster, toast } from "sonner";
 import { printTable } from "../../../../../../helpers/functions/printTitle";
 import { title } from "../../../../../../infraestructure/MData/MData";
@@ -18,10 +20,18 @@ const PAGE_SIZE = 200;
 const formatSoles = (n: number) => `S/ ${Number(n).toFixed(2)}`;
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
 const formatCorto = (d: Date) => `${d.getDate()} ${MESES_CORTOS[d.getMonth()]}`;
-const toISO = (d: Date) => d.toISOString().slice(0, 10);
+// No usar toISOString(): convierte a UTC y en timezones negativos (Peru, UTC-5) las horas
+// de la noche caen ya en el dia siguiente en UTC, corriendo el rango de fechas un dia.
+const toISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 type Periodo = "hoy" | "semana" | "mes" | "todo";
 type Tab = "cpe" | "ordenes" | "sindoc";
+const DOCS = [
+  { id: "factura", icon: "📄", tab: "Factura", nombre: "la factura" },
+  { id: "boleta", icon: "🧾", tab: "Boleta", nombre: "la boleta" },
+  { id: "orden", icon: "🛒", tab: "Orden Compra", nombre: "la orden de compra" },
+  { id: "notaventa", icon: "🗒️", tab: "Nota de venta", nombre: "la nota de venta" },
+] as const;
 
 const rangoPorPeriodo = (periodo: Periodo): { start?: Date; end: Date } => {
   const end = new Date();
@@ -41,11 +51,15 @@ export const Compras = () => {
   const [compraEditandoId, setCompraEditandoId] = useState<number | undefined>(undefined);
   const [compraViendoId, setCompraViendoId] = useState<number | undefined>(undefined);
   const [prefillXml, setPrefillXml] = useState<any>(null);
+  const [colaXml, setColaXml] = useState<any[]>([]); // XML pendientes de revisar tras el actual
+  const [totalXml, setTotalXml] = useState(0);
   const [importandoXml, setImportandoXml] = useState(false);
   const xmlInputRef = useRef<HTMLInputElement>(null);
 
   const [vista, setVista] = useState<"lista" | "registrar" | "formulario">("lista");
   const [metodoTraer, setMetodoTraer] = useState<"sunat" | "xml" | "pdf" | "manual" | null>(null);
+  const [tipoDoc, setTipoDoc] = useState<(typeof DOCS)[number]["id"]>("factura");
+  const docActual = DOCS.find((d) => d.id === tipoDoc)!;
   const [sucursalRegistroId, setSucursalRegistroId] = useState<number>(0);
   const [usuarioSol, setUsuarioSol] = useState("");
   const [claveSol, setClaveSol] = useState("");
@@ -58,6 +72,9 @@ export const Compras = () => {
   const [fechaHasta, setFechaHasta] = useState("");
   const [sucursalIdFiltro, setSucursalIdFiltro] = useState<number>(0);
   const [tabActiva, setTabActiva] = useState<Tab>("cpe");
+  // Configuracion > Flujo de compras: en COMPLETO las compras entran por orden -> recepcion -> factura.
+  const [flujoConfig, setFlujoConfig] = useState<any>(null);
+  const flujoCompleto = flujoConfig?.flujoCompras === "COMPLETO";
   const { sucursales }: any = useAppSelector((state: RootState) => state.extentions);
 
   const { start, end } = useMemo(() => rangoPorPeriodo(periodo), [periodo]);
@@ -85,6 +102,14 @@ export const Compras = () => {
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busqueda]);
+
+  useEffect(() => {
+    axiosInstance
+      .get("/configuracion-flujo")
+      .then((r: any) => setFlujoConfig(r.data?.data))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     printTable(`${title.name}::COMPRAS`);
@@ -124,22 +149,39 @@ export const Compras = () => {
   };
 
   const handleXmlSeleccionado = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const archivo = e.target.files?.[0];
-    e.target.value = ""; // permite volver a elegir el mismo archivo despues
-    if (!archivo) return;
+    const archivos = Array.from(e.target.files ?? []);
+    e.target.value = ""; // permite volver a elegir los mismos archivos despues
+    if (archivos.length === 0) return;
 
     setImportandoXml(true);
-    try {
-      const preview = await importarXmlCompra(archivo);
-      setPrefillXml(preview);
-      setCompraEditandoId(undefined);
-      setVista("formulario");
-      toast.success("XML leído correctamente, revisa los datos antes de guardar");
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? "No se pudo leer el XML");
-    } finally {
-      setImportandoXml(false);
+    const resultados = await Promise.allSettled(archivos.map((a) => importarXmlCompra(a)));
+    setImportandoXml(false);
+
+    const previews = resultados.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+    const fallidos = archivos.length - previews.length;
+    if (fallidos > 0) toast.error(`${fallidos} XML no se pudieron leer`);
+    if (previews.length === 0) return;
+
+    setPrefillXml(previews[0]);
+    setColaXml(previews.slice(1));
+    setTotalXml(previews.length);
+    setCompraEditandoId(undefined);
+    setVista("formulario");
+    toast.success(`${previews.length} XML leído(s), revisa los datos antes de guardar`);
+  };
+
+  // Tras guardar u omitir un XML pasa al siguiente de la cola; sin cola vuelve a la lista.
+  const siguienteXml = (guardado: boolean) => {
+    if (colaXml.length > 0) {
+      setPrefillXml(colaXml[0]);
+      setColaXml(colaXml.slice(1));
+      return;
     }
+    setVista("lista");
+    setCompraEditandoId(undefined);
+    setPrefillXml(null);
+    setTotalXml(0);
+    if (guardado) recargar();
   };
 
   const abrirEditar = (id: number) => {
@@ -159,8 +201,8 @@ export const Compras = () => {
             ←
           </button>
           <div>
-            <h3>Registrar Factura de Compra</h3>
-            <p className={styles.subtitle}>Registra la factura de tu proveedor en segundos.</p>
+            <h3>Registrar {docActual.tab} de Compra</h3>
+            <p className={styles.subtitle}>Registra {docActual.nombre} de tu proveedor en segundos.</p>
           </div>
           <div className={styles.headerActions}>
             <button className={styles.historialBtn} onClick={() => { setPeriodo("todo"); setVista("lista"); }}>
@@ -183,9 +225,15 @@ export const Compras = () => {
             ))}
           </select>
           <div className={styles.docTabs}>
-            <button className={`${styles.docTab} ${styles.docTabActive}`}>📄 Factura</button>
-            <button className={styles.docTab} onClick={() => toast("Próximamente")}>🧾 Boleta</button>
-            <button className={styles.docTab} onClick={() => toast("Próximamente")}>🛒 Orden Compra</button>
+            {DOCS.map((d) => (
+              <button
+                key={d.id}
+                className={`${styles.docTab} ${tipoDoc === d.id ? styles.docTabActive : ""}`}
+                onClick={() => setTipoDoc(d.id)}
+              >
+                {d.icon} {d.tab}
+              </button>
+            ))}
             <button className={styles.docTab} onClick={() => toast("Próximamente")}>📁 Otro doc.</button>
             <button className={styles.docTab} onClick={() => toast("Próximamente")}>📝 N. Crédito</button>
             <button className={styles.docTab} onClick={() => toast("Próximamente")}>📝 N. Débito</button>
@@ -194,7 +242,7 @@ export const Compras = () => {
 
         <div className={styles.comoTraerCard}>
           <div className={styles.comoTraerTitle}>
-            <span className={styles.comoTraerIcon}>⬇️</span> ¿Cómo quieres traer la factura?
+            <span className={styles.comoTraerIcon}>⬇️</span> ¿Cómo quieres traer {docActual.nombre}?
           </div>
           <div className={styles.opcionesGrid}>
             <button
@@ -216,7 +264,7 @@ export const Compras = () => {
             >
               <span className={styles.opcionIcon}>📄</span>
               <span className={styles.opcionTitle}>Subir XML</span>
-              <span className={styles.opcionDesc}>Archivo .xml del comprobante</span>
+              <span className={styles.opcionDesc}>Uno o varios archivos .xml</span>
             </button>
             <button
               type="button"
@@ -281,7 +329,7 @@ export const Compras = () => {
           )}
         </div>
 
-        <input ref={xmlInputRef} type="file" accept=".xml" hidden onChange={handleXmlSeleccionado} />
+        <input ref={xmlInputRef} type="file" accept=".xml" multiple hidden onChange={handleXmlSeleccionado} />
         <Toaster richColors position="top-right" duration={2000} />
       </div>
     );
@@ -297,7 +345,11 @@ export const Compras = () => {
           <div>
             <h3>{compraEditandoId ? "Editar compra" : "Registrar Factura de Compra"}</h3>
             <p className={styles.subtitle}>
-              {compraEditandoId ? "Corrige los productos, cantidades o datos de la compra." : "Completa los datos del comprobante y del proveedor."}
+              {compraEditandoId
+                ? "Corrige los productos, cantidades o datos de la compra."
+                : totalXml > 1
+                ? `Documento ${totalXml - colaXml.length} de ${totalXml}: revisa y guarda para pasar al siguiente.`
+                : "Completa los datos del comprobante y del proveedor."}
             </p>
           </div>
         </div>
@@ -306,17 +358,8 @@ export const Compras = () => {
           compraId={compraEditandoId}
           prefillXml={prefillXml}
           sucursalIdInicial={sucursalRegistroId || undefined}
-          onGuardado={() => {
-            setVista("lista");
-            setCompraEditandoId(undefined);
-            setPrefillXml(null);
-            recargar();
-          }}
-          onCancelar={() => {
-            setVista("lista");
-            setCompraEditandoId(undefined);
-            setPrefillXml(null);
-          }}
+          onGuardado={() => siguienteXml(true)}
+          onCancelar={() => siguienteXml(false)}
         />
         <Toaster richColors position="top-right" duration={2000} />
       </div>
@@ -340,9 +383,15 @@ export const Compras = () => {
           <button className={styles.historialBtn} onClick={() => setPeriodo("todo")}>
             🕐 Historial
           </button>
-          <button className={styles.registrarBtn} disabled={importandoXml} onClick={abrirRegistrar}>
-            {importandoXml ? "Leyendo XML..." : "+ Registrar compra"}
-          </button>
+          {flujoCompleto ? (
+            <button className={styles.registrarBtn} onClick={() => setTabActiva("ordenes")}>
+              + Nueva orden de compra
+            </button>
+          ) : (
+            <button className={styles.registrarBtn} disabled={importandoXml} onClick={abrirRegistrar}>
+              {importandoXml ? "Leyendo XML..." : "+ Registrar compra"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -439,7 +488,17 @@ export const Compras = () => {
         </button>
       </div>
 
-      {tabActiva !== "cpe" ? (
+      {tabActiva === "ordenes" && flujoCompleto ? (
+        <Ordenes config={flujoConfig} />
+      ) : tabActiva === "ordenes" ? (
+        <div className={styles.panel}>
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>🛒</div>
+            <h4>Flujo de compras simplificado</h4>
+            <p>Para usar órdenes de compra y recepciones, actívalo en Configuración → Flujo de compras.</p>
+          </div>
+        </div>
+      ) : tabActiva !== "cpe" ? (
         <div className={styles.panel}>
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>🔍</div>

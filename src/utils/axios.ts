@@ -25,6 +25,8 @@ const axiosInstance = axios.create({
     }
 })
 
+export const SUCURSAL_ACTIVA_KEY = 'sucursalActiva';
+
 let isUnauthorizedHandled = false;
 
 export function initAxiosInterceptors() {
@@ -56,6 +58,12 @@ export function initAxiosInterceptors() {
         const token = getToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        // Sede elegida en el header: el backend da prioridad a X-Sucursal sobre la del token.
+        const sucursalActiva = localStorage.getItem(SUCURSAL_ACTIVA_KEY);
+        if (sucursalActiva) {
+            config.headers['X-Sucursal'] = sucursalActiva;
         }
 
         return config;

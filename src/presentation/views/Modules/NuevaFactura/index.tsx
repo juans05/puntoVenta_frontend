@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import styles from "./nuevaFactura.module.css";
+import comprasStyles from "../Admin/Views/Compras/compras.module.css";
 import { getToken } from "../../../../helpers/auth-helpers";
 import axiosInstance from "../../../../utils/axios";
 import { useAppDispatch, useAppSelector } from "../../../../redux/store";
@@ -26,6 +27,12 @@ import { ProductoPickerModal } from "./ProductoPickerModal";
 import ModalLoadingPay from "../Facturacion/ModalLoadingPay";
 import { printTable } from "../../../../helpers/functions/printTitle";
 import { title } from "../../../../infraestructure/MData/MData";
+import {
+  openModalAnfitriona,
+  activeClientes,
+  clearActiveClientes,
+} from "../../../../redux/reducers/Admin/clientes-proveedores/clientesProveedoresAnfitrionas.reducer";
+import { ClientesModal } from "../../../../components/Modal/Admin/Clientes";
 
 type TipoDocumento = "boleta" | "factura" | "nota-venta" | "cotizacion";
 
@@ -100,6 +107,13 @@ const NuevaFactura = () => {
     (state: RootState) => state.sales
   );
 
+  // Antes del formulario se elige como traer el documento; convertir una cotizacion va directo.
+  const [eligioMetodo, setEligioMetodo] = useState(!!cotizacionOrigenId);
+  // XML importados en lote: se revisan y emiten de a uno (el primero ya esta en el formulario).
+  const [colaXml, setColaXml] = useState<any[]>([]);
+  const [totalXml, setTotalXml] = useState(0);
+  const [leyendoXml, setLeyendoXml] = useState(false);
+  const xmlInputRef = useRef<HTMLInputElement>(null);
   const [tipoDocIdentId, setTipoDocIdentId] = useState<number>(
     tipoDocumentoInicial === "factura" ? TIPO_DOC_RUC : TIPO_DOC_DNI
   );
@@ -114,7 +128,12 @@ const NuevaFactura = () => {
   const [enviarEmail, setEnviarEmail] = useState(false);
   const [email, setEmail] = useState("");
   const [metodoPagoId, setMetodoPagoId] = useState<number>(0);
-  const [fechaVenta, setFechaVenta] = useState<string>(new Date().toISOString().slice(0, 10));
+  // No usar toISOString(): convierte a UTC y en timezones negativos (Peru, UTC-5) las horas
+  // de la noche caen ya en el dia siguiente en UTC, registrando la fecha de "manana".
+  const [fechaVenta, setFechaVenta] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [isOpenLoadingPay, setIsOpenLoadingPay] = useState(false);
@@ -251,6 +270,12 @@ const NuevaFactura = () => {
     if (message === "") return;
     if (code === 1) {
       toast.success(correlative ? `${message}: ${correlative}` : message);
+      if (colaXml.length > 0) {
+        // Lote de XML: en vez de ir a "pago exitoso" se carga el siguiente documento.
+        setEnviando(false);
+        setIsOpenLoadingPay(false);
+        siguienteXml();
+      }
       setTimeout(() => dispatch(resetResponse()), 1000);
     }
     if (code === 100) {
@@ -307,6 +332,81 @@ const NuevaFactura = () => {
     }
   };
 
+  // Precarga cliente y productos desde un XML leido. Las lineas se emparejan con el catalogo por
+  // codigo de barra o nombre; las que no se encuentran se avisan para agregarlas a mano.
+  const cargarXmlEnFormulario = (xml: any) => {
+    const doc = xml.clienteNumeroDocumento ?? "";
+    if (doc) {
+      setTipoDocIdentId(doc.length === 11 ? TIPO_DOC_RUC : TIPO_DOC_DNI);
+      setNumeroDocumento(doc);
+    }
+    setRazonSocial(xml.clienteRazonSocial ?? "");
+    setDireccionCliente(xml.clienteDireccion ?? "");
+
+    const norm = (t?: string) => (t ?? "").trim().toLowerCase();
+    const sinEncontrar: string[] = [];
+    const productos = (xml.lineas ?? []).flatMap((l: any) => {
+      const p: any = (products as any[]).find(
+        (x) => (l.codigo && norm(x.codigoBarra) === norm(l.codigo)) || norm(x.nombre) === norm(l.descripcion)
+      );
+      if (!p) {
+        sinEncontrar.push(l.descripcion);
+        return [];
+      }
+      return [
+        {
+          ...p,
+          productoId: p.productoId ?? p.id,
+          index: p.productoId ?? p.id,
+          precio: l.precioUnitario,
+          cantidad: l.cantidad,
+          totalFicha: l.precioUnitario * l.cantidad,
+          tipoIgvId: tipoIgvGravadoId,
+          unidadMedidaId: unidadMedidaNiuId,
+        },
+      ];
+    });
+
+    dispatch(resetSale());
+    dispatch(updateProductByPrice(productos) as any);
+    if (sinEncontrar.length > 0) toast.error(`Sin coincidir en el catálogo (agrégalos a mano): ${sinEncontrar.join(", ")}`);
+  };
+
+  const handleXmlSeleccionado = async (e: ChangeEvent<HTMLInputElement>) => {
+    const archivos = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (archivos.length === 0) return;
+
+    setLeyendoXml(true);
+    const resultados = await Promise.allSettled(
+      archivos.map((a) => {
+        const fd = new FormData();
+        fd.append("archivo", a);
+        return axiosInstance
+          .post(`/facturacion/importar-xml`, fd, { headers: { "Content-Type": "multipart/form-data" } })
+          .then((r: any) => r.data?.data);
+      })
+    );
+    setLeyendoXml(false);
+
+    const leidos = resultados.flatMap((r) => (r.status === "fulfilled" && r.value ? [r.value] : []));
+    if (leidos.length < archivos.length) toast.error(`${archivos.length - leidos.length} XML no se pudieron leer`);
+    if (leidos.length === 0) return;
+
+    setColaXml(leidos.slice(1));
+    setTotalXml(leidos.length);
+    setEligioMetodo(true);
+    cargarXmlEnFormulario(leidos[0]);
+    toast.success(`${leidos.length} XML leído(s): revisa y emite uno por uno`);
+  };
+
+  // Tras emitir con exito, si quedan XML en cola se carga el siguiente en vez de quedarse vacio.
+  const siguienteXml = () => {
+    if (colaXml.length === 0) return;
+    cargarXmlEnFormulario(colaXml[0]);
+    setColaXml(colaXml.slice(1));
+  };
+
   const restar = (item: any) => dispatch(decrementProductInSale(item) as any);
   const sumar = (item: any) => dispatch(getProductsBySale(item) as any);
   const eliminar = (productoId: number) => dispatch(deleteProductInSale(productoId) as any);
@@ -347,6 +447,12 @@ const NuevaFactura = () => {
     );
   };
 
+  // Mismo formato "DEP/PROV/DIST" que muestra SelectUbigeo al elegir una opcion.
+  const etiquetaUbigeo = (id: any) => {
+    const u = (ubigeos as any[])?.find((x) => String(x.ubigeoId) === String(id));
+    return u ? `${u.departamento}/${u.provincia}/${u.distrito}` : "";
+  };
+
   const seleccionarCliente = (c: any) => {
     setRazonSocial(c?.nombre ?? "");
     setNumeroDocumento(c?.numeroDocumento ?? "");
@@ -356,8 +462,9 @@ const NuevaFactura = () => {
     setEmail(c?.email ?? "");
     // Siempre se fija (incluso vacio) -- si no, un ubigeo de una busqueda anterior se queda
     // pegado en pantalla aunque el cliente nuevo no tenga uno.
-    setUbigeoId(c?.ubigeoId ? String(c.ubigeoId) : "");
-    setUbigeoLabel(c?.ubigeoId ? c?.ubigeoDescripcion ?? "" : "");
+    const labelUbigeo = c?.ubigeoId ? etiquetaUbigeo(c.ubigeoId) : "";
+    setUbigeoId(labelUbigeo ? String(c.ubigeoId) : "");
+    setUbigeoLabel(labelUbigeo);
     setClientesEncontrados([]);
     // Cliente ya registrado: los campos que trae la ficha se bloquean para no pisar el dato
     // oficial por error; los que vienen vacios se dejan editables.
@@ -365,7 +472,7 @@ const NuevaFactura = () => {
       razonSocial: !!c?.nombre,
       direccion: !!c?.direccion,
       celular: !!c?.telefono,
-      ubigeo: !!c?.ubigeoId,
+      ubigeo: !!labelUbigeo,
     });
   };
 
@@ -382,19 +489,10 @@ const NuevaFactura = () => {
       setRazonSocial(info.razonSocial);
       setDireccionCliente(info.direccion || "");
       setCelular(""); // el RUC no trae celular -- limpia lo que haya quedado de una busqueda anterior
-      let ubigeoEncontrado = false;
-      if (info.ubigeoId) {
-        const ubigeo = (ubigeos as any[])?.find((u) => String(u.ubigeoId) === String(info.ubigeoId));
-        if (ubigeo) {
-          setUbigeoId(String(ubigeo.ubigeoId));
-          setUbigeoLabel(`${ubigeo.departamento} - ${ubigeo.provincia} - ${ubigeo.distrito}`);
-          ubigeoEncontrado = true;
-        }
-      }
-      if (!ubigeoEncontrado) {
-        setUbigeoId("");
-        setUbigeoLabel("");
-      }
+      const labelUbigeo = info.ubigeoId ? etiquetaUbigeo(info.ubigeoId) : "";
+      const ubigeoEncontrado = !!labelUbigeo;
+      setUbigeoId(ubigeoEncontrado ? String(info.ubigeoId) : "");
+      setUbigeoLabel(labelUbigeo);
       setCamposBloqueados({ razonSocial: true, direccion: !!info.direccion, celular: false, ubigeo: ubigeoEncontrado });
       toast.success("Datos obtenidos de RUC (SUNAT)");
     } catch {
@@ -458,6 +556,16 @@ const NuevaFactura = () => {
     } finally {
       setBuscando(false);
     }
+  };
+
+  const abrirRegistroCliente = () => {
+    dispatch(activeClientes({ numeroDocumento: numeroDocumento.trim(), tipoDocumentoId: tipoDocIdentId }) as any);
+    dispatch(openModalAnfitriona() as any);
+  };
+
+  const clienteRegistrado = (c: any) => {
+    dispatch(clearActiveClientes() as any);
+    seleccionarCliente(c);
   };
 
   const metodoPagoSeleccionado = (payMethods as any[])?.find((m) => m.id === metodoPagoId);
@@ -673,6 +781,46 @@ const NuevaFactura = () => {
     dispatch(resetSale());
   };
 
+  if (!eligioMetodo) {
+    const TITULOS: Record<TipoDocumento, [string, string]> = {
+      factura: ["Nueva Factura", "la factura"],
+      boleta: ["Nueva Boleta", "la boleta"],
+      "nota-venta": ["Nueva Nota de Venta", "la nota de venta"],
+      cotizacion: ["Nueva Cotización", "la cotización"],
+    };
+    const [tituloDoc, nombreDoc] = TITULOS[tipoDocumentoInicial];
+    const proximamente = (n: string) => toast(`${n}: próximamente. Por ahora usa Subir XML o Llenar manual.`);
+    const opciones = [
+      { icon: "🔍", titulo: "Buscar en SUNAT", desc: "Con RUC, serie y correlativo", onClick: () => proximamente("Buscar en SUNAT") },
+      { icon: "📄", titulo: leyendoXml ? "Leyendo XML..." : "Subir XML", desc: "Uno o varios archivos .xml", onClick: () => xmlInputRef.current?.click() },
+      { icon: "📷", titulo: "Foto o PDF", desc: "La leemos automáticamente", onClick: () => proximamente("Foto o PDF") },
+      { icon: "✏️", titulo: "Llenar manual", desc: "Escribir los datos", onClick: () => setEligioMetodo(true) },
+    ];
+    return (
+      <div>
+        <Toaster richColors position="top-right" />
+        <div className={styles.header}>
+          <h3>{tituloDoc}</h3>
+        </div>
+        <div className={comprasStyles.comoTraerCard}>
+          <div className={comprasStyles.comoTraerTitle}>
+            <span className={comprasStyles.comoTraerIcon}>⬇️</span> ¿Cómo quieres traer {nombreDoc}?
+          </div>
+          <div className={comprasStyles.opcionesGrid}>
+            {opciones.map((o) => (
+              <button key={o.titulo} type="button" className={comprasStyles.opcionCard} onClick={o.onClick}>
+                <span className={comprasStyles.opcionIcon}>{o.icon}</span>
+                <span className={comprasStyles.opcionTitle}>{o.titulo}</span>
+                <span className={comprasStyles.opcionDesc}>{o.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <input ref={xmlInputRef} type="file" accept=".xml" multiple hidden onChange={handleXmlSeleccionado} />
+      </div>
+    );
+  }
+
   return (
     <div>
       <Toaster richColors position="top-right" />
@@ -685,6 +833,11 @@ const NuevaFactura = () => {
             : tipoDocumentoInicial === "cotizacion"
             ? "Nueva Cotización"
             : "Nueva Nota de Venta"}
+          {totalXml > 1 && (
+            <small style={{ marginLeft: 12, fontWeight: 400 }}>
+              Documento {totalXml - colaXml.length} de {totalXml}
+            </small>
+          )}
         </h3>
         <div className={styles.headerActions}>
           <div className={styles.advancedWrap}>
@@ -778,6 +931,14 @@ const NuevaFactura = () => {
                 />
                 <button type="button" className={styles.searchIconBtn} onClick={buscarCliente} disabled={buscando}>
                   <Icon icon="iconamoon:search-bold" />
+                </button>
+                <button
+                  type="button"
+                  className={styles.searchIconBtn}
+                  onClick={abrirRegistroCliente}
+                  title="Registrar nuevo cliente"
+                >
+                  <Icon icon="mdi:account-plus-outline" />
                 </button>
               </div>
             </div>
@@ -1334,7 +1495,8 @@ const NuevaFactura = () => {
         products={products}
         onAgregar={agregarProductos}
       />
-      {isOpenLoadingPay && code === 1 && <ModalLoadingPay setIsOpenLoadingPay={setIsOpenLoadingPay} />}
+      {isOpenLoadingPay && code === 1 && colaXml.length === 0 && <ModalLoadingPay setIsOpenLoadingPay={setIsOpenLoadingPay} />}
+      <ClientesModal onGuardado={clienteRegistrado} />
     </div>
   );
 };

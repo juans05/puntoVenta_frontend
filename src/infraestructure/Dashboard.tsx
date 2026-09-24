@@ -37,6 +37,7 @@ import { LibroCompras } from "../presentation/views/Modules/Admin/Views/Contabil
 import { ReporteDetalladoVentas } from "../presentation/views/Modules/Admin/Views/Contabilidad/ReporteDetalladoVentas";
 import { ReporteDetalladoCompras } from "../presentation/views/Modules/Admin/Views/Contabilidad/ReporteDetalladoCompras";
 import NuevaFactura from "../presentation/views/Modules/NuevaFactura";
+import { ConfiguracionFlujo } from "../presentation/views/Modules/Admin/Views/ConfiguracionFlujo";
 import Pedidos from "../presentation/views/Modules/Pedidos";
 import PedidoPublico from "../presentation/views/Public/Pedido/PedidoPublico";
 import ClienteLogin from "../presentation/views/Public/Cliente/ClienteLogin";
@@ -82,6 +83,7 @@ const DashboardRoutes = () => {
         <Route path="sucursales" element={<Sucursales />}/>
         <Route path="cajas" element={<Cajas />}/>
         <Route path="compras" element={<Compras />}/>
+        <Route path="configuracion-flujo" element={<ConfiguracionFlujo />}/>
         <Route path="gastos" element={<Gastos />}/>
         <Route path="publicidad" element={<GastoPublicidad />}/>
         <Route path="gastos/catalogos" element={<CatalogosGasto />}/>
