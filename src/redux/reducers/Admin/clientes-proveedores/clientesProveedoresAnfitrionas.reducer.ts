@@ -492,7 +492,7 @@ export const clearActiveClientes = () => {
 
 
 
-export const createClienteMain = (cliente: any) => {
+export const createClienteMain = (cliente: any, onSuccess?: (cliente: any) => void) => {
   return async (dispatch: Dispatch<types.ICreateClients | AnyAction>) => {
     try {
       const response: any = await axiosInstance.post(
@@ -506,6 +506,7 @@ export const createClienteMain = (cliente: any) => {
           type: types.CREATE_CLIENTS,
           payload: data?.data,
         });
+        onSuccess?.(data?.data);
       }
     } catch (error: any) {
       console.log(error);
@@ -614,7 +615,7 @@ export const clearActiveProveedor = () => {
   };
 };
 
-export const createProveedorMain = (proveedor: any) => {
+export const createProveedorMain = (proveedor: any, onSuccess?: (proveedor: any) => void) => {
   return async (dispatch: Dispatch<types.ICreateProviders | AnyAction>) => {
     try {
       const response: any = await axiosInstance.post(`/proveedor/crear`, proveedor);
@@ -624,6 +625,7 @@ export const createProveedorMain = (proveedor: any) => {
           type: types.CREATE_PROVIDERS,
           payload: data?.data,
         });
+        onSuccess?.(data?.data);
       }
     } catch (error: any) {
       console.log(error);
