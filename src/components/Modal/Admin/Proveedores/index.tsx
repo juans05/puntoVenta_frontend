@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { FC, useState, useEffect } from "react";
 import Modal from "react-modal";
 import styles from "../Clientes/clientes.module.css";
 import { RootState } from "../../../../redux/rootState";
@@ -44,7 +44,11 @@ const initialForm = {
   detalleAdicional: "",
 };
 
-export const ProveedorModal = () => {
+interface IProveedorModalProps {
+  onGuardado?: (proveedor: any) => void;
+}
+
+export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
   const dispatch = useAppDispatch();
   const { modalProveedor, activeProviders }: any = useAppSelector(
     (state: RootState) => state.clientes
@@ -87,9 +91,11 @@ export const ProveedorModal = () => {
       setFormValues({
         ...initialForm,
         ...activeProviders,
+        codigo: activeProviders?.codigo ?? generarCodigo(),
         direccion: activeProviders?.dirección ?? "",
         tipoDocumento:
-          (typeDocument as any[])?.find((t: any) => String(t.id) === String(activeProviders?.tipoDocumentoId))?.value ?? "",
+          (typeDocument as any[])?.find((t: any) => String(t.id) === String(activeProviders?.tipoDocumentoId))?.value ??
+          TIPO_DOCUMENTO_RUC_LABEL,
         ubigeo: activeProviders?.ubigeo
           ? `${activeProviders.ubigeo?.departamento}/${activeProviders.ubigeo?.provincia}/${activeProviders.ubigeo?.distrito}`
           : "",
@@ -169,17 +175,17 @@ export const ProveedorModal = () => {
       detalleAdicional,
     };
 
-    if (activeProviders) {
+    if (activeProviders?.proveedorId) {
       dispatch(
         updateProveedorMain({
           ...payload,
-          proveedorId: activeProviders?.proveedorId,
+          proveedorId: activeProviders.proveedorId,
         }) as any
       );
       closeModal();
       toast.success("Se modificó el proveedor");
     } else {
-      dispatch(createProveedorMain(payload) as any);
+      dispatch(createProveedorMain(payload, onGuardado) as any);
       closeModal();
       toast.success("Se agregó un nuevo proveedor");
     }
@@ -200,7 +206,7 @@ export const ProveedorModal = () => {
           <div className={styles["content-main-modal"]}>
             <div className={`${styles["encabezado"]}`}>
               <h3>
-                {activeProviders ? "Editar proveedor" : "Nuevo proveedor"}
+                {activeProviders?.proveedorId ? "Editar proveedor" : "Nuevo proveedor"}
                 <small>Agrega los datos del proveedor</small>
               </h3>
             </div>
@@ -314,7 +320,7 @@ export const ProveedorModal = () => {
                 Cancelar
               </Button>
               <Button size="sm" onClick={guardarProveedor}>
-                {activeProviders ? "Editar" : "Agregar"} proveedor
+                {activeProviders?.proveedorId ? "Editar" : "Agregar"} proveedor
               </Button>
             </div>
           </div>

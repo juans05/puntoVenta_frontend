@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { FC, useState, useEffect } from "react";
 import Modal from "react-modal";
 import styles from "./clientes.module.css";
 import { RootState } from "../../../../redux/rootState";
@@ -36,9 +36,13 @@ const initialForm = {
   sexo: "",
   idSexo: 0,
   ubigeo: "",
-  ubigeoId: '1000001',
+  ubigeoId: "",
 };
-export const ClientesModal = () => {
+interface IClientesModalProps {
+  onGuardado?: (cliente: any) => void;
+}
+
+export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
   const dispatch = useAppDispatch();
   const { modalAnfitriona, activeClients }: any = useAppSelector(
     (state: RootState) => state.clientes
@@ -92,8 +96,12 @@ export const ClientesModal = () => {
   useEffect(() => {
     if (activeClients) {
       setFormValues({
+        ...initialForm,
         ...activeClients,
-       
+        tipoDocumento:
+          activeClients?.tipoDocumento ??
+          (typeDocument as any[])?.find((t: any) => String(t.id) === String(activeClients?.tipoDocumentoId))?.value ??
+          "",
       });
     } else {
       setFormValues(initialForm);
@@ -148,13 +156,14 @@ export const ClientesModal = () => {
       toast.error(numeroDocumentoError);
       return;
     }
-    if (activeClients) {
+    if (activeClients?.id) {
       dispatch(
         updateCliente({
           ...formValues,
-          clienteId:activeClients?.id,
+          ubigeoId: formValues.ubigeoId || undefined,
+          clienteId:activeClients.id,
           sexo:idSexo===1?'M':(idSexo===2?'F':'')
-       
+
           /* comentarios: [
           {
             item: 1,
@@ -169,11 +178,14 @@ export const ClientesModal = () => {
       console.log(formValues);
 
       dispatch(
-        createClienteMain({
-          ...formValues,
-          sexo:idSexo===1?'M':(idSexo===2?'F':'')
-        })
-        
+        createClienteMain(
+          {
+            ...formValues,
+            ubigeoId: formValues.ubigeoId || undefined,
+            sexo:idSexo===1?'M':(idSexo===2?'F':'')
+          },
+          onGuardado
+        )
       );
       closeModal();
       toast.success("Se agregó un nuevo cliente");
@@ -304,7 +316,7 @@ export const ClientesModal = () => {
                 Cancelar
               </Button>
               <Button size="sm" onClick={createCliente}>
-                {activeClients ? "Editar" : "Agregar"} cliente
+                {activeClients?.id ? "Editar" : "Agregar"} cliente
               </Button>
             </div>
           </div>
