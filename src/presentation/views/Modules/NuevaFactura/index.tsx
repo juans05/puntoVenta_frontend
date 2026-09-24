@@ -98,6 +98,7 @@ const NuevaFactura = () => {
   const { tipo: tipoInicial } = useParams<{ tipo: string }>();
   const [searchParams] = useSearchParams();
   const cotizacionOrigenId = searchParams.get("cotizacionId");
+  const pedidoVentaId = searchParams.get("pedidoVentaId");
   const tipoDocumentoInicial: TipoDocumento =
     tipoInicial === "factura" || tipoInicial === "nota-venta" || tipoInicial === "cotizacion" ? tipoInicial : "boleta";
 
@@ -108,7 +109,7 @@ const NuevaFactura = () => {
   );
 
   // Antes del formulario se elige como traer el documento; convertir una cotizacion va directo.
-  const [eligioMetodo, setEligioMetodo] = useState(!!cotizacionOrigenId);
+  const [eligioMetodo, setEligioMetodo] = useState(!!cotizacionOrigenId || !!pedidoVentaId);
   // XML importados en lote: se revisan y emiten de a uno (el primero ya esta en el formulario).
   const [colaXml, setColaXml] = useState<any[]>([]);
   const [totalXml, setTotalXml] = useState(0);
@@ -290,6 +291,52 @@ const NuevaFactura = () => {
   // catalogos cargados -- si aun no cargaron, se deja sin id y el backend trata null como Gravado/NIU.
   const tipoIgvGravadoId = (tiposIgv as any[])?.find((t) => t.codigo === "10")?.id;
   const unidadMedidaNiuId = (unidadesMedida as any[])?.find((u) => u.codigo === "NIU")?.id;
+
+  // Emitir desde un pedido de venta (flujo completo): se precargan cliente y lo entregado que aun no
+  // se facturo. El stock ya bajo en la entrega, por eso el backend no lo descuenta de nuevo.
+  useEffect(() => {
+    if (!pedidoVentaId || (products as any[]).length === 0 || tipoIgvGravadoId === undefined) return;
+
+    axiosInstance
+      .get(`/pedidos-venta/${pedidoVentaId}`)
+      .then(({ data }: any) => {
+        const pedido = data?.data;
+        if (!pedido) return;
+
+        if (pedido.numeroDocumento) {
+          setTipoDocIdentId(pedido.numeroDocumento.length === 11 ? TIPO_DOC_RUC : TIPO_DOC_DNI);
+          setNumeroDocumento(pedido.numeroDocumento);
+        }
+        if (pedido.razonSocial) setRazonSocial(pedido.razonSocial);
+        if (pedido.direccionCliente) setDireccionCliente(pedido.direccionCliente);
+
+        const productos = (pedido.detalle || []).flatMap((d: any) => {
+          const porFacturar = d.cantidadEntregada - d.cantidadFacturada;
+          const p: any = (products as any[]).find((x) => (x.productoId ?? x.id) === d.productoId);
+          if (porFacturar <= 0 || !p) return [];
+          return [
+            {
+              ...p,
+              productoId: d.productoId,
+              index: d.productoId,
+              precio: d.valorUnitario,
+              cantidad: porFacturar,
+              totalFicha: d.valorUnitario * porFacturar,
+              tipoIgvId: d.tipoIgvId ?? tipoIgvGravadoId,
+              unidadMedidaId: d.unidadMedidaId ?? unidadMedidaNiuId,
+            },
+          ];
+        });
+
+        dispatch(resetSale());
+        dispatch(updateProductByPrice(productos) as any);
+        if (productos.length === 0) toast.error("El pedido no tiene mercadería entregada pendiente de facturar");
+        else toast.success("Pedido cargado: revisa los datos antes de emitir");
+      })
+      .catch((error: any) => toast.error(error?.response?.data?.message ?? "No se pudo cargar el pedido de venta"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedidoVentaId, (products as any[]).length, tipoIgvGravadoId]);
+
 
   const subtotalBruto = productsBySale.reduce(
     (acc, item: any) => acc + item.precio * item.cantidad,
@@ -731,6 +778,7 @@ const NuevaFactura = () => {
       montoRetencion: campos.retencion && montoRetencion !== "" ? Number(montoRetencion) : undefined,
       fechaVigencia: tipoDocumentoInicial === "cotizacion" && fechaVigencia ? fechaVigencia : undefined,
       cotizacionOrigenId: cotizacionOrigenId ? Number(cotizacionOrigenId) : undefined,
+      pedidoVentaId: pedidoVentaId ? Number(pedidoVentaId) : undefined,
       montoAnticipo: campos.anticipo && montoAnticipo !== "" ? Number(montoAnticipo) : undefined,
       detalleComprobante,
       detallePago,

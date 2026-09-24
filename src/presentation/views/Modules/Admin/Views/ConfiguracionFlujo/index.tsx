@@ -6,6 +6,7 @@ import axiosInstance from "../../../../../../utils/axios";
 export const ConfiguracionFlujo = () => {
   const [flujoCompras, setFlujoCompras] = useState("SIMPLIFICADO");
   const [cruceFactura, setCruceFactura] = useState("ADVERTIR");
+  const [flujoVentas, setFlujoVentas] = useState("SIMPLIFICADO");
   const [aprobacionActiva, setAprobacionActiva] = useState(false);
   const [monto, setMonto] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -18,6 +19,7 @@ export const ConfiguracionFlujo = () => {
         if (!c) return;
         setFlujoCompras(c.flujoCompras);
         setCruceFactura(c.cruceFactura);
+        setFlujoVentas(c.flujoVentas ?? "SIMPLIFICADO");
         setAprobacionActiva(c.montoAprobacionOc != null);
         setMonto(c.montoAprobacionOc != null ? String(c.montoAprobacionOc) : "");
       })
@@ -31,6 +33,7 @@ export const ConfiguracionFlujo = () => {
       await axiosInstance.put("/configuracion-flujo", {
         flujoCompras,
         cruceFactura,
+        flujoVentas,
         montoAprobacionOc: flujoCompras === "COMPLETO" && aprobacionActiva ? Number(monto) : null,
       });
       toast.success("Configuración guardada");
@@ -50,9 +53,9 @@ export const ConfiguracionFlujo = () => {
   return (
     <div style={{ maxWidth: 720 }}>
       <Toaster richColors position="top-right" />
-      <h3>Flujo de compras</h3>
+      <h3>Flujo de compras y ventas</h3>
       <p style={{ color: "#6b7280", marginBottom: 14 }}>
-        Elige cómo se registran las compras. Cambiar de modo no modifica los documentos ya creados.
+        Elige cómo se registran las compras y las ventas. Cambiar de modo no modifica los documentos ya creados.
       </p>
 
       <div style={caja}>
@@ -94,6 +97,18 @@ export const ConfiguracionFlujo = () => {
           </div>
         </>
       )}
+
+      <h3 style={{ marginTop: 24 }}>Flujo de ventas</h3>
+      <div style={caja}>
+        <label style={opcion(flujoVentas !== "COMPLETO")}>
+          <input type="radio" checked={flujoVentas !== "COMPLETO"} onChange={() => setFlujoVentas("SIMPLIFICADO")} /> <strong>Simplificado</strong>
+          <div style={{ color: "#6b7280", marginLeft: 22 }}>Cotización → factura o boleta directa; el stock baja al emitir.</div>
+        </label>
+        <label style={opcion(flujoVentas === "COMPLETO")}>
+          <input type="radio" checked={flujoVentas === "COMPLETO"} onChange={() => setFlujoVentas("COMPLETO")} /> <strong>Completo</strong>
+          <div style={{ color: "#6b7280", marginLeft: 22 }}>Cotización → pedido de venta (reserva stock) → entrega (baja el stock) → factura de lo entregado. La venta de mostrador no cambia.</div>
+        </label>
+      </div>
 
       <button onClick={guardar} disabled={guardando}
         style={{ background: "#3b82f6", color: "#fff", border: 0, borderRadius: 8, padding: "10px 20px", fontWeight: 600 }}>

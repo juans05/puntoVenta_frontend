@@ -59,6 +59,7 @@ export interface ISaleProduct {
     montoAnticipo?: number
     fechaVigencia?: string
     cotizacionOrigenId?: number
+    pedidoVentaId?: number
     detalleComprobante: IDetalleComprobante[]
     detallePago: IDetallePago[]
 }

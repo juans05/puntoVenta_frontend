@@ -10,6 +10,7 @@ import {
   anularComprobante,
 } from "../../../../../../redux/reducers/Admin/ventas/ventasRealizadas.reducer";
 import { Toaster, toast } from "sonner";
+import axiosInstance from "../../../../../../utils/axios";
 
 const TIPO_COTIZACION = 6;
 
@@ -18,6 +19,24 @@ export const Cotizaciones = () => {
   const navigate = useNavigate();
   const { ventas }: any = useAppSelector((state: RootState) => state.ventas);
   const [loading, setLoading] = useState(true);
+  // Flujo de ventas COMPLETO: la cotizacion se convierte en pedido de venta en vez de facturarse directo.
+  const [ventasCompleto, setVentasCompleto] = useState(false);
+  useEffect(() => {
+    axiosInstance
+      .get("/configuracion-flujo")
+      .then((r: any) => setVentasCompleto(r.data?.data?.flujoVentas === "COMPLETO"))
+      .catch(() => {});
+  }, []);
+
+  const crearPedidoVenta = async (cotizacionId: number) => {
+    try {
+      await axiosInstance.post(`/pedidos-venta/desde-cotizacion/${cotizacionId}`);
+      toast.success("Pedido de venta creado en borrador");
+      navigate("/dashboard/pedidos-venta");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "No se pudo crear el pedido de venta");
+    }
+  };
 
   useEffect(() => {
     const dateStart = moment().subtract(60, "days").format("DD/MM/YYYY");
@@ -99,7 +118,12 @@ export const Cotizaciones = () => {
                         <button className={styles.buscarBtn} onClick={() => dispatch(generarPdfCotizacion(c.idComprobante) as any)}>
                           PDF
                         </button>
-                        {puedeConvertir && (
+                        {puedeConvertir && ventasCompleto && (
+                          <button className={styles.emitirBtn} onClick={() => crearPedidoVenta(c.idComprobante)}>
+                            → Pedido de venta
+                          </button>
+                        )}
+                        {puedeConvertir && !ventasCompleto && (
                           <>
                             <button
                               className={styles.emitirBtn}

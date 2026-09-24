@@ -191,6 +191,13 @@ export const menuSidebar = [
       },
       {
         code: "300",
+        id: 122,
+        value: "Pedidos de venta",
+        icon: "mdi:clipboard-check-outline",
+        url: "dashboard/pedidos-venta",
+      },
+      {
+        code: "300",
         id: 121,
         value: "Pedidos",
         icon: "mdi:clipboard-list-outline",
