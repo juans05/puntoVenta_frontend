@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Modal from "react-modal";
 import { toast } from "sonner";
 import axiosInstance from "../../../../../../utils/axios";
+import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 import Input from "../../../../../../components/Input";
 import { Button } from "@tremor/react";
 import { TableSkeleton } from "../../../../../../components/Skeleton";
@@ -112,15 +113,31 @@ export const Usuarios = () => {
     }
   };
 
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
+
   const handleChange = (e: any) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    clearError(e.target.name);
   };
 
   const handleSubmit = async () => {
-    if (!form.firstName.trim()) return toast.error("Los nombres son obligatorios");
-    if (!form.userName.trim()) return toast.error("El usuario es obligatorio");
-    if (!form.password.trim()) return toast.error("La contraseña es obligatoria");
-    if (form.password.length < 6) return toast.error("La contraseña debe tener al menos 6 caracteres");
+    limpiarErrores();
+    if (!form.firstName.trim()) {
+      setError("firstName", "Los nombres son obligatorios");
+      return toast.error("Los nombres son obligatorios");
+    }
+    if (!form.userName.trim()) {
+      setError("userName", "El usuario es obligatorio");
+      return toast.error("El usuario es obligatorio");
+    }
+    if (!form.password.trim()) {
+      setError("password", "La contraseña es obligatoria");
+      return toast.error("La contraseña es obligatoria");
+    }
+    if (form.password.length < 6) {
+      setError("password", "Debe tener al menos 6 caracteres");
+      return toast.error("La contraseña debe tener al menos 6 caracteres");
+    }
 
     setCreando(true);
     try {
@@ -321,6 +338,7 @@ export const Usuarios = () => {
               <div className="flex items-center gap-1 mt-1">
                 <input
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  style={estiloError(!!errors.userName)}
                   name="userName"
                   value={form.userName}
                   onChange={handleChange}
@@ -334,12 +352,14 @@ export const Usuarios = () => {
                   ↺
                 </button>
               </div>
+              <CampoError mensaje={errors.userName} />
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500">Contraseña</label>
               <div className="flex items-center gap-1 mt-1">
                 <input
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  style={estiloError(!!errors.password)}
                   name="password"
                   type={verPassword ? "text" : "password"}
                   value={form.password}
@@ -357,9 +377,10 @@ export const Usuarios = () => {
                   ↺
                 </button>
               </div>
+              <CampoError mensaje={errors.password} />
             </div>
             <div>
-              <Input isLabel label="Nombres *" name="firstName" value={form.firstName} onChange={handleChange} />
+              <Input isLabel label="Nombres *" name="firstName" value={form.firstName} error={errors.firstName} onChange={handleChange} />
             </div>
             <div>
               <Input isLabel label="Apellidos" name="lastName" value={form.lastName} onChange={handleChange} />
@@ -427,7 +448,7 @@ export const Usuarios = () => {
             <Button size="sm" variant="secondary" onClick={() => setModalOpen(false)}>
               Cancelar
             </Button>
-            <Button size="sm" onClick={handleSubmit} disabled={creando}>
+            <Button size="sm" onClick={handleSubmit} disabled={creando || Object.keys(errors).length > 0}>
               {creando ? "Creando..." : "Crear usuario"}
             </Button>
           </div>

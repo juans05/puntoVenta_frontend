@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Toaster, toast } from "sonner";
 import styles from "../Compras/compras.module.css";
 import axiosInstance from "../../../../../../utils/axios";
+import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { RootState } from "../../../../../../redux/rootState";
 import { getPayMethods } from "../../../../../../redux/reducers/extensiones/extensiones..reducer";
@@ -110,10 +111,19 @@ export const CuentasCorrientes = ({ lado }: { lado: Lado }) => {
     setAPagar({ ...aPagar, [d.id]: valor === "" ? "" : String(Math.round(n * 100) / 100) });
   };
 
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
+
   const registrar = async () => {
+    limpiarErrores();
     const detalle = Object.entries(aPagar).filter(([, v]) => Number(v) > 0).map(([id, v]) => ({ documentoId: Number(id), monto: Number(v) }));
-    if (detalle.length === 0) return toast.error("Indica el monto a pagar en al menos un documento");
-    if (!metodoPagoId) return toast.error("Elige el medio de pago");
+    if (detalle.length === 0) {
+      setError("monto", "Indica el monto a pagar en al menos un documento");
+      return toast.error("Indica el monto a pagar en al menos un documento");
+    }
+    if (!metodoPagoId) {
+      setError("metodoPagoId", "Elige el medio de pago");
+      return toast.error("Elige el medio de pago");
+    }
     try {
       await axiosInstance.post(c.crear, { socioId: socioSel.id, metodoPagoId, referencia: referencia || undefined, detalle });
       toast.success(c.ok);
@@ -204,13 +214,15 @@ export const CuentasCorrientes = ({ lado }: { lado: Lado }) => {
                   </tbody>
                 </table>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
-                  <select style={input} value={metodoPagoId} onChange={(e) => setMetodoPagoId(Number(e.target.value))}>
+                  <select style={{ ...input, ...estiloError(!!errors.metodoPagoId) }} value={metodoPagoId}
+                    onChange={(e) => { setMetodoPagoId(Number(e.target.value)); clearError("metodoPagoId"); }}>
                     <option value={0}>Medio de pago</option>
                     {(payMethods as any[] | undefined)?.map((m) => <option key={m.id} value={m.id}>{m.value}</option>)}
                   </select>
                   <input style={{ ...input, flex: 1, minWidth: 160 }} placeholder="Referencia / N° operación (opcional)" value={referencia} onChange={(e) => setReferencia(e.target.value)} />
                   <strong>Total: {formatSoles(totalAPagar)}</strong>
-                  <button className={styles.registrarBtn} onClick={registrar}>{c.accion}</button>
+                  <button className={styles.registrarBtn} onClick={registrar} disabled={Object.keys(errors).length > 0}>{c.accion}</button>
+                  <CampoError mensaje={errors.metodoPagoId ?? errors.monto} />
                 </div>
               </>
             )}

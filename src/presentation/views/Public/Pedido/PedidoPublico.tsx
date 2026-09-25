@@ -4,6 +4,7 @@ import { Toaster, toast } from "sonner";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import styles from "./pedidoPublico.module.css";
 import axiosInstance from "../../../../utils/axios";
+import { useFormErrors, estiloError, CampoError } from "../../../../components/FormError";
 import { IPedidoPublico } from "../../../../redux/reducers/Pedidos/interfaces";
 
 const estadoLabels: Record<string, string> = {
@@ -95,8 +96,11 @@ const PedidoPublico = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.ubigeoId, esLima]);
 
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
+    clearError(name);
     if (type === "number") {
       setFormData((prev) => ({ ...prev, [name]: value ? parseFloat(value) : null }));
     } else {
@@ -107,25 +111,21 @@ const PedidoPublico = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    limpiarErrores();
+    if (!formData.nombre.trim()) setError("nombre", "Obligatorio");
+    if (!formData.dni.trim()) setError("dni", "Obligatorio");
+    else if (formData.dni.length !== 8) setError("dni", "El DNI debe tener 8 dígitos");
+    if (!formData.celular.trim()) setError("celular", "Obligatorio");
+    if (!formData.ubigeoId) setError("ubigeoId", "Elige tu ubicación");
+    if (esLima && !formData.direccion.trim()) setError("direccion", "La dirección es obligatoria para envíos en Lima");
+    if (!esLima && !formData.salonId) setError("salonId", "Elige el salón donde recogerás tu pedido");
+
     if (!formData.nombre.trim() || !formData.dni.trim() || !formData.celular.trim() || !formData.ubigeoId) {
-      toast.error("Todos los campos son obligatorios");
-      return;
+      return toast.error("Todos los campos son obligatorios");
     }
-
-    if (formData.dni.length !== 8) {
-      toast.error("El DNI debe tener 8 dígitos");
-      return;
-    }
-
-    if (esLima && !formData.direccion.trim()) {
-      toast.error("La dirección es obligatoria para envíos en Lima");
-      return;
-    }
-
-    if (!esLima && !formData.salonId) {
-      toast.error("Elige el salón donde recogerás tu pedido");
-      return;
-    }
+    if (formData.dni.length !== 8) return toast.error("El DNI debe tener 8 dígitos");
+    if (esLima && !formData.direccion.trim()) return toast.error("La dirección es obligatoria para envíos en Lima");
+    if (!esLima && !formData.salonId) return toast.error("Elige el salón donde recogerás tu pedido");
 
     setEnviando(true);
     try {
@@ -248,7 +248,9 @@ const PedidoPublico = () => {
               onChange={handleChange}
               placeholder="Juan Pérez"
               required
+              style={estiloError(!!errors.nombre)}
             />
+            <CampoError mensaje={errors.nombre} />
           </div>
 
           <div className={styles.fieldRow}>
@@ -263,7 +265,9 @@ const PedidoPublico = () => {
                 placeholder="12345678"
                 maxLength={8}
                 required
+                style={estiloError(!!errors.dni)}
               />
+              <CampoError mensaje={errors.dni} />
             </div>
 
             <div className={styles.field}>
@@ -276,7 +280,9 @@ const PedidoPublico = () => {
                 onChange={handleChange}
                 placeholder="999 999 999"
                 required
+                style={estiloError(!!errors.celular)}
               />
+              <CampoError mensaje={errors.celular} />
             </div>
           </div>
 
@@ -288,6 +294,7 @@ const PedidoPublico = () => {
               value={formData.ubigeoId}
               onChange={handleChange}
               required
+              style={estiloError(!!errors.ubigeoId)}
             >
               <option value="">Elige tu ubicación</option>
               {ubicaciones.map((u: any) => (
@@ -296,6 +303,7 @@ const PedidoPublico = () => {
                 </option>
               ))}
             </select>
+            <CampoError mensaje={errors.ubigeoId} />
           </div>
 
           {esLima && (
@@ -309,7 +317,9 @@ const PedidoPublico = () => {
                 onChange={handleChange}
                 placeholder="Av. Principal 123"
                 required
+                style={estiloError(!!errors.direccion)}
               />
+              <CampoError mensaje={errors.direccion} />
             </div>
           )}
 
@@ -327,6 +337,7 @@ const PedidoPublico = () => {
                   name="salonId"
                   value={formData.salonId}
                   onChange={handleChange}
+                  style={estiloError(!!errors.salonId)}
                   required
                 >
                   <option value="">Elige el salón</option>
@@ -336,6 +347,7 @@ const PedidoPublico = () => {
                     </option>
                   ))}
                 </select>
+                <CampoError mensaje={errors.salonId} />
               </div>
             </>
           )}
@@ -369,7 +381,7 @@ const PedidoPublico = () => {
             )}
           </div>
 
-          <button type="submit" className={styles.btnSubmit} disabled={enviando}>
+          <button type="submit" className={styles.btnSubmit} disabled={enviando || Object.keys(errors).length > 0}>
             {enviando ? (
               <>
                 <Icon icon="mdi:loading" className={styles.spinIcon} /> Enviando...

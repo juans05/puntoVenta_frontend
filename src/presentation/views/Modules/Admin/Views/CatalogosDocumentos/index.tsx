@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Icon } from "@iconify/react";
 import { Toaster } from "sonner";
 import axiosInstance from "../../../../../../utils/axios";
+import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 import Input from "../../../../../../components/Input";
 import { Button } from "@tremor/react";
 import { TableSkeleton } from "../../../../../../components/Skeleton";
@@ -96,12 +97,18 @@ const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, updateUrl,
     setModalOpen(true);
   };
 
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
+
   const handleSubmit = async () => {
+    limpiarErrores();
+    let faltante = false;
     for (const f of fields) {
       if (f.type === "text" && !String(form[f.key] ?? "").trim()) {
-        return toast.error(`${f.label} es obligatorio`);
+        setError(f.key, `${f.label} es obligatorio`);
+        faltante = true;
       }
     }
+    if (faltante) return toast.error("Completa los campos obligatorios");
     setGuardando(true);
     try {
       if (editando) {
@@ -227,13 +234,15 @@ const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, updateUrl,
                     <label className="block text-sm text-gray-700 mb-1">{f.label}</label>
                     <select
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      style={estiloError(!!errors[f.key])}
                       value={form[f.key] ?? ""}
-                      onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: Number(e.target.value) }))}
+                      onChange={(e) => { setForm((prev) => ({ ...prev, [f.key]: Number(e.target.value) })); clearError(f.key); }}
                     >
                       {f.options?.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
+                    <CampoError mensaje={errors[f.key]} />
                   </div>
                 );
               }
@@ -244,14 +253,15 @@ const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, updateUrl,
                   label={f.label}
                   name={f.key}
                   value={form[f.key] ?? ""}
-                  onChange={(e: any) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                  error={errors[f.key]}
+                  onChange={(e: any) => { setForm((prev) => ({ ...prev, [f.key]: e.target.value })); clearError(f.key); }}
                 />
               );
             })}
           </div>
           <div className="flex justify-end gap-3 mt-6">
             <Button size="sm" variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleSubmit} disabled={guardando}>
+            <Button size="sm" onClick={handleSubmit} disabled={guardando || Object.keys(errors).length > 0}>
               {guardando ? "Guardando..." : "Guardar"}
             </Button>
           </div>

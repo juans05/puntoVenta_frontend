@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { IExtensionesState } from "../../../../redux/reducers/extensiones/interfaces";
 import SelectUbigeo from "../../../SelectPro/SelectUbigeo";
 import { TIPO_DOCUMENTO_RULES, getNumeroDocumentoError } from "../../../../utils/validations";
+import { useFormErrors } from "../../../FormError";
 
 const customStyles = {};
 Modal.setAppElement("#root");
@@ -66,6 +67,8 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
     ubigeo,
 /*     ubigeoId, */
   } = formValues;
+  const { errors, setError, clearError } = useFormErrors();
+
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
     let nextValue = value;
@@ -76,6 +79,7 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
       ...formValues,
       [name]: nextValue,
     });
+    clearError(name);
   };
 
   const handleChangeSelect = (
@@ -151,8 +155,14 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
   ]; */
 
   const createCliente = () => {
+    if (!nombre.trim()) {
+      setError("nombre", "El nombre es obligatorio");
+      toast.error("El nombre es obligatorio");
+      return;
+    }
     const numeroDocumentoError = getNumeroDocumentoError(tipoDocumentoId, numeroDocumento);
     if (numeroDocumentoError) {
+      setError("numeroDocumento", numeroDocumentoError);
       toast.error(numeroDocumentoError);
       return;
     }
@@ -226,6 +236,7 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
                     isLabel
                     label="Nombres y apellidos"
                     value={nombre}
+                    error={errors.nombre}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -247,6 +258,7 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
                     isLabel
                     label="Número de documento"
                     value={numeroDocumento}
+                    error={errors.numeroDocumento}
                     onChange={handleInputChange}
                     max={TIPO_DOCUMENTO_RULES[tipoDocumentoId || 1]?.maxLength}
                   />
@@ -315,7 +327,7 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
               <Button size="sm" onClick={closeModal}>
                 Cancelar
               </Button>
-              <Button size="sm" onClick={createCliente}>
+              <Button size="sm" onClick={createCliente} disabled={Object.keys(errors).length > 0}>
                 {activeClients?.id ? "Editar" : "Agregar"} cliente
               </Button>
             </div>

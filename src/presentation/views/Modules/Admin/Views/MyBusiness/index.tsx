@@ -11,6 +11,7 @@ import SelectUbigeo from "../../../../../../components/SelectPro/SelectUbigeo";
 import { updateTenant } from "../../../../../../redux/reducers/Admin/my-business/myBusiness.reducer";
 import { getAllUbigeos } from "../../../../../../redux/reducers/extensiones/extensiones..reducer";
 import axiosInstance from "../../../../../../utils/axios";
+import { useFormErrors, CampoError } from "../../../../../../components/FormError";
 import { Toaster, toast } from "sonner";
 import { Logotipos } from "./Logotipos";
 import { RedesSociales } from "./RedesSociales";
@@ -118,12 +119,16 @@ export const MyBusiness = () => {
     dispatch(getAllUbigeos() as any);
   }, []);
 
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
+
   const handleOnChange = (e: any) => {
     setFormValues({ ...formValues, [e.target.name]: e.target.value });
+    clearError(e.target.name);
   };
 
   const handleInputSelect = (idValue: string, value: string, name: string, id: any) => {
     setFormValues({ ...formValues, [name]: value, [id]: idValue });
+    clearError(id);
   };
 
   // El backend reemplaza el registro completo de Empresa con lo que llegue en el payload
@@ -143,6 +148,14 @@ export const MyBusiness = () => {
 
   const guardarDatos = (e: any) => {
     e.preventDefault();
+    limpiarErrores();
+    if (!ruc.trim() || ruc.trim().length !== 11) setError("ruc", "El RUC debe tener 11 dígitos");
+    if (!razonSocial.trim()) setError("razonSocial", "La razón social es obligatoria");
+    if (!direccion.trim()) setError("direccion", "La dirección es obligatoria");
+    if (!formValues.ubigeoId) setError("ubigeoId", "Elige el departamento, provincia y distrito");
+    if (!ruc.trim() || ruc.trim().length !== 11 || !razonSocial.trim() || !direccion.trim() || !formValues.ubigeoId) {
+      return toast.error("Completa los campos obligatorios");
+    }
     guardar();
   };
 
@@ -268,13 +281,13 @@ export const MyBusiness = () => {
                 <span className={styles.seccionEtiqueta}>IDENTIFICACIÓN</span>
                 <div className={styles.grid}>
                   <div className={styles.buscarRucRow}>
-                    <Input isLabel label="R.U.C. de tu empresa" name="ruc" value={ruc} onChange={handleOnChange} />
+                    <Input isLabel label="R.U.C. de tu empresa" name="ruc" value={ruc} error={errors.ruc} onChange={handleOnChange} />
                     <button type="button" className={styles.buscarBtn} onClick={buscarEnSunat} disabled={buscandoRuc}>
                       {buscandoRuc ? "Buscando..." : "Traer datos de SUNAT"}
                     </button>
                   </div>
                   <div className={styles.full}>
-                    <Input isLabel label="Razón social" name="razonSocial" value={razonSocial} onChange={handleOnChange} />
+                    <Input isLabel label="Razón social" name="razonSocial" value={razonSocial} error={errors.razonSocial} onChange={handleOnChange} />
                   </div>
                   <div className={styles.full}>
                     <Input
@@ -326,18 +339,19 @@ export const MyBusiness = () => {
                       onChange={handleInputSelect}
                       placeholder="Escribe tu distrito para encontrarlo más rápido"
                     />
+                    <CampoError mensaje={errors.ubigeoId} />
                   </div>
                   <div>
                     <Input isLabel label="Urbanización o sector" name="urbanizacion" value={urbanizacion} onChange={handleOnChange} />
                   </div>
                   <div>
-                    <Input isLabel label="Dirección" name="direccion" value={direccion} onChange={handleOnChange} />
+                    <Input isLabel label="Dirección" name="direccion" value={direccion} error={errors.direccion} onChange={handleOnChange} />
                   </div>
                 </div>
               </div>
 
               <div className={styles.botones}>
-                <Button size="sm" type="submit">
+                <Button size="sm" type="submit" disabled={Object.keys(errors).length > 0}>
                   Guardar cambios
                 </Button>
               </div>

@@ -18,6 +18,7 @@ import { Button } from "@tremor/react";
 import { toast } from "sonner";
 import { IExtensionesState } from "../../../../redux/reducers/extensiones/interfaces";
 import axiosInstance from "../../../../utils/axios";
+import { useFormErrors } from "../../../FormError";
 
 Modal.setAppElement("#root");
 
@@ -72,9 +73,12 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
     detalleAdicional,
   } = formValues;
 
+  const { errors, setError, clearError } = useFormErrors();
+
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
     setFormValues({ ...formValues, [name]: value });
+    clearError(name);
   };
 
   const handleChangeSelect = (
@@ -158,6 +162,7 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
 
   const guardarProveedor = () => {
     if (nombre === "") {
+      setError("nombre", "La razón social/nombre es obligatorio");
       toast.error("La razón social/nombre es obligatorio");
       return;
     }
@@ -261,6 +266,7 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
                     label="Razón social/Nombre Completo"
                     placeholder="Nombre Comercial"
                     value={nombre}
+                    error={errors.nombre}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -319,7 +325,7 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
               <Button size="sm" onClick={closeModal}>
                 Cancelar
               </Button>
-              <Button size="sm" onClick={guardarProveedor}>
+              <Button size="sm" onClick={guardarProveedor} disabled={Object.keys(errors).length > 0}>
                 {activeProviders?.proveedorId ? "Editar" : "Agregar"} proveedor
               </Button>
             </div>

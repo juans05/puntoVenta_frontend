@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import styles from "../Compras/compras.module.css";
 import axiosInstance from "../../../../../../utils/axios";
+import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { RootState } from "../../../../../../redux/rootState";
 import { getProductosCompra } from "../../../../../../redux/reducers/Admin/compras/compra.reducer";
@@ -276,9 +277,14 @@ const NuevoPedido = ({ productos, sucursales, onCerrar, onGuardar }: any) => {
     setLinea(i, { productoId, valorUnitario: p ? Number(p.precioVentaConInpuesto || p.precio || 0) : 0 });
   };
 
+  const { errors, setError, clearError } = useFormErrors();
+
   const guardar = (borrador: boolean) => {
     const validas = lineas.filter((l) => l.productoId > 0);
-    if (validas.length === 0) return toast.error("Agrega al menos un producto");
+    if (validas.length === 0) {
+      setError("productos", "Agrega al menos un producto");
+      return toast.error("Agrega al menos un producto");
+    }
     onGuardar({
       sucursalId: sucursalId || undefined, numeroDocumento: numeroDocumento.trim() || undefined,
       razonSocial: razonSocial.trim() || undefined, direccionCliente: direccionCliente.trim() || undefined,
@@ -298,9 +304,11 @@ const NuevoPedido = ({ productos, sucursales, onCerrar, onGuardar }: any) => {
         </select>
       </div>
       <h4 style={{ margin: "14px 0 6px" }}>Productos</h4>
+      <CampoError mensaje={errors.productos} />
       {lineas.map((l, i) => (
         <div key={i} style={{ display: "grid", gap: 6, gridTemplateColumns: "3fr 1fr 1fr auto", marginBottom: 6 }}>
-          <select style={input} value={l.productoId} onChange={(e) => elegirProducto(i, Number(e.target.value))}>
+          <select style={{ ...input, ...estiloError(!!errors.productos) }} value={l.productoId}
+            onChange={(e) => { elegirProducto(i, Number(e.target.value)); clearError("productos"); }}>
             <option value={0}>Producto</option>
             {productos.map((p: any) => <option key={p.productoId} value={p.productoId}>{p.nombre}</option>)}
           </select>
@@ -315,8 +323,8 @@ const NuevoPedido = ({ productos, sucursales, onCerrar, onGuardar }: any) => {
       <textarea style={{ ...input, marginTop: 10 }} placeholder="Observación (opcional)" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
       <p style={{ marginTop: 10 }}><strong>Total: {formatSoles(total)}</strong></p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-        <button className={styles.verBtn} onClick={() => guardar(true)}>Guardar borrador</button>
-        <button className={styles.registrarBtn} onClick={() => guardar(false)}>Confirmar pedido</button>
+        <button className={styles.verBtn} onClick={() => guardar(true)} disabled={Object.keys(errors).length > 0}>Guardar borrador</button>
+        <button className={styles.registrarBtn} onClick={() => guardar(false)} disabled={Object.keys(errors).length > 0}>Confirmar pedido</button>
       </div>
     </Modal>
   );
@@ -329,6 +337,7 @@ const Entregar = ({ pedido, onCerrar, onGuardar }: any) => {
   const [placa, setPlaca] = useState("");
   const [direccion, setDireccion] = useState(pedido.direccionCliente ?? "");
   const [observacion, setObservacion] = useState("");
+  const { errors, setError, clearError } = useFormErrors();
   return (
     <Modal titulo={`Entregar · ${pedido.numero}`} onCerrar={onCerrar}>
       <table className={styles.table}>
@@ -339,9 +348,9 @@ const Entregar = ({ pedido, onCerrar, onGuardar }: any) => {
             return (
               <tr key={d.id}>
                 <td>{d.producto}</td><td>{pendiente}</td>
-                <td><input style={{ ...input, width: 90 }} type="number" min={0} max={pendiente} disabled={pendiente === 0}
+                <td><input style={{ ...input, width: 90, ...estiloError(!!errors.cantidades) }} type="number" min={0} max={pendiente} disabled={pendiente === 0}
                   value={cant[d.id] ?? 0}
-                  onChange={(e) => setCant({ ...cant, [d.id]: Math.min(pendiente, Math.max(0, Math.floor(Number(e.target.value)))) })} /></td>
+                  onChange={(e) => { setCant({ ...cant, [d.id]: Math.min(pendiente, Math.max(0, Math.floor(Number(e.target.value)))) }); clearError("cantidades"); }} /></td>
               </tr>
             );
           })}
@@ -352,11 +361,15 @@ const Entregar = ({ pedido, onCerrar, onGuardar }: any) => {
         <input style={input} placeholder="Dirección de entrega" value={direccion} onChange={(e) => setDireccion(e.target.value)} />
       </div>
       <textarea style={{ ...input, marginTop: 8 }} placeholder="Observación (opcional)" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
+      <CampoError mensaje={errors.cantidades} />
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-        <button className={styles.registrarBtn}
+        <button className={styles.registrarBtn} disabled={!!errors.cantidades}
           onClick={() => {
             const detalle = Object.entries(cant).filter(([, c]) => c > 0).map(([id, c]) => ({ pedidoVentaDetalleId: Number(id), cantidad: c }));
-            if (detalle.length === 0) return toast.error("Indica al menos una cantidad a entregar");
+            if (detalle.length === 0) {
+              setError("cantidades", "Indica al menos una cantidad a entregar");
+              return toast.error("Indica al menos una cantidad a entregar");
+            }
             onGuardar({ placa: placa || undefined, direccion: direccion || undefined, observacion: observacion || undefined, detalle });
           }}>
           Registrar entrega
@@ -368,12 +381,24 @@ const Entregar = ({ pedido, onCerrar, onGuardar }: any) => {
 
 const Cerrar = ({ pedido, onCerrar, onGuardar }: any) => {
   const [motivo, setMotivo] = useState("");
+  const { errors, setError, clearError } = useFormErrors();
   return (
     <Modal titulo={`Cerrar pedido ${pedido.numero}`} onCerrar={onCerrar}>
       <p>Cerrar un pedido lo da por terminado aunque falte mercadería por entregar o facturar. Indica el motivo.</p>
-      <textarea style={input} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo del cierre" />
+      <textarea style={{ ...input, ...estiloError(!!errors.motivo) }} value={motivo}
+        onChange={(e) => { setMotivo(e.target.value); clearError("motivo"); }} placeholder="Motivo del cierre" />
+      <CampoError mensaje={errors.motivo} />
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-        <button className={styles.registrarBtn} onClick={() => (motivo.trim() ? onGuardar(motivo.trim()) : toast.error("Indica el motivo"))}>Cerrar pedido</button>
+        <button className={styles.registrarBtn} disabled={!!errors.motivo}
+          onClick={() => {
+            if (!motivo.trim()) {
+              setError("motivo", "Indica el motivo");
+              return toast.error("Indica el motivo");
+            }
+            onGuardar(motivo.trim());
+          }}>
+          Cerrar pedido
+        </button>
       </div>
     </Modal>
   );

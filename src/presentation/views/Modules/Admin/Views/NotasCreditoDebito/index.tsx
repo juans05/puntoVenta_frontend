@@ -10,7 +10,8 @@ import {
 } from "../../../../../../redux/reducers/Admin/ventas/ventasRealizadas.reducer";
 import { EmitirNotaModal } from "../../../../../../components/Modal/Admin/Notas/EmitirNotaModal";
 import moment from "moment";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
+import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 
 const rangoPorDefecto = () => ({
   dateStart: moment().subtract(30, "days").format("DD/MM/YYYY"),
@@ -45,8 +46,17 @@ export const NotasCreditoDebito = () => {
     [ventas]
   );
 
+  const { errors, setError, clearError } = useFormErrors();
+
   const handleBuscar = () => {
-    if (!serie.trim() || !correlativo) return;
+    if (!serie.trim()) {
+      setError("serie", "Escribe la serie del comprobante (ej. F001)");
+      return toast.error("Escribe la serie del comprobante (ej. F001)");
+    }
+    if (!correlativo) {
+      setError("correlativo", "Escribe el número de correlativo del comprobante");
+      return toast.error("Escribe el número de correlativo del comprobante");
+    }
     dispatch(buscarComprobante(serie.trim().toUpperCase(), Number(correlativo)) as any);
   };
 
@@ -56,8 +66,17 @@ export const NotasCreditoDebito = () => {
       idComprobante: comprobanteBuscado.id,
       serieCorrelativo: `${comprobanteBuscado.serie}-${comprobanteBuscado.correlativo}`,
       clienteNombre: comprobanteBuscado.razonSocial,
+      numeroDocumento: comprobanteBuscado.numeroDocumento,
       total: comprobanteBuscado.valorTotal,
+      valorSubtotal: comprobanteBuscado.valorSubtotal,
+      valorIgv: comprobanteBuscado.valorIgv,
       tipoDocumentoVentaId: comprobanteBuscado.tipoDocumentoVentaId,
+      detalle: (comprobanteBuscado.comprobanteDetalles || []).map((d: any) => ({
+        nombre: d.producto?.nombre ?? "Producto",
+        cantidad: d.cantidad,
+        valorUnitario: d.valorUnitario,
+        valorUnitarioTotal: d.valorUnitarioTotal,
+      })),
     });
   };
 
@@ -72,19 +91,22 @@ export const NotasCreditoDebito = () => {
           className={styles.input}
           placeholder="Serie (ej. B001)"
           value={serie}
-          onChange={(e) => setSerie(e.target.value)}
+          style={estiloError(!!errors.serie)}
+          onChange={(e) => { setSerie(e.target.value); clearError("serie"); }}
         />
         <input
           className={styles.input}
           placeholder="Correlativo"
           type="number"
           value={correlativo}
-          onChange={(e) => setCorrelativo(e.target.value)}
+          style={estiloError(!!errors.correlativo)}
+          onChange={(e) => { setCorrelativo(e.target.value); clearError("correlativo"); }}
         />
         <button className={styles.buscarBtn} onClick={handleBuscar}>
           Buscar
         </button>
       </div>
+      <CampoError mensaje={errors.serie ?? errors.correlativo} />
 
       {comprobanteBuscado && (
         <div className={styles.resultado}>

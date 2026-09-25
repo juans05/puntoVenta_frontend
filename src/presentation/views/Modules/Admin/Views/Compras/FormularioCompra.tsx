@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import styles from "./formularioCompra.module.css";
+import { useFormErrors, CampoError } from "../../../../../../components/FormError";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { RootState } from "../../../../../../redux/rootState";
 import {
@@ -302,13 +303,18 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const igv = aplicaImpuesto ? Math.round((baseConDescuento - gravada) * 100) / 100 : 0;
   const total = baseConDescuento;
 
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
+
   const guardar = async () => {
+    limpiarErrores();
     const lineasValidas = detalle.filter((l) => Number(l.productoId) > 0 && Number(l.cantidad) > 0 && Number(l.costoUnitario) >= 0);
 
     if (lineasValidas.length === 0) {
+      setError("productos", "Agrega al menos un producto con cantidad válida");
       return toast.error("Agrega al menos un producto con cantidad válida");
     }
     if (proveedorId === 0 && !proveedorNombre.trim()) {
+      setError("proveedorNombre", "Busca o completa los datos del proveedor");
       return toast.error("Busca o completa los datos del proveedor");
     }
 
@@ -396,7 +402,11 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
                   label="Razón social / Nombre"
                   name="proveedorNombre"
                   value={proveedorNombre}
-                  onChange={(e: any) => setProveedorNombre(e.target.value)}
+                  error={errors.proveedorNombre}
+                  onChange={(e: any) => {
+                    setProveedorNombre(e.target.value);
+                    clearError("proveedorNombre");
+                  }}
                 />
               </div>
               <div>
@@ -499,6 +509,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
                 🛒 Aún no hay productos. Trae una factura arriba o agrega productos.
               </div>
             )}
+            <CampoError mensaje={errors.productos} />
 
             {detalle.map((linea, index) => (
               <div key={index} className={styles.detalleRow}>
@@ -609,7 +620,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
               <span>S/ {total.toFixed(2)}</span>
             </div>
 
-            <button type="button" className={styles.guardarBtn} onClick={guardar} disabled={loading || cargandoCompra}>
+            <button type="button" className={styles.guardarBtn} onClick={guardar} disabled={loading || cargandoCompra || Object.keys(errors).length > 0}>
               {loading ? "Guardando..." : "Guardar compra"}
             </button>
             <button type="button" className={styles.cancelarBtn} onClick={onCancelar}>

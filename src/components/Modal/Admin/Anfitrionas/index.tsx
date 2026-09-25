@@ -15,6 +15,7 @@ import SelectPro from "../../../SelectPro";
 import Input from "../../../Input";
 import { Button } from "@tremor/react";
 import { toast } from "sonner";
+import { useFormErrors } from "../../../FormError";
 import { IExtensionesState } from "../../../../redux/reducers/extensiones/interfaces";
 
 const customStyles = {};
@@ -42,11 +43,14 @@ export const AnfitrionaModal = () => {
     /* nacionalidadId, */
     celular,
   } = formValues;
+  const { errors, setError, clearError } = useFormErrors();
+
   const handleInputChange = (e: any) => {
     setFormValues({
       ...formValues,
       [e.target.name]: e.target.value,
     });
+    clearError(e.target.name);
   };
 
   const handleChangeSelect = (
@@ -114,6 +118,11 @@ export const AnfitrionaModal = () => {
   ]; */
 
   const createAnfitriona = () => {
+    if (!nombres.trim()) {
+      setError("nombres", "El nombre es obligatorio");
+      toast.error("El nombre es obligatorio");
+      return;
+    }
     if (activeAnfitrionas) {
       dispatch(
         updateAnfitriona({
@@ -175,6 +184,7 @@ export const AnfitrionaModal = () => {
                     isLabel
                     label="Nombre o Alias"
                     value={nombres}
+                    error={errors.nombres}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -215,7 +225,7 @@ export const AnfitrionaModal = () => {
               <Button size="sm" onClick={closeModal}>
                 Cancelar
               </Button>
-              <Button size="sm" onClick={createAnfitriona}>
+              <Button size="sm" onClick={createAnfitriona} disabled={Object.keys(errors).length > 0}>
                 {activeAnfitrionas ? "Editar" : "Agregar"} anfitriona
               </Button>
             </div>

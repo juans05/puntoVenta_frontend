@@ -39,6 +39,8 @@ export interface IInput {
     required?: boolean;
     prefix?: string;
     suffix?: string;
+    // Validacion por campo: motivo del error (muestra el input en rojo + el texto debajo).
+    error?: string;
 }
 
 const Input: FC<IInput> = (props) => {
@@ -91,6 +93,7 @@ const Input: FC<IInput> = (props) => {
         required,
         prefix,
         suffix,
+        error,
     } = props
 
     const renderInput = () => {
@@ -216,7 +219,8 @@ const Input: FC<IInput> = (props) => {
                     </label>
                 )}
             </div>
-            {renderInput()}
+            <div className={error ? styles.errorBorder : undefined}>{renderInput()}</div>
+            {error && <span className={styles.errorText}>{error}</span>}
         </div>
     )
 }

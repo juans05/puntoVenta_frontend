@@ -31,6 +31,7 @@ import { Toggle } from "../../../Toggle";
 import SelectPro from "../../../SelectPro";
 import { toast } from "sonner";
 import { ImageCropModal } from "../../../ImageCropModal";
+import { useFormErrors } from "../../../FormError";
 
 const BTN_PRIMARY =
   "bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors";
@@ -467,10 +468,17 @@ export const ProductoModal = () => {
     setFormPrecioAlt({ nombre: preset ?? "", precioVenta: "" });
   };
 
+  const { errors: erroresPrecioAlt, setError: setErrorPrecioAlt, clearError: clearErrorPrecioAlt } = useFormErrors();
+
   const guardarPrecioAlt = () => {
-    if (!formPrecioAlt?.nombre.trim()) return toast.error("El nombre del precio es obligatorio");
-    if (!formPrecioAlt?.precioVenta || Number(formPrecioAlt.precioVenta) <= 0)
+    if (!formPrecioAlt?.nombre.trim()) {
+      setErrorPrecioAlt("nombre", "El nombre del precio es obligatorio");
+      return toast.error("El nombre del precio es obligatorio");
+    }
+    if (!formPrecioAlt?.precioVenta || Number(formPrecioAlt.precioVenta) <= 0) {
+      setErrorPrecioAlt("precioVenta", "Ingresa un precio de venta válido");
       return toast.error("Ingresa un precio de venta válido");
+    }
 
     setPreciosAlternativos([...preciosAlternativos, { ...formPrecioAlt, precioVenta: Number(formPrecioAlt.precioVenta) }]);
     setFormPrecioAlt(null);
@@ -501,14 +509,26 @@ export const ProductoModal = () => {
     setFormPresentacion({ ...formPresentacion, [name]: value, [id]: idValue });
   };
 
+  const { errors: erroresPresentacion, setError: setErrorPresentacion, clearError: clearErrorPresentacion } = useFormErrors();
+
   const guardarPresentacion = () => {
     if (!formPresentacion) return;
-    if (!formPresentacion.nombre.trim()) return toast.error("El nombre de la presentación es obligatorio");
-    if (!formPresentacion.unidadMedidaId) return toast.error("Elige la unidad de medida");
-    if (!formPresentacion.factor || Number(formPresentacion.factor) <= 0)
+    if (!formPresentacion.nombre.trim()) {
+      setErrorPresentacion("nombre", "El nombre de la presentación es obligatorio");
+      return toast.error("El nombre de la presentación es obligatorio");
+    }
+    if (!formPresentacion.unidadMedidaId) {
+      setErrorPresentacion("unidadMedidaId", "Elige la unidad de medida");
+      return toast.error("Elige la unidad de medida");
+    }
+    if (!formPresentacion.factor || Number(formPresentacion.factor) <= 0) {
+      setErrorPresentacion("factor", "Indica cuántas unidades trae");
       return toast.error("Indica cuántas unidades trae");
-    if (!formPresentacion.precioVenta || Number(formPresentacion.precioVenta) <= 0)
+    }
+    if (!formPresentacion.precioVenta || Number(formPresentacion.precioVenta) <= 0) {
+      setErrorPresentacion("precioVenta", "Ingresa un precio de venta válido");
       return toast.error("Ingresa un precio de venta válido");
+    }
 
     setPresentaciones([...presentaciones, { ...formPresentacion }]);
     setFormPresentacion(null);
@@ -598,7 +618,7 @@ export const ProductoModal = () => {
                   <div className="flex flex-col gap-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="relative">
-                        <Input name="codigo" value={codigo} label="Código" isLabel required type="text" onChange={handleInputChange} />
+                        <Input name="codigo" value={codigo} label="Código" isLabel required type="text" error={codigo === "" ? "Obligatorio" : undefined} onChange={handleInputChange} />
                         <button
                           type="button"
                           title="Generar código"
@@ -615,12 +635,12 @@ export const ProductoModal = () => {
                         isSearch
                         id="unidadMedidaId"
                         name="unidadMedida"
-                        value={unidadMedida}
+                        defaultValue={unidadMedida}
                         options={unidadesMedidaOptions}
                         onChange={handleChangeSelect}
                       />
                     </div>
-                    <Input name="nombre" value={nombre} label="Nombre del producto" isLabel required type="text" onChange={handleInputChange} />
+                    <Input name="nombre" value={nombre} label="Nombre del producto" isLabel required type="text" error={nombre === "" ? "Obligatorio" : undefined} onChange={handleInputChange} />
                   </div>
                 </div>
 
@@ -632,7 +652,7 @@ export const ProductoModal = () => {
                     isSearch
                     id="categoriaId"
                     name="nombreCategoria"
-                    value={nombreCategoria}
+                    defaultValue={nombreCategoria}
                     options={newCategorias}
                     onChange={handleChangeSelect}
                   />
@@ -643,7 +663,7 @@ export const ProductoModal = () => {
                     isSearch
                     id="sucursalId"
                     name="sucursal"
-                    value={sucursal}
+                    defaultValue={sucursal}
                     options={sucursalesOptions}
                     onChange={handleChangeSelect}
                   />
@@ -655,7 +675,7 @@ export const ProductoModal = () => {
                     isSearch
                     id="monedaId"
                     name="moneda"
-                    value={moneda}
+                    defaultValue={moneda}
                     options={monedasOptions}
                     onChange={handleChangeSelect}
                   />
@@ -666,7 +686,7 @@ export const ProductoModal = () => {
                     isSearch
                     id="tipoIgvId"
                     name="tipoIgv"
-                    value={tipoIgv}
+                    defaultValue={tipoIgv}
                     options={tiposIgvOptions}
                     onChange={handleChangeSelect}
                   />
@@ -845,7 +865,8 @@ export const ProductoModal = () => {
                         label="Nombre"
                         isLabel
                         type="text"
-                        onChange={(e: any) => setFormPresentacion({ ...formPresentacion, nombre: e.target.value })}
+                        error={erroresPresentacion.nombre}
+                        onChange={(e: any) => { setFormPresentacion({ ...formPresentacion, nombre: e.target.value }); clearErrorPresentacion("nombre"); }}
                       />
                       <div className="flex items-end gap-2">
                         <div className="flex-1">
@@ -866,23 +887,27 @@ export const ProductoModal = () => {
                           Generar
                         </button>
                       </div>
-                      <SelectPro
-                        isLabel
-                        label="Unidad de medida"
-                        isSearch
-                        id="unidadMedidaId"
-                        name="unidadMedida"
-                        value={formPresentacion.unidadMedida}
-                        options={unidadesMedidaOptions}
-                        onChange={handleChangePresentacionSelect}
-                      />
+                      <div>
+                        <SelectPro
+                          isLabel
+                          label="Unidad de medida"
+                          isSearch
+                          id="unidadMedidaId"
+                          name="unidadMedida"
+                          defaultValue={formPresentacion.unidadMedida}
+                          options={unidadesMedidaOptions}
+                          onChange={(idValue: any, value: string, name: string, id: string) => { handleChangePresentacionSelect(idValue, value, name, id); clearErrorPresentacion("unidadMedidaId"); }}
+                        />
+                        {erroresPresentacion.unidadMedidaId && <span className="text-xs" style={{ color: "#F24B89" }}>{erroresPresentacion.unidadMedidaId}</span>}
+                      </div>
                       <Input
                         name="factor"
                         value={formPresentacion.factor}
                         label="¿Cuántas unidades trae?"
                         isLabel
                         type="number"
-                        onChange={(e: any) => setFormPresentacion({ ...formPresentacion, factor: e.target.value })}
+                        error={erroresPresentacion.factor}
+                        onChange={(e: any) => { setFormPresentacion({ ...formPresentacion, factor: e.target.value }); clearErrorPresentacion("factor"); }}
                       />
                     </div>
                     <p className="text-xs text-gray-500 bg-white border border-gray-100 rounded-lg px-3 py-2 my-3">
@@ -895,7 +920,8 @@ export const ProductoModal = () => {
                         label="Precio venta (con IGV)"
                         isLabel
                         type="number"
-                        onChange={(e: any) => setFormPresentacion({ ...formPresentacion, precioVenta: e.target.value })}
+                        error={erroresPresentacion.precioVenta}
+                        onChange={(e: any) => { setFormPresentacion({ ...formPresentacion, precioVenta: e.target.value }); clearErrorPresentacion("precioVenta"); }}
                       />
                       <Input
                         name="precioMinimo"
@@ -1004,7 +1030,8 @@ export const ProductoModal = () => {
                         label="Nombre del precio"
                         isLabel
                         type="text"
-                        onChange={(e: any) => setFormPrecioAlt({ ...formPrecioAlt, nombre: e.target.value })}
+                        error={erroresPrecioAlt.nombre}
+                        onChange={(e: any) => { setFormPrecioAlt({ ...formPrecioAlt, nombre: e.target.value }); clearErrorPrecioAlt("nombre"); }}
                       />
                       <Input
                         name="precioVenta"
@@ -1012,7 +1039,8 @@ export const ProductoModal = () => {
                         label="Precio venta (con IGV)"
                         isLabel
                         type="number"
-                        onChange={(e: any) => setFormPrecioAlt({ ...formPrecioAlt, precioVenta: e.target.value })}
+                        error={erroresPrecioAlt.precioVenta}
+                        onChange={(e: any) => { setFormPrecioAlt({ ...formPrecioAlt, precioVenta: e.target.value }); clearErrorPrecioAlt("precioVenta"); }}
                       />
                     </div>
                     <p className="text-xs text-gray-500 bg-white border border-gray-100 rounded-lg px-3 py-2 my-3">
@@ -1162,6 +1190,22 @@ export const ProductoModal = () => {
                 </span>
               </button>
             </div>
+            {(() => {
+              const faltantes = [
+                nombre === "" && "el nombre",
+                codigo === "" && "el código",
+                !formValues.unidadMedidaId && "la unidad de medida",
+                !formValues.sucursalId && "la sucursal",
+                !formValues.monedaId && "la moneda",
+                !formValues.tipoIgvId && "el IGV",
+                precioVentaNum <= 0 && "un precio de venta mayor a 0",
+              ].filter(Boolean);
+              return faltantes.length > 0 ? (
+                <p className="text-xs text-right mt-1" style={{ color: "#F24B89" }}>
+                  Falta completar: {faltantes.join(", ")}.
+                </p>
+              ) : null;
+            })()}
           </div>
         </div>
         {isStock && (

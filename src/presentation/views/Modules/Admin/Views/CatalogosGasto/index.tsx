@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Icon } from "@iconify/react";
 import { Toaster } from "sonner";
 import axiosInstance from "../../../../../../utils/axios";
+import { useFormErrors } from "../../../../../../components/FormError";
 import Input from "../../../../../../components/Input";
 import { Button } from "@tremor/react";
 import { TableSkeleton } from "../../../../../../components/Skeleton";
@@ -68,8 +69,14 @@ const CatalogoTable = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
+
   const handleSubmit = async () => {
-    if (!nombre.trim()) return toast.error("El nombre es obligatorio");
+    limpiarErrores();
+    if (!nombre.trim()) {
+      setError("nombre", "El nombre es obligatorio");
+      return toast.error("El nombre es obligatorio");
+    }
     setGuardando(true);
     try {
       await axiosInstance.post(createUrl, { nombre });
@@ -151,11 +158,12 @@ const CatalogoTable = ({
             label={labelInput}
             name="nombre"
             value={nombre}
-            onChange={(e: any) => setNombre(e.target.value)}
+            error={errors.nombre}
+            onChange={(e: any) => { setNombre(e.target.value); clearError("nombre"); }}
           />
           <div className="flex justify-end gap-3 mt-6">
             <Button size="sm" variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleSubmit} disabled={guardando}>
+            <Button size="sm" onClick={handleSubmit} disabled={guardando || Object.keys(errors).length > 0}>
               {guardando ? "Guardando..." : "Guardar"}
             </Button>
           </div>

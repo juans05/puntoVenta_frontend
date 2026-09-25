@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import styles from "./nuevaFactura.module.css";
+import { useFormErrors, estiloError, CampoError } from "../../../../components/FormError";
 import comprasStyles from "../Admin/Views/Compras/compras.module.css";
 import { getToken } from "../../../../helpers/auth-helpers";
 import axiosInstance from "../../../../utils/axios";
@@ -94,6 +95,7 @@ const CAMPOS_VISIBLES_POR_DEFECTO = new Set([
 
 const NuevaFactura = () => {
   const dispatch = useAppDispatch();
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
   const navigate = useNavigate();
   const { tipo: tipoInicial } = useParams<{ tipo: string }>();
   const [searchParams] = useSearchParams();
@@ -630,69 +632,75 @@ const NuevaFactura = () => {
   );
 
   const generarFactura = () => {
+    limpiarErrores();
+    const marcar = (campo: string, mensaje: string) => {
+      setError(campo, mensaje);
+      toast.error(mensaje);
+    };
+
     if (razonSocial.trim().length < 3) {
-      return toast.error("La Razón Social debe tener al menos 3 caracteres");
+      return marcar("razonSocial", "La Razón Social debe tener al menos 3 caracteres");
     }
     if (/^\d+$/.test(razonSocial.trim())) {
-      return toast.error("La Razón Social no puede contener solo números");
+      return marcar("razonSocial", "La Razón Social no puede contener solo números");
     }
     if (numeroDocumento.trim() === "") {
-      return toast.error("El número de documento es obligatorio");
+      return marcar("numeroDocumento", "El número de documento es obligatorio");
     }
     if (tipoDocIdentId === TIPO_DOC_DNI && numeroDocumento.trim().length !== 8) {
-      return toast.error("El DNI debe tener 8 dígitos");
+      return marcar("numeroDocumento", "El DNI debe tener 8 dígitos");
     }
     if (tipoDocIdentId === TIPO_DOC_RUC && numeroDocumento.trim().length !== 11) {
-      return toast.error("El RUC debe tener 11 dígitos");
+      return marcar("numeroDocumento", "El RUC debe tener 11 dígitos");
     }
     if (tipoDocumentoInicial === "factura" && tipoDocIdentId !== TIPO_DOC_RUC) {
-      return toast.error("Para Factura, el tipo de documento debe ser RUC");
+      return marcar("tipoDocIdentId", "Para Factura, el tipo de documento debe ser RUC");
     }
     if (celular.trim() !== "" && celular.trim().length !== 9) {
-      return toast.error("El número de celular debe tener 9 dígitos");
+      return marcar("celular", "El número de celular debe tener 9 dígitos");
     }
     if (enviarEmail) {
       if (email.trim() === "") {
-        return toast.error("Ingresa el email del cliente o desactiva el envío por email");
+        return marcar("email", "Ingresa el email del cliente o desactiva el envío por email");
       }
       if (!EMAIL_REGEX.test(email.trim())) {
-        return toast.error("El email del cliente no es válido");
+        return marcar("email", "El email del cliente no es válido");
       }
     }
     if (productsBySale.length === 0) {
-      return toast.error("Agrega al menos un producto");
+      return marcar("productos", "Agrega al menos un producto");
     }
     if (total <= 0) {
-      return toast.error("El total de la venta debe ser mayor a 0");
+      return marcar("productos", "El total de la venta debe ser mayor a 0");
     }
 
     if (descuentoActivo) {
       if (porcentajeDescuento.trim() === "" || !esDecimalValido(porcentajeDescuento)) {
-        return toast.error("Ingresa un porcentaje de descuento válido (máx. 2 decimales)");
+        return marcar("porcentajeDescuento", "Ingresa un porcentaje de descuento válido (máx. 2 decimales)");
       }
       const pct = Number(porcentajeDescuento);
       if (pct <= 0 || pct > 100) {
-        return toast.error("El descuento debe ser mayor a 0% y no puede superar 100%");
+        return marcar("porcentajeDescuento", "El descuento debe ser mayor a 0% y no puede superar 100%");
       }
     }
 
     if (montoRecibido !== "") {
       if (!esDecimalValido(montoRecibido)) {
-        return toast.error("El Total Recibido no es válido (máx. 2 decimales)");
+        return marcar("montoRecibido", "El Total Recibido no es válido (máx. 2 decimales)");
       }
       if (!esCredito && Number(montoRecibido) < total) {
-        return toast.error("El Total Recibido es menor al Total a pagar");
+        return marcar("montoRecibido", "El Total Recibido es menor al Total a pagar");
       }
     }
 
     if (campos.tipoCambio && tipoCambio !== "" && !esDecimalValido(tipoCambio)) {
-      return toast.error("El Tipo de Cambio no es válido (máx. 2 decimales)");
+      return marcar("tipoCambio", "El Tipo de Cambio no es válido (máx. 2 decimales)");
     }
     if (campos.retencion && montoRetencion !== "" && !esDecimalValido(montoRetencion)) {
-      return toast.error("El monto de Retención no es válido (máx. 2 decimales)");
+      return marcar("montoRetencion", "El monto de Retención no es válido (máx. 2 decimales)");
     }
     if (campos.anticipo && montoAnticipo !== "" && !esDecimalValido(montoAnticipo)) {
-      return toast.error("El monto de Anticipo no es válido (máx. 2 decimales)");
+      return marcar("montoAnticipo", "El monto de Anticipo no es válido (máx. 2 decimales)");
     }
 
     let detallePago: { metodoPagoId: number; monto: number; referenciaOperacion: string }[];
@@ -947,8 +955,12 @@ const NuevaFactura = () => {
               </label>
               <select
                 className={styles.select}
+                style={estiloError(!!errors.tipoDocIdentId)}
                 value={tipoDocIdentId}
-                onChange={(e) => setTipoDocIdentId(Number(e.target.value))}
+                onChange={(e) => {
+                  setTipoDocIdentId(Number(e.target.value));
+                  clearError("tipoDocIdentId");
+                }}
               >
                 {tiposDocumentoDisponibles?.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -956,6 +968,7 @@ const NuevaFactura = () => {
                   </option>
                 ))}
               </select>
+              <CampoError mensaje={errors.tipoDocIdentId} />
             </div>
             <div>
               <label className={styles.fieldLabelIcon}>
@@ -976,6 +989,7 @@ const NuevaFactura = () => {
                     setCamposBloqueados(CAMPOS_DESBLOQUEADOS);
                   }}
                   onKeyDown={(e) => e.key === "Enter" && buscarCliente()}
+                  style={estiloError(!!errors.numeroDocumento)}
                 />
                 <button type="button" className={styles.searchIconBtn} onClick={buscarCliente} disabled={buscando}>
                   <Icon icon="iconamoon:search-bold" />
@@ -989,6 +1003,7 @@ const NuevaFactura = () => {
                   <Icon icon="mdi:account-plus-outline" />
                 </button>
               </div>
+              <CampoError mensaje={errors.numeroDocumento} />
             </div>
             <div>
               <label className={styles.fieldLabelIcon}>
@@ -998,8 +1013,13 @@ const NuevaFactura = () => {
                 placeholder="Nombre o Razón Social aquí"
                 value={razonSocial}
                 disabled={camposBloqueados.razonSocial}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setRazonSocial(e.target.value)}
+                style={estiloError(!!errors.razonSocial)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  setRazonSocial(e.target.value);
+                  clearError("razonSocial");
+                }}
               />
+              <CampoError mensaje={errors.razonSocial} />
             </div>
           </div>
 
@@ -1064,8 +1084,13 @@ const NuevaFactura = () => {
                     value={celular}
                     maxLength={9}
                     disabled={camposBloqueados.celular}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setCelular(e.target.value.replace(/\D/g, ""))}
+                    style={estiloError(!!errors.celular)}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      setCelular(e.target.value.replace(/\D/g, ""));
+                      clearError("celular");
+                    }}
                   />
+                  <CampoError mensaje={errors.celular} />
                 </div>
               )}
             </div>
@@ -1085,9 +1110,14 @@ const NuevaFactura = () => {
                   type="email"
                   placeholder="Email del cliente"
                   value={email}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                  style={estiloError(!!errors.email)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    setEmail(e.target.value);
+                    clearError("email");
+                  }}
                 />
               )}
+              <CampoError mensaje={errors.email} />
             </div>
             {campos.fechaDocumento && (
               <div>
@@ -1182,7 +1212,16 @@ const NuevaFactura = () => {
                 {campos.tipoCambio && (
                   <div>
                     <label>Tipo de Cambio (SUNAT)</label>
-                    <input type="text" value={tipoCambio} onChange={(e) => setTipoCambio(sanitizeDecimal(e.target.value))} />
+                    <input
+                      type="text"
+                      value={tipoCambio}
+                      style={estiloError(!!errors.tipoCambio)}
+                      onChange={(e) => {
+                        setTipoCambio(sanitizeDecimal(e.target.value));
+                        clearError("tipoCambio");
+                      }}
+                    />
+                    <CampoError mensaje={errors.tipoCambio} />
                   </div>
                 )}
                 {campos.placaVehiculo && (
@@ -1228,13 +1267,31 @@ const NuevaFactura = () => {
                 {campos.retencion && (
                   <div>
                     <label>Retención S/.</label>
-                    <input type="text" value={montoRetencion} onChange={(e) => setMontoRetencion(sanitizeDecimal(e.target.value))} />
+                    <input
+                      type="text"
+                      value={montoRetencion}
+                      style={estiloError(!!errors.montoRetencion)}
+                      onChange={(e) => {
+                        setMontoRetencion(sanitizeDecimal(e.target.value));
+                        clearError("montoRetencion");
+                      }}
+                    />
+                    <CampoError mensaje={errors.montoRetencion} />
                   </div>
                 )}
                 {campos.anticipo && (
                   <div>
                     <label>Anticipo S/.</label>
-                    <input type="text" value={montoAnticipo} onChange={(e) => setMontoAnticipo(sanitizeDecimal(e.target.value))} />
+                    <input
+                      type="text"
+                      value={montoAnticipo}
+                      style={estiloError(!!errors.montoAnticipo)}
+                      onChange={(e) => {
+                        setMontoAnticipo(sanitizeDecimal(e.target.value));
+                        clearError("montoAnticipo");
+                      }}
+                    />
+                    <CampoError mensaje={errors.montoAnticipo} />
                   </div>
                 )}
               </div>
@@ -1249,6 +1306,7 @@ const NuevaFactura = () => {
               <Icon icon="mdi:plus" /> Agregar productos
             </button>
           </div>
+          <CampoError mensaje={errors.productos} />
 
           {productsBySale.length === 0 ? (
             <p className={styles.empty}>Aún no agregaste productos.</p>
@@ -1455,20 +1513,28 @@ const NuevaFactura = () => {
                   <input
                     type="text"
                     value={porcentajeDescuento}
+                    style={estiloError(!!errors.porcentajeDescuento)}
                     onChange={(e) => {
                       const limpio = sanitizeDecimal(e.target.value);
                       setPorcentajeDescuento(limpio !== "" && Number(limpio) > 100 ? "100" : limpio);
+                      clearError("porcentajeDescuento");
                     }}
                   />
                 )}
+                <CampoError mensaje={errors.porcentajeDescuento} />
               </div>
               <div>
                 <label>Total Recibido S/.</label>
                 <input
                   type="text"
                   value={montoRecibido}
-                  onChange={(e) => setMontoRecibido(sanitizeDecimal(e.target.value))}
+                  style={estiloError(!!errors.montoRecibido)}
+                  onChange={(e) => {
+                    setMontoRecibido(sanitizeDecimal(e.target.value));
+                    clearError("montoRecibido");
+                  }}
                 />
+                <CampoError mensaje={errors.montoRecibido} />
               </div>
               <div>
                 <label>Vuelto S/.</label>
@@ -1529,7 +1595,7 @@ const NuevaFactura = () => {
             <button type="button" className={styles.cancel} onClick={limpiar}>
               Limpiar
             </button>
-            <button type="button" className={styles.submitPill} disabled={enviando} onClick={generarFactura}>
+            <button type="button" className={styles.submitPill} disabled={enviando || Object.keys(errors).length > 0} onClick={generarFactura}>
               <Icon icon="mdi:content-save-outline" />
               {enviando ? "Guardando..." : "Guardar documento electrónico (F12)"}
             </button>

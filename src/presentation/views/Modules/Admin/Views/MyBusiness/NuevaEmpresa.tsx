@@ -13,6 +13,7 @@ import { getAllUbigeos } from "../../../../../../redux/reducers/extensiones/exte
 import Input from "../../../../../../components/Input";
 import SelectPro from "../../../../../../components/SelectPro";
 import SelectUbigeo from "../../../../../../components/SelectPro/SelectUbigeo";
+import { useFormErrors, CampoError } from "../../../../../../components/FormError";
 import { toast } from "sonner";
 
 Modal.setAppElement("#root");
@@ -56,11 +57,14 @@ export const NuevaEmpresaModal = ({ isOpen, onClose }: INuevaEmpresaProps) => {
     }
   }, [isOpen, dispatch]);
 
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
+
   const handleOnChange = (e: any) => {
     setFormValues({
       ...formValues,
       [e.target.name]: e.target.value,
     });
+    clearError(e.target.name);
   };
 
   const handleSelect = (
@@ -74,11 +78,15 @@ export const NuevaEmpresaModal = ({ isOpen, onClose }: INuevaEmpresaProps) => {
       [name]: value,
       [id]: Number(idValue),
     });
+    clearError(id);
   };
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
+    limpiarErrores();
+    if (!formValues.nombre.trim()) setError("nombre", "Obligatorio");
+    if (!formValues.rubroId) setError("rubroId", "Elige un rubro");
     if (!formValues.nombre.trim() || !formValues.rubroId) {
       return toast.error("Nombre (tenant key) y Rubro son obligatorios");
     }
@@ -154,6 +162,7 @@ export const NuevaEmpresaModal = ({ isOpen, onClose }: INuevaEmpresaProps) => {
                 label="Nombre (tenant key)"
                 name="nombre"
                 value={formValues.nombre}
+                error={errors.nombre}
                 onChange={handleOnChange}
               />
             </div>
@@ -168,6 +177,7 @@ export const NuevaEmpresaModal = ({ isOpen, onClose }: INuevaEmpresaProps) => {
                 options={rubros}
                 onChange={handleSelect}
               />
+              <CampoError mensaje={errors.rubroId} />
             </div>
           </div>
         </div>
@@ -272,7 +282,7 @@ export const NuevaEmpresaModal = ({ isOpen, onClose }: INuevaEmpresaProps) => {
           <button type="button" className={styles.cancel} onClick={onClose}>
             Cancelar
           </button>
-          <button type="submit" className={styles.submit} disabled={loading}>
+          <button type="submit" className={styles.submit} disabled={loading || Object.keys(errors).length > 0}>
             {loading ? "Creando..." : "Crear empresa"}
           </button>
         </div>

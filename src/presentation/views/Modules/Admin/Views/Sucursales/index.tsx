@@ -4,6 +4,7 @@ import Modal from "react-modal";
 import { toast } from "sonner";
 import axiosInstance from "../../../../../../utils/axios";
 import SelectUbigeo from "../../../../../../components/SelectPro/SelectUbigeo";
+import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 import { Button } from "@tremor/react";
 import { TableSkeleton } from "../../../../../../components/Skeleton";
 import { useAppSelector } from "../../../../../../redux/store";
@@ -100,12 +101,16 @@ export const Sucursales = () => {
     loadPaises();
   }, []);
 
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
+
   const handleChange = (e: any) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    clearError(e.target.name);
   };
 
   const handleSelect = (idValue: any, value: string, name: string, id: string) => {
     setForm({ ...form, [name]: value, [id]: idValue });
+    clearError(id);
   };
 
   const abrirNueva = () => {
@@ -123,10 +128,23 @@ export const Sucursales = () => {
   };
 
   const handleSubmit = async () => {
-    if (!form.codigoEstablecimiento.trim()) return toast.error("El código del local ante SUNAT es obligatorio");
-    if (!form.nombre.trim()) return toast.error("El nombre del local es obligatorio");
-    if (!form.direccion.trim()) return toast.error("La dirección es obligatoria");
-    if (!form.ubigeoId) return toast.error("Elige el departamento, provincia y distrito");
+    limpiarErrores();
+    if (!form.codigoEstablecimiento.trim()) {
+      setError("codigoEstablecimiento", "Obligatorio");
+      return toast.error("El código del local ante SUNAT es obligatorio");
+    }
+    if (!form.nombre.trim()) {
+      setError("nombre", "Obligatorio");
+      return toast.error("El nombre del local es obligatorio");
+    }
+    if (!form.direccion.trim()) {
+      setError("direccion", "Obligatoria");
+      return toast.error("La dirección es obligatoria");
+    }
+    if (!form.ubigeoId) {
+      setError("ubigeoId", "Elige el departamento, provincia y distrito");
+      return toast.error("Elige el departamento, provincia y distrito");
+    }
 
     setCreando(true);
     try {
@@ -227,12 +245,14 @@ export const Sucursales = () => {
                   </label>
                   <input
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"
+                    style={estiloError(!!errors.codigoEstablecimiento)}
                     name="codigoEstablecimiento"
                     maxLength={4}
                     value={form.codigoEstablecimiento}
                     onChange={handleChange}
                   />
                   <p className="text-xs text-gray-400 mt-1">4 dígitos. Tu local principal es 0000.</p>
+                  <CampoError mensaje={errors.codigoEstablecimiento} />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500">
@@ -241,11 +261,13 @@ export const Sucursales = () => {
                   </label>
                   <input
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"
+                    style={estiloError(!!errors.nombre)}
                     name="nombre"
                     placeholder="Por ejemplo: Tienda Mazamari"
                     value={form.nombre}
                     onChange={handleChange}
                   />
+                  <CampoError mensaje={errors.nombre} />
                 </div>
               </div>
 
@@ -270,10 +292,12 @@ export const Sucursales = () => {
                   </label>
                   <input
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"
+                    style={estiloError(!!errors.direccion)}
                     name="direccion"
                     value={form.direccion}
                     onChange={handleChange}
                   />
+                  <CampoError mensaje={errors.direccion} />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500">Urbanización o zona</label>
@@ -318,6 +342,7 @@ export const Sucursales = () => {
                     onChange={handleSelect}
                     placeholder="Escribe tu distrito o tu provincia"
                   />
+                  <CampoError mensaje={errors.ubigeoId} />
                   <p className="text-xs text-gray-400 mt-1">
                     {ubigeos.length === 0 ? "Cargando distritos..." : "Escribe dos letras y elige de la lista. Se guarda el distrito que elijas."}
                   </p>
@@ -431,7 +456,7 @@ export const Sucursales = () => {
                 <Button size="sm" variant="secondary" onClick={() => setVista("lista")}>
                   Cancelar
                 </Button>
-                <Button size="sm" onClick={handleSubmit} disabled={creando}>
+                <Button size="sm" onClick={handleSubmit} disabled={creando || Object.keys(errors).length > 0}>
                   {creando ? "Creando..." : "✓ Crear la sucursal"}
                 </Button>
               </div>

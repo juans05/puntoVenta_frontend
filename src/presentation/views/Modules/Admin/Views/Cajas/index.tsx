@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Modal from "react-modal";
 import { toast } from "sonner";
 import axiosInstance from "../../../../../../utils/axios";
+import { useFormErrors } from "../../../../../../components/FormError";
 import Input from "../../../../../../components/Input";
 import SelectPro from "../../../../../../components/SelectPro";
 import { Button } from "@tremor/react";
@@ -59,8 +60,11 @@ export const Cajas = () => {
     loadData();
   }, []);
 
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
+
   const handleChange = (e: any) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    clearError(e.target.name);
   };
 
   const handleSelect = (idValue: any, value: string, name: string, id: string) => {
@@ -68,7 +72,11 @@ export const Cajas = () => {
   };
 
   const handleSubmit = async () => {
-    if (!form.nombre.trim()) return toast.error("El nombre de la caja es obligatorio");
+    limpiarErrores();
+    if (!form.nombre.trim()) {
+      setError("nombre", "El nombre de la caja es obligatorio");
+      return toast.error("El nombre de la caja es obligatorio");
+    }
     setCreando(true);
     try {
       const { status }: any = await axiosInstance.post(`/caja/crear-caja`, {
@@ -134,7 +142,7 @@ export const Cajas = () => {
         <div className="p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Nueva caja</h3>
           <div className="grid grid-cols-1 gap-4">
-            <Input isLabel label="Nombre de la caja *" name="nombre" value={form.nombre} onChange={handleChange} />
+            <Input isLabel label="Nombre de la caja *" name="nombre" value={form.nombre} error={errors.nombre} onChange={handleChange} />
             <SelectPro
               isSearch isLabel label="Sucursal"
               name="sucursal" id="sucursalId"
@@ -145,7 +153,7 @@ export const Cajas = () => {
           </div>
           <div className="flex justify-end gap-3 mt-6">
             <Button size="sm" variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleSubmit} disabled={creando}>
+            <Button size="sm" onClick={handleSubmit} disabled={creando || Object.keys(errors).length > 0}>
               {creando ? "Creando..." : "Crear caja"}
             </Button>
           </div>

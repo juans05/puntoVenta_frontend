@@ -4,6 +4,21 @@
   border-radius: 0.5rem;
 }
 
+/* Validacion por campo: borde rojo + motivo debajo, reutilizado por todos los formularios que usan <Input>. */
+.errorBorder input,
+.errorBorder select,
+.errorBorder textarea {
+  border-color: #F24B89 !important;
+  box-shadow: 0 0 0 1px #F24B89;
+}
+
+.errorText {
+  display: block;
+  color: #F24B89;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 .wrapper__input input[type=text],
 .wrapper__input input[type=password],
 .wrapper__input input[type="email"],

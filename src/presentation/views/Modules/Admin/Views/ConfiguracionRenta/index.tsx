@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@tremor/react";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
+import { useFormErrors, CampoError } from "../../../../../../components/FormError";
 import { RootState } from "../../../../../../redux/rootState";
 import { getAllRubros } from "../../../../../../redux/reducers/Admin/my-business/myBusiness.reducer";
 import {
@@ -47,6 +48,7 @@ export const ConfiguracionRenta = () => {
 
   const handleSelectRubro = (idValue: any) => {
     setRubroId(parseInt(idValue) || 0);
+    clearError("rubro");
   };
 
   const updateRow = (
@@ -66,8 +68,13 @@ export const ConfiguracionRenta = () => {
     setState((prev: any[]) => prev.filter((_, i) => i !== index));
   };
 
+  const { errors, setError, clearError } = useFormErrors();
+
   const guardar = () => {
-    if (!rubroId) return;
+    if (!rubroId) {
+      setError("rubro", "Selecciona un rubro antes de guardar");
+      return;
+    }
     const payload = {
       tipo,
       turnos,
@@ -101,6 +108,7 @@ export const ConfiguracionRenta = () => {
             options={newRubros}
             onChange={handleSelectRubro}
           />
+          <CampoError mensaje={errors.rubro} />
         </div>
       </div>
 

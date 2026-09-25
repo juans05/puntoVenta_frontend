@@ -9,6 +9,7 @@ import { IAuthState, IUser } from "../../../redux/reducers/auth/interfaces";
 import { RootState } from "../../../redux/rootState";
 import { Toaster, toast } from "sonner";
 import Input from "../../../components/Input";
+import { useFormErrors } from "../../../components/FormError";
 import { getAllRecursos, getAllTenants } from "../../../redux/reducers/Admin/my-business/myBusiness.reducer";
 import { getToken } from "../../../helpers/auth-helpers";
 
@@ -36,15 +37,22 @@ const Login = () => {
   const [isText, setIsText] = useState<boolean>(false);
   const [formValues, setFormValues] = useState<IUser>(initialForm);
 
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormValues({
       ...formValues,
       [name]: value,
     });
+    clearError(name);
   };
 
   const goNewSale = () => {
+    limpiarErrores();
+    if (!formValues.userName.trim()) setError("userName", "Ingresa tu usuario o correo");
+    if (!formValues.password.trim()) setError("password", "Ingresa tu contraseña");
+    if (!formValues.userName.trim() || !formValues.password.trim()) return;
     dispatch(signIn(formValues));
   };
 
@@ -64,7 +72,7 @@ const Login = () => {
   
 
   useEffect(() => {
-    const token = localStorage.getItem("4D3V$PUNTOVENT4");
+    const token = getToken();
 
     console.log(token);
     console.log(me);
@@ -173,6 +181,8 @@ const Login = () => {
                 isLabel
                 label="Usuario o correo electrónico"
                 name="userName"
+                value={formValues.userName}
+                error={errors.userName}
                 onChange={handleChange}
                 type="text"
               />
@@ -189,6 +199,8 @@ const Login = () => {
               <Input
                 onKeyUp={handleKeyPress}
                 name="password"
+                value={formValues.password}
+                error={errors.password}
                 onChange={handleChange}
                 type={isText ? "text" : "password"}
                 isLabel
@@ -197,7 +209,7 @@ const Login = () => {
             </div>
             <div>{/* <a href="">Has olvidado tu contraseña ?</a> */}</div>
             <div>
-              <button tabIndex={0} onKeyUp={handleKeyPress} onClick={goNewSale}>
+              <button tabIndex={0} onKeyUp={handleKeyPress} onClick={goNewSale} disabled={Object.keys(errors).length > 0}>
                 Iniciar sesión
               </button>
             </div>

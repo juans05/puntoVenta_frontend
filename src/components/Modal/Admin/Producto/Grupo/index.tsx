@@ -147,8 +147,12 @@ export const GrupoModal = () => {
                 label="Nombre del grupo"
                 name="nombre"
                 value={nombre}
+                error={nombre.trim() === "" ? "Obligatorio" : undefined}
                 onChange={handleInputChange}
               />
+              {categoriaId === 0 && (
+                <span className="text-xs" style={{ color: "#F24B89" }}>Selecciona una categoría</span>
+              )}
             </div>
 
             <div className={styles["main-content-buttons"]}>

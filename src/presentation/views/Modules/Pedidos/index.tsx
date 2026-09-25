@@ -5,6 +5,7 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import jsPDF from "jspdf";
 import styles from "./pedidos.module.css";
 import axiosInstance from "../../../../utils/axios";
+import { useFormErrors, estiloError, CampoError } from "../../../../components/FormError";
 import { getToken } from "../../../../helpers/auth-helpers";
 import { useAppDispatch, useAppSelector } from "../../../../redux/store";
 import { RootState } from "../../../../redux/rootState";
@@ -205,8 +206,11 @@ const Pedidos = () => {
     doc.save(`Etiqueta_${slug(etiquetaData.nombre)}_${slug(etiquetaData.distrito)}.pdf`);
   };
 
+  const { errors, setError, clearError } = useFormErrors();
+
   const handleCambiarEstado = async (pedido: IPedido, nuevoEstado: EstadoPedido) => {
     if (nuevoEstado === "S" && !codigoSeguimiento.trim()) {
+      setError("codigoSeguimiento", "Ingresa el código de seguimiento para despachar");
       toast.error("Ingresa el código de seguimiento para despachar");
       return;
     }
@@ -479,9 +483,11 @@ const Pedidos = () => {
                       type="text"
                       placeholder="Código de seguimiento (requerido para despachar)"
                       value={codigoSeguimiento}
-                      onChange={(e) => setCodigoSeguimiento(e.target.value)}
+                      onChange={(e) => { setCodigoSeguimiento(e.target.value); clearError("codigoSeguimiento"); }}
                       className={styles.input}
+                      style={estiloError(!!errors.codigoSeguimiento)}
                     />
+                    <CampoError mensaje={errors.codigoSeguimiento} />
                   </div>
                 )}
               </div>

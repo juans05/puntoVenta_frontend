@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 import axiosInstance from "../../../../../../utils/axios";
+import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 
 // Configuracion > Flujo de compras. Solo la puede guardar un administrador (policy del backend).
 export const ConfiguracionFlujo = () => {
@@ -26,8 +27,13 @@ export const ConfiguracionFlujo = () => {
       .catch(() => toast.error("No se pudo cargar la configuración"));
   }, []);
 
+  const { errors, setError, clearError } = useFormErrors();
+
   const guardar = async () => {
-    if (aprobacionActiva && (monto === "" || Number(monto) < 0)) return toast.error("Indica un monto de aprobación válido");
+    if (aprobacionActiva && (monto === "" || Number(monto) < 0)) {
+      setError("monto", "Indica un monto de aprobación válido");
+      return toast.error("Indica un monto de aprobación válido");
+    }
     setGuardando(true);
     try {
       await axiosInstance.put("/configuracion-flujo", {
@@ -90,8 +96,9 @@ export const ConfiguracionFlujo = () => {
             {aprobacionActiva && (
               <div style={{ marginTop: 8 }}>
                 Las órdenes con total mayor a S/{" "}
-                <input type="number" min={0} step="0.01" value={monto} onChange={(e) => setMonto(e.target.value)}
-                  style={{ border: "1px solid #d1d5db", borderRadius: 8, padding: "4px 8px", width: 120 }} /> necesitan aprobación de un administrador.
+                <input type="number" min={0} step="0.01" value={monto} onChange={(e) => { setMonto(e.target.value); clearError("monto"); }}
+                  style={{ border: "1px solid #d1d5db", borderRadius: 8, padding: "4px 8px", width: 120, ...estiloError(!!errors.monto) }} /> necesitan aprobación de un administrador.
+                <CampoError mensaje={errors.monto} />
               </div>
             )}
           </div>
@@ -110,7 +117,7 @@ export const ConfiguracionFlujo = () => {
         </label>
       </div>
 
-      <button onClick={guardar} disabled={guardando}
+      <button onClick={guardar} disabled={guardando || Object.keys(errors).length > 0}
         style={{ background: "#3b82f6", color: "#fff", border: 0, borderRadius: 8, padding: "10px 20px", fontWeight: 600 }}>
         {guardando ? "Guardando..." : "Guardar"}
       </button>

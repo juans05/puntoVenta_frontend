@@ -77,6 +77,7 @@ export const CategoriaModal = () => {
                 label="Nombre de la categoría"
                 name="nombre"
                 value={nombre}
+                error={nombre.trim() === "" ? "Obligatorio" : undefined}
                 onChange={(e: any) => setNombre(e.target.value)}
               />
             </div>

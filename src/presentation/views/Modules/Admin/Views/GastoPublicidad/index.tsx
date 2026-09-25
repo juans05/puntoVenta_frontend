@@ -193,6 +193,7 @@ export const GastoPublicidad = () => {
                   <td>
                     <select
                       value={f.grupoId ?? ""}
+                      style={f.grupoId === null ? { borderColor: "#F24B89", boxShadow: "0 0 0 1px #F24B89" } : undefined}
                       onChange={(e) => handleGrupoChange(i, e.target.value ? Number(e.target.value) : null)}
                     >
                       <option value="">Selecciona un grupo</option>
@@ -210,6 +211,11 @@ export const GastoPublicidad = () => {
             </tbody>
           </table>
           <div style={{ padding: "12px 14px" }}>
+            {!puedeConfirmar && (
+              <p style={{ color: "#F24B89", fontSize: 12, marginBottom: 6 }}>
+                Elige un grupo (o "No aplica" / "No va") para cada fila antes de confirmar.
+              </p>
+            )}
             <button
               className={styles.newBtn}
               disabled={!puedeConfirmar || subiendo}

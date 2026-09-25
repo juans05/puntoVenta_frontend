@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Icon } from "@iconify/react";
 import { Toaster } from "sonner";
 import axiosInstance from "../../../../../../utils/axios";
+import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 import Input from "../../../../../../components/Input";
 import { Button } from "@tremor/react";
 import { TableSkeleton } from "../../../../../../components/Skeleton";
@@ -116,8 +117,14 @@ export const RolesPermisos = () => {
     setSubmoduleIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
   };
 
+  const { errors: erroresRol, setError: setErrorRol, clearError: clearErrorRol } = useFormErrors();
+  const { errors: erroresAsig, setError: setErrorAsig, clearError: clearErrorAsig } = useFormErrors();
+
   const handleSubmit = async () => {
-    if (!nombre.trim()) return toast.error("El nombre del rol es obligatorio");
+    if (!nombre.trim()) {
+      setErrorRol("nombre", "El nombre del rol es obligatorio");
+      return toast.error("El nombre del rol es obligatorio");
+    }
 
     const payload = {
       nombre: nombre.trim(),
@@ -172,7 +179,10 @@ export const RolesPermisos = () => {
   };
 
   const guardarRolesUsuario = async () => {
-    if (!usuarioSeleccionado) return toast.error("Selecciona un usuario");
+    if (!usuarioSeleccionado) {
+      setErrorAsig("usuario", "Selecciona un usuario");
+      return toast.error("Selecciona un usuario");
+    }
     setAsignando(true);
     try {
       await axiosInstance.post("/roles/asignar-usuario", { userId: usuarioSeleccionado, roleIds: roleIdsUsuario });
@@ -261,8 +271,9 @@ export const RolesPermisos = () => {
           <label className="block text-sm text-gray-700 mb-1">Usuario</label>
           <select
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            style={estiloError(!!erroresAsig.usuario)}
             value={usuarioSeleccionado}
-            onChange={(e) => seleccionarUsuario(e.target.value)}
+            onChange={(e) => { seleccionarUsuario(e.target.value); clearErrorAsig("usuario"); }}
           >
             <option value="">Selecciona un usuario...</option>
             {usuarios.map((u) => (
@@ -286,7 +297,8 @@ export const RolesPermisos = () => {
                 </label>
               ))}
             </div>
-            <Button size="sm" onClick={guardarRolesUsuario} disabled={asignando}>
+            <CampoError mensaje={erroresAsig.usuario} />
+            <Button size="sm" onClick={guardarRolesUsuario} disabled={asignando || Object.keys(erroresAsig).length > 0}>
               {asignando ? "Guardando..." : "Guardar roles del usuario"}
             </Button>
           </>
@@ -297,7 +309,7 @@ export const RolesPermisos = () => {
         <div className="p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">{editando ? "Editar rol" : "Nuevo rol"}</h3>
           <div className="flex flex-col gap-3">
-            <Input isLabel label="Nombre" name="nombre" value={nombre} onChange={(e: any) => setNombre(e.target.value)} />
+            <Input isLabel label="Nombre" name="nombre" value={nombre} error={erroresRol.nombre} onChange={(e: any) => { setNombre(e.target.value); clearErrorRol("nombre"); }} />
             <Input
               isLabel
               label="Ruta por defecto (opcional)"
@@ -341,7 +353,7 @@ export const RolesPermisos = () => {
           </div>
           <div className="flex justify-end gap-3 mt-6">
             <Button size="sm" variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleSubmit} disabled={guardando}>
+            <Button size="sm" onClick={handleSubmit} disabled={guardando || Object.keys(erroresRol).length > 0}>
               {guardando ? "Guardando..." : "Guardar"}
             </Button>
           </div>

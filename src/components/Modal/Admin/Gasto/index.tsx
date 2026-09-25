@@ -10,6 +10,7 @@ import axiosInstance from "../../../../utils/axios";
 import Input from "../../../Input";
 import SelectPro from "../../../SelectPro";
 import { toast } from "sonner";
+import { useFormErrors, CampoError } from "../../../FormError";
 
 Modal.setAppElement("#root");
 
@@ -29,6 +30,7 @@ export const GastoModal = ({ isOpen, onClose }: IProps) => {
   const [metodoPagoId, setMetodoPagoId] = useState<number>(0);
   const [observacion, setObservacion] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const { errors, setError, clearError, limpiarErrores } = useFormErrors();
 
   useEffect(() => {
     if (isOpen) {
@@ -48,8 +50,15 @@ export const GastoModal = ({ isOpen, onClose }: IProps) => {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    if (!categoria.trim()) return toast.error("La categoría es obligatoria");
-    if (!(Number(monto) > 0)) return toast.error("El monto debe ser mayor a 0");
+    limpiarErrores();
+    if (!categoria.trim()) {
+      setError("categoria", "La categoría es obligatoria");
+      return toast.error("La categoría es obligatoria");
+    }
+    if (!(Number(monto) > 0)) {
+      setError("monto", "El monto debe ser mayor a 0");
+      return toast.error("El monto debe ser mayor a 0");
+    }
 
     setLoading(true);
     try {
@@ -98,9 +107,10 @@ export const GastoModal = ({ isOpen, onClose }: IProps) => {
                 isSearch
                 label="Categoría"
                 options={categorias}
-                onChange={(_idValue: any, value: string) => setCategoria(value)}
+                onChange={(_idValue: any, value: string) => { setCategoria(value); clearError("categoria"); }}
                 placeholder="Selecciona una categoría"
               />
+              <CampoError mensaje={errors.categoria} />
             </div>
             <div>
               <Input
@@ -109,7 +119,8 @@ export const GastoModal = ({ isOpen, onClose }: IProps) => {
                 type="number"
                 name="monto"
                 value={monto}
-                onChange={(e: any) => setMonto(e.target.value)}
+                error={errors.monto}
+                onChange={(e: any) => { setMonto(e.target.value); clearError("monto"); }}
               />
             </div>
             <div className={styles.full}>
@@ -147,7 +158,7 @@ export const GastoModal = ({ isOpen, onClose }: IProps) => {
           <button type="button" className={styles.cancel} onClick={onClose}>
             Cancelar
           </button>
-          <button type="submit" className={styles.submit} disabled={loading}>
+          <button type="submit" className={styles.submit} disabled={loading || Object.keys(errors).length > 0}>
             {loading ? "Guardando..." : "Registrar gasto"}
           </button>
         </div>

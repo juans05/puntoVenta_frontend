@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 import styles from "../Compras/compras.module.css";
 import axiosInstance from "../../../../../../utils/axios";
+import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 
 // Guias de remision remitente: documento INTERNO de traslado generado desde una Entrega
 // (Pedidos de venta -> flujo completo). No se envian a SUNAT.
@@ -109,8 +110,20 @@ const EditarGuia = ({ guia, onCerrar, onGuardado }: any) => {
   const [choferDocumento, setChoferDocumento] = useState(guia.choferDocumento ?? "");
   const [placa, setPlaca] = useState(guia.placa ?? "");
   const soloLectura = guia.estadoGuia === "ANULADA";
+  const { errors, setError, clearError } = useFormErrors();
 
   const guardar = async () => {
+    if (modTraslado === "01" && (!transportistaRuc.trim() || !transportistaRazonSocial.trim())) {
+      if (!transportistaRuc.trim()) setError("transportistaRuc", "Indica el RUC del transportista");
+      if (!transportistaRazonSocial.trim()) setError("transportistaRazonSocial", "Indica la razón social del transportista");
+      return toast.error("Completa los datos del transportista");
+    }
+    if (modTraslado === "02" && (!choferNombre.trim() || !choferDocumento.trim() || !placa.trim())) {
+      if (!choferNombre.trim()) setError("choferNombre", "Indica el nombre del chofer");
+      if (!choferDocumento.trim()) setError("choferDocumento", "Indica el documento del chofer");
+      if (!placa.trim()) setError("placa", "Indica la placa");
+      return toast.error("Completa los datos del chofer y la placa");
+    }
     try {
       await axiosInstance.put(`/guias-remision/${guia.id}/actualizar`, {
         modTraslado, pesoTotal: pesoTotal === "" ? undefined : Number(pesoTotal), undPesoTotal,
@@ -148,14 +161,34 @@ const EditarGuia = ({ guia, onCerrar, onGuardado }: any) => {
 
         {modTraslado === "01" ? (
           <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 2fr", marginTop: 8 }}>
-            <input style={input} disabled={soloLectura} placeholder="RUC transportista" value={transportistaRuc} onChange={(e) => setTransportistaRuc(e.target.value)} />
-            <input style={input} disabled={soloLectura} placeholder="Razón social transportista" value={transportistaRazonSocial} onChange={(e) => setTransportistaRazonSocial(e.target.value)} />
+            <div>
+              <input style={{ ...input, ...estiloError(!!errors.transportistaRuc) }} disabled={soloLectura} placeholder="RUC transportista" value={transportistaRuc}
+                onChange={(e) => { setTransportistaRuc(e.target.value); clearError("transportistaRuc"); }} />
+              <CampoError mensaje={errors.transportistaRuc} />
+            </div>
+            <div>
+              <input style={{ ...input, ...estiloError(!!errors.transportistaRazonSocial) }} disabled={soloLectura} placeholder="Razón social transportista" value={transportistaRazonSocial}
+                onChange={(e) => { setTransportistaRazonSocial(e.target.value); clearError("transportistaRazonSocial"); }} />
+              <CampoError mensaje={errors.transportistaRazonSocial} />
+            </div>
           </div>
         ) : (
           <div style={{ display: "grid", gap: 8, gridTemplateColumns: "2fr 1fr 1fr", marginTop: 8 }}>
-            <input style={input} disabled={soloLectura} placeholder="Nombre del chofer" value={choferNombre} onChange={(e) => setChoferNombre(e.target.value)} />
-            <input style={input} disabled={soloLectura} placeholder="DNI chofer" value={choferDocumento} onChange={(e) => setChoferDocumento(e.target.value)} />
-            <input style={input} disabled={soloLectura} placeholder="Placa" value={placa} onChange={(e) => setPlaca(e.target.value)} />
+            <div>
+              <input style={{ ...input, ...estiloError(!!errors.choferNombre) }} disabled={soloLectura} placeholder="Nombre del chofer" value={choferNombre}
+                onChange={(e) => { setChoferNombre(e.target.value); clearError("choferNombre"); }} />
+              <CampoError mensaje={errors.choferNombre} />
+            </div>
+            <div>
+              <input style={{ ...input, ...estiloError(!!errors.choferDocumento) }} disabled={soloLectura} placeholder="DNI chofer" value={choferDocumento}
+                onChange={(e) => { setChoferDocumento(e.target.value); clearError("choferDocumento"); }} />
+              <CampoError mensaje={errors.choferDocumento} />
+            </div>
+            <div>
+              <input style={{ ...input, ...estiloError(!!errors.placa) }} disabled={soloLectura} placeholder="Placa" value={placa}
+                onChange={(e) => { setPlaca(e.target.value); clearError("placa"); }} />
+              <CampoError mensaje={errors.placa} />
+            </div>
           </div>
         )}
 
@@ -167,7 +200,7 @@ const EditarGuia = ({ guia, onCerrar, onGuardado }: any) => {
 
         {!soloLectura && (
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-            <button className={styles.registrarBtn} onClick={guardar}>Guardar</button>
+            <button className={styles.registrarBtn} onClick={guardar} disabled={Object.keys(errors).length > 0}>Guardar</button>
           </div>
         )}
       </div>
