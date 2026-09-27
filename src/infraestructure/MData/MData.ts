@@ -192,7 +192,7 @@ export const menuSidebar = [
       {
         code: "200",
         id: 2,
-        value: "Productos",
+        value: "Productos/Servicios",
         icon: "solar:bag-4-bold",
         url: "dashboard/productos",
       },

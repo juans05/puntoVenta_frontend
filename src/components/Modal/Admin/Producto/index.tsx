@@ -32,6 +32,7 @@ import SelectPro from "../../../SelectPro";
 import { toast } from "sonner";
 import { ImageCropModal } from "../../../ImageCropModal";
 import { useFormErrors } from "../../../FormError";
+import axiosInstance from "../../../../utils/axios";
 
 const BTN_PRIMARY =
   "bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors";
@@ -101,9 +102,13 @@ const initialForm = {
   destinoPreparacion: "Ninguno",
   gestionLotes: false,
   multiPrecioActivo: false,
+  esServicio: false,
+  cuentaIngresoId: 0,
+  cuentaInventarioId: 0,
+  cuentaCostoId: 0,
 };
 
-type TabId = "general" | "lotes" | "presentaciones" | "multiprecio" | "imagenes";
+type TabId = "general" | "lotes" | "presentaciones" | "multiprecio" | "contabilidad" | "imagenes";
 
 const customStyles = {};
 Modal.setAppElement("#root");
@@ -128,6 +133,7 @@ export const ProductoModal = () => {
   const [archivoParaRecortar, setArchivoParaRecortar] = useState<File | null>(null);
   const [subiendoImagen, setSubiendoImagen] = useState<boolean>(false);
   const [eliminandoImagen, setEliminandoImagen] = useState<boolean>(false);
+  const [cuentasContables, setCuentasContables] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const {
     nombre,
@@ -151,7 +157,14 @@ export const ProductoModal = () => {
     destinoPreparacion,
     gestionLotes,
     multiPrecioActivo,
+    esServicio,
   } = formValues;
+
+  const cuentasOptions = cuentasContables.map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
+  const nombreCuenta = (id: number) => cuentasContables.find((c: any) => c.id === id)?.nombre ?? "";
+  const cuentaIngresoTexto = formValues.cuentaIngresoId ? `${cuentasContables.find((c: any) => c.id === formValues.cuentaIngresoId)?.codigo ?? ""} - ${nombreCuenta(formValues.cuentaIngresoId)}` : "";
+  const cuentaInventarioTexto = formValues.cuentaInventarioId ? `${cuentasContables.find((c: any) => c.id === formValues.cuentaInventarioId)?.codigo ?? ""} - ${nombreCuenta(formValues.cuentaInventarioId)}` : "";
+  const cuentaCostoTexto = formValues.cuentaCostoId ? `${cuentasContables.find((c: any) => c.id === formValues.cuentaCostoId)?.codigo ?? ""} - ${nombreCuenta(formValues.cuentaCostoId)}` : "";
 
   const [isStock, setIsStock] = useState<boolean>(false);
 
@@ -160,6 +173,7 @@ export const ProductoModal = () => {
     dispatch(getMonedas() as any);
     dispatch(getTiposIgv() as any);
     dispatch(getUnidadesMedida() as any);
+    axiosInstance.get("/cuentas-contables/listar").then((r: any) => setCuentasContables(r.data?.data ?? [])).catch(() => {});
   }, [dispatch]);
 
   useEffect(() => {
@@ -262,6 +276,9 @@ export const ProductoModal = () => {
     monedaId: formValues.monedaId || undefined,
     tipoIgvId: formValues.tipoIgvId || undefined,
     unidadMedidaId: formValues.unidadMedidaId || undefined,
+    cuentaIngresoId: formValues.cuentaIngresoId || undefined,
+    cuentaInventarioId: formValues.cuentaInventarioId || undefined,
+    cuentaCostoId: formValues.cuentaCostoId || undefined,
     porcentajeDetraccion: porcentajeDetraccion || undefined,
     destinoPreparacion: destinoPreparacion === "Ninguno" ? undefined : destinoPreparacion,
     preciosAlternativos: preciosAlternativos.map((p) => ({ nombre: p.nombre, precioVenta: Number(p.precioVenta) })),
@@ -538,11 +555,14 @@ export const ProductoModal = () => {
     setPresentaciones(presentaciones.filter((_, i) => i !== index));
   };
 
+  // Lotes y Presentaciones son conceptos de inventario (SAP: solo aplican a un "Inventory Item") --
+  // un servicio no maneja stock, asi que ambas pestañas se ocultan por completo en vez de deshabilitarse.
   const tabs: { id: TabId; label: string; disabled?: boolean }[] = [
     { id: "general", label: "General" },
-    { id: "lotes", label: "Lotes", disabled: !gestionLotes },
-    { id: "presentaciones", label: "Presentaciones" },
+    ...(esServicio ? [] : [{ id: "lotes" as TabId, label: "Lotes", disabled: !gestionLotes }]),
+    ...(esServicio ? [] : [{ id: "presentaciones" as TabId, label: "Presentaciones" }]),
     { id: "multiprecio", label: "Multi-precio" },
+    { id: "contabilidad", label: "Contabilidad" },
     { id: "imagenes", label: "Imágenes" },
   ];
 
@@ -599,6 +619,25 @@ export const ProductoModal = () => {
           <div className={styles.content} style={{ maxHeight: "60vh", overflowY: "auto" }}>
             {tab === "general" && (
               <>
+                <div className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3 mx-1 mt-3">
+                  <div className="w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center text-violet-500 shrink-0">
+                    <Icon icon={esServicio ? "mdi:account-hard-hat-outline" : "mdi:package-variant-closed"} width={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-900">¿Es un servicio?</p>
+                    <p className="text-xs text-gray-400">
+                      Un servicio no maneja stock: se ocultan Stock, Peso, ICBPER, Lotes, Presentaciones y Destino de preparación.
+                    </p>
+                  </div>
+                  <Toggle
+                    isOn={esServicio}
+                    handleToggle={() => setFormValues({ ...formValues, esServicio: !esServicio })}
+                    colorOne="#7c3aed"
+                    colorTwo="#ede9fe"
+                    id="switchEsServicio"
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4 px-1 py-3">
                   <button type="button" className={styles["general-photo-drop"]} onClick={abrirDialogoImagen}>
                     {imagenActual ? (
@@ -751,87 +790,91 @@ export const ProductoModal = () => {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-1 py-3">
-                  <div className="flex items-end gap-2">
-                    <div className="flex-1">
+                {!esServicio && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-1 py-3">
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <Input
+                            name="stock"
+                            value={stock}
+                            label="Stock inicial"
+                            isLabel
+                            type="number"
+                            onChange={handleInputChange}
+                            disabled={!!activeProducto}
+                            suffix="UND"
+                          />
+                        </div>
+                        {activeProducto && (
+                          <button type="button" onClick={showStockForm} className={BTN_SECONDARY}>
+                            {isStock ? "Cancelar" : "Añadir"}
+                          </button>
+                        )}
+                      </div>
                       <Input
-                        name="stock"
-                        value={stock}
-                        label="Stock inicial"
+                        name="stockMinimo"
+                        value={stockMinimo}
+                        label="Stock mínimo"
                         isLabel
                         type="number"
                         onChange={handleInputChange}
-                        disabled={!!activeProducto}
                         suffix="UND"
                       />
+                      <Input name="pesoKg" value={pesoKg} label="Peso (Kg)" isLabel type="number" onChange={handleInputChange} />
                     </div>
-                    {activeProducto && (
-                      <button type="button" onClick={showStockForm} className={BTN_SECONDARY}>
-                        {isStock ? "Cancelar" : "Añadir"}
-                      </button>
-                    )}
-                  </div>
-                  <Input
-                    name="stockMinimo"
-                    value={stockMinimo}
-                    label="Stock mínimo"
-                    isLabel
-                    type="number"
-                    onChange={handleInputChange}
-                    suffix="UND"
-                  />
-                  <Input name="pesoKg" value={pesoKg} label="Peso (Kg)" isLabel type="number" onChange={handleInputChange} />
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-1 py-2">
-                  <div className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3">
-                    <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
-                      <Icon icon="mdi:bag-personal-outline" width={20} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-1 py-2">
+                      <div className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3">
+                        <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
+                          <Icon icon="mdi:bag-personal-outline" width={20} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-gray-900">¿Afecto a ICBPER?</p>
+                          <p className="text-xs text-gray-400">Impuesto a bolsas plásticas</p>
+                        </div>
+                        <Toggle
+                          isOn={icbper}
+                          handleToggle={() => setFormValues({ ...formValues, icbper: !icbper })}
+                          colorOne="#50cd89"
+                          colorTwo="#c7ece8"
+                          id="switchIcbper"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3">
+                        <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500 shrink-0">
+                          <Icon icon="mdi:clock-outline" width={20} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-gray-900">Gestión de lotes y vencimientos</p>
+                          <p className="text-xs text-gray-400">Controla vencimientos y vende primero lo que vence antes</p>
+                        </div>
+                        <Toggle
+                          isOn={gestionLotes}
+                          handleToggle={() => setFormValues({ ...formValues, gestionLotes: !gestionLotes })}
+                          colorOne="#50cd89"
+                          colorTwo="#c7ece8"
+                          id="switchLotes"
+                        />
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-gray-900">¿Afecto a ICBPER?</p>
-                      <p className="text-xs text-gray-400">Impuesto a bolsas plásticas</p>
-                    </div>
-                    <Toggle
-                      isOn={icbper}
-                      handleToggle={() => setFormValues({ ...formValues, icbper: !icbper })}
-                      colorOne="#50cd89"
-                      colorTwo="#c7ece8"
-                      id="switchIcbper"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3">
-                    <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500 shrink-0">
-                      <Icon icon="mdi:clock-outline" width={20} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-gray-900">Gestión de lotes y vencimientos</p>
-                      <p className="text-xs text-gray-400">Controla vencimientos y vende primero lo que vence antes</p>
-                    </div>
-                    <Toggle
-                      isOn={gestionLotes}
-                      handleToggle={() => setFormValues({ ...formValues, gestionLotes: !gestionLotes })}
-                      colorOne="#50cd89"
-                      colorTwo="#c7ece8"
-                      id="switchLotes"
-                    />
-                  </div>
-                </div>
 
-                <div className="px-1">
-                  <label className="text-xs font-semibold text-gray-500">Destino de preparación (Restaurante)</label>
-                  <select
-                    className="w-full md:w-64 border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"
-                    value={destinoPreparacion}
-                    onChange={(e) => setFormValues({ ...formValues, destinoPreparacion: e.target.value })}
-                  >
-                    {DESTINO_PREPARACION_OPCIONES.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    <div className="px-1">
+                      <label className="text-xs font-semibold text-gray-500">Destino de preparación (Restaurante)</label>
+                      <select
+                        className="w-full md:w-64 border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"
+                        value={destinoPreparacion}
+                        onChange={(e) => setFormValues({ ...formValues, destinoPreparacion: e.target.value })}
+                      >
+                        {DESTINO_PREPARACION_OPCIONES.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
 
                 <div className={styles["main-content-fourth"]}>
                   <label>Detalle (para uso interno del negocio)</label>
@@ -1096,6 +1139,55 @@ export const ProductoModal = () => {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {tab === "contabilidad" && (
+              <div className="px-1 py-3">
+                <div className="mb-4">
+                  <h4 className="text-lg font-bold text-gray-900">Cuentas contables</h4>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Del Plan de Cuentas (PCGE). Opcional: si no eliges una, la venta usa la cuenta por defecto
+                    (70 Ventas, 20 Mercaderías, 69 Costos de Ventas) al generar su asiento.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <SelectPro
+                    isLabel
+                    label="Cuenta de ingresos (venta)"
+                    isSearch
+                    id="cuentaIngresoId"
+                    name="cuentaIngresoIgnorar"
+                    defaultValue={cuentaIngresoTexto}
+                    options={cuentasOptions}
+                    onChange={(idValue: any) => setFormValues({ ...formValues, cuentaIngresoId: idValue })}
+                  />
+
+                  {!esServicio && (
+                    <SelectPro
+                      isLabel
+                      label="Cuenta de inventario"
+                      isSearch
+                      id="cuentaInventarioId"
+                      name="cuentaInventarioIgnorar"
+                      defaultValue={cuentaInventarioTexto}
+                      options={cuentasOptions}
+                      onChange={(idValue: any) => setFormValues({ ...formValues, cuentaInventarioId: idValue })}
+                    />
+                  )}
+
+                  <SelectPro
+                    isLabel
+                    label={esServicio ? "Cuenta de gasto" : "Cuenta de costo de venta"}
+                    isSearch
+                    id="cuentaCostoId"
+                    name="cuentaCostoIgnorar"
+                    defaultValue={cuentaCostoTexto}
+                    options={cuentasOptions}
+                    onChange={(idValue: any) => setFormValues({ ...formValues, cuentaCostoId: idValue })}
+                  />
+                </div>
               </div>
             )}
 

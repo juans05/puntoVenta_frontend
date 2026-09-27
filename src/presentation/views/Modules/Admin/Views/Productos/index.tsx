@@ -367,7 +367,9 @@ export const Productos = () => {
                   p.stockMinimo != null && p.stockMinimo > 0 && p.stock <= p.stockMinimo;
                 return (
                   <tr key={p.productoId} className="bg-white border-b hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{p.nombre}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900" title={p.esServicio ? "Servicio" : "Producto"}>
+                      {p.esServicio ? "🧰" : "📦"} {p.nombre}
+                    </td>
                     {columnas.codigoBarra && (
                       <td className="px-4 py-3 font-mono text-xs">{p.codigoBarra || "-"}</td>
                     )}
