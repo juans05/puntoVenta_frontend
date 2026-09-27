@@ -33,7 +33,7 @@ const input: React.CSSProperties = { border: "1px solid #d1d5db", borderRadius: 
 const formatSoles = (n: number) => `S/ ${Number(n).toFixed(2)}`;
 const mensajeError = (e: any, def: string) => e?.response?.data?.message ?? def;
 
-type Linea = { productoId: number; cantidad: number; costoUnitario: number };
+type Linea = { productoId: number; descripcion: string; cantidad: number; costoUnitario: number };
 type Dialogo = null | { tipo: "nueva" } | { tipo: "recibir" | "facturar" | "ver" | "cerrar"; orden: any };
 
 export const Ordenes = ({ config }: { config: any }) => {
@@ -93,7 +93,8 @@ export const Ordenes = ({ config }: { config: any }) => {
   const puede = (o: any) => ({
     emitir: o.estadoOrden === "BORRADOR",
     aprobar: o.estadoOrden === "PENDIENTE_APROBACION",
-    recibir: ["EMITIDA", "RECIBIDA_PARCIAL"].includes(o.estadoOrden),
+    // Servicio nunca pasa por Recepcion: al emitirse ya queda RECIBIDA de una vez.
+    recibir: o.tipoOrden !== "SERVICIO" && ["EMITIDA", "RECIBIDA_PARCIAL"].includes(o.estadoOrden),
     facturar: ["RECIBIDA_PARCIAL", "RECIBIDA"].includes(o.estadoOrden),
     cerrar: ["EMITIDA", "RECIBIDA_PARCIAL", "RECIBIDA"].includes(o.estadoOrden),
     anular: !["ANULADA", "CERRADA"].includes(o.estadoOrden),
@@ -124,7 +125,7 @@ export const Ordenes = ({ config }: { config: any }) => {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>N° Orden</th><th>Proveedor</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th>
+                <th>N° Orden</th><th>Tipo</th><th>Proveedor</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -134,6 +135,7 @@ export const Ordenes = ({ config }: { config: any }) => {
                 return (
                   <tr key={o.id}>
                     <td data-label="N° Orden">{o.numero}</td>
+                    <td data-label="Tipo">{o.tipoOrden === "SERVICIO" ? "🧰 Servicio" : "📦 Bien"}</td>
                     <td data-label="Proveedor">{o.proveedor ?? "Sin proveedor"}</td>
                     <td data-label="Fecha">{o.fechaEmision}</td>
                     <td data-label="Total">{formatSoles(o.total)}</td>
@@ -227,10 +229,12 @@ const Modal = ({ titulo, onCerrar, children }: any) => (
 );
 
 const NuevaOrden = ({ proveedores, productos, sucursales, aprobacion, onCerrar, onGuardar }: any) => {
+  const [tipoOrden, setTipoOrden] = useState<"BIEN" | "SERVICIO">("BIEN");
   const [proveedorId, setProveedorId] = useState(0);
   const [sucursalId, setSucursalId] = useState(0);
   const [observacion, setObservacion] = useState("");
-  const [lineas, setLineas] = useState<Linea[]>([{ productoId: 0, cantidad: 1, costoUnitario: 0 }]);
+  const [lineas, setLineas] = useState<Linea[]>([{ productoId: 0, descripcion: "", cantidad: 1, costoUnitario: 0 }]);
+  const esServicio = tipoOrden === "SERVICIO";
 
   const total = lineas.reduce((a, l) => a + l.cantidad * l.costoUnitario, 0);
   const setLinea = (i: number, cambio: Partial<Linea>) => setLineas(lineas.map((l, j) => (j === i ? { ...l, ...cambio } : l)));
@@ -238,19 +242,28 @@ const NuevaOrden = ({ proveedores, productos, sucursales, aprobacion, onCerrar, 
   const { errors, setError, clearError } = useFormErrors();
 
   const guardar = (borrador: boolean) => {
-    const validas = lineas.filter((l) => l.productoId > 0);
+    const validas = lineas.filter((l) => (esServicio ? l.descripcion.trim() !== "" : l.productoId > 0));
     if (validas.length === 0) {
-      setError("productos", "Agrega al menos un producto");
-      return toast.error("Agrega al menos un producto");
+      const msg = esServicio ? "Describe al menos un servicio" : "Agrega al menos un producto";
+      setError("productos", msg);
+      return toast.error(msg);
     }
     onGuardar({
-      proveedorId: proveedorId || undefined, sucursalId: sucursalId || undefined, observacion: observacion || undefined,
-      borrador, detalle: validas,
+      tipoOrden, proveedorId: proveedorId || undefined, sucursalId: sucursalId || undefined, observacion: observacion || undefined,
+      borrador,
+      detalle: validas.map((l) =>
+        esServicio ? { descripcion: l.descripcion.trim(), cantidad: l.cantidad, costoUnitario: l.costoUnitario }
+                    : { productoId: l.productoId, cantidad: l.cantidad, costoUnitario: l.costoUnitario }
+      ),
     });
   };
 
   return (
     <Modal titulo="Nueva orden de compra" onCerrar={onCerrar}>
+      <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
+        <label><input type="radio" checked={!esServicio} onChange={() => setTipoOrden("BIEN")} /> 📦 Bien (con recepción)</label>
+        <label><input type="radio" checked={esServicio} onChange={() => setTipoOrden("SERVICIO")} /> 🧰 Servicio (directo a factura)</label>
+      </div>
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
         <select style={input} value={proveedorId} onChange={(e) => setProveedorId(Number(e.target.value))}>
           <option value={0}>Proveedor</option>
@@ -261,21 +274,28 @@ const NuevaOrden = ({ proveedores, productos, sucursales, aprobacion, onCerrar, 
           {sucursales.map((s: any) => <option key={s.id} value={s.id}>{s.value}</option>)}
         </select>
       </div>
-      <h4 style={{ margin: "14px 0 6px" }}>Productos</h4>
+      <h4 style={{ margin: "14px 0 6px" }}>{esServicio ? "Servicios" : "Productos"}</h4>
       <CampoError mensaje={errors.productos} />
       {lineas.map((l, i) => (
         <div key={i} style={{ display: "grid", gap: 6, gridTemplateColumns: "3fr 1fr 1fr auto", marginBottom: 6 }}>
-          <select style={{ ...input, ...estiloError(!!errors.productos) }} value={l.productoId}
-            onChange={(e) => { setLinea(i, { productoId: Number(e.target.value) }); clearError("productos"); }}>
-            <option value={0}>Producto</option>
-            {productos.map((p: any) => <option key={p.productoId} value={p.productoId}>{p.nombre}</option>)}
-          </select>
+          {esServicio ? (
+            <input style={{ ...input, ...estiloError(!!errors.productos) }} placeholder="Descripción del servicio" value={l.descripcion}
+              onChange={(e) => { setLinea(i, { descripcion: e.target.value }); clearError("productos"); }} />
+          ) : (
+            <select style={{ ...input, ...estiloError(!!errors.productos) }} value={l.productoId}
+              onChange={(e) => { setLinea(i, { productoId: Number(e.target.value) }); clearError("productos"); }}>
+              <option value={0}>Producto</option>
+              {productos.map((p: any) => <option key={p.productoId} value={p.productoId}>{p.nombre}</option>)}
+            </select>
+          )}
           <input style={input} type="number" min={1} value={l.cantidad} onChange={(e) => setLinea(i, { cantidad: Math.max(1, Math.floor(Number(e.target.value))) })} title="Cantidad" />
           <input style={input} type="number" min={0} step="0.01" value={l.costoUnitario} onChange={(e) => setLinea(i, { costoUnitario: Math.max(0, Number(e.target.value)) })} title="Costo unitario" />
           <button onClick={() => setLineas(lineas.filter((_, j) => j !== i))} disabled={lineas.length === 1}>✕</button>
         </div>
       ))}
-      <button onClick={() => setLineas([...lineas, { productoId: 0, cantidad: 1, costoUnitario: 0 }])}>+ Agregar producto</button>
+      <button onClick={() => setLineas([...lineas, { productoId: 0, descripcion: "", cantidad: 1, costoUnitario: 0 }])}>
+        + Agregar {esServicio ? "servicio" : "producto"}
+      </button>
       <textarea style={{ ...input, marginTop: 10 }} placeholder="Observación (opcional)" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
       <p style={{ marginTop: 10 }}>
         <strong>Total: {formatSoles(total)}</strong>
@@ -297,7 +317,7 @@ const DetalleOrden = ({ orden, onCerrar, onAnularRecepcion }: any) => (
       <thead><tr><th>Producto</th><th>Pedido</th><th>Recibido</th><th>Facturado</th><th>Costo</th></tr></thead>
       <tbody>
         {orden.detalle.map((d: any) => (
-          <tr key={d.id}><td>{d.producto}</td><td>{d.cantidadPedida}</td><td>{d.cantidadRecibida}</td><td>{d.cantidadFacturada}</td><td>{formatSoles(d.costoUnitario)}</td></tr>
+          <tr key={d.id}><td>{d.producto ?? d.descripcion}</td><td>{d.cantidadPedida}</td><td>{d.cantidadRecibida}</td><td>{d.cantidadFacturada}</td><td>{formatSoles(d.costoUnitario)}</td></tr>
         ))}
       </tbody>
     </table>
@@ -360,8 +380,9 @@ const Facturar = ({ orden, onCerrar, onGuardar }: any) => {
   const [esCredito, setEsCredito] = useState(false);
   const { errors, setError, clearError } = useFormErrors();
   const pendientes = orden.detalle.filter((d: any) => d.cantidadRecibida - d.cantidadFacturada > 0);
+  // Clave por Id de la linea (no por producto): las lineas de servicio no tienen productoId.
   const [lineas, setLineas] = useState<Record<number, { cantidad: number; costo: number }>>(
-    Object.fromEntries(pendientes.map((d: any) => [d.productoId, { cantidad: d.cantidadRecibida - d.cantidadFacturada, costo: d.costoUnitario }]))
+    Object.fromEntries(pendientes.map((d: any) => [d.id, { cantidad: d.cantidadRecibida - d.cantidadFacturada, costo: d.costoUnitario }]))
   );
   return (
     <Modal titulo={`Factura del proveedor · ${orden.numero}`} onCerrar={onCerrar}>
@@ -380,12 +401,12 @@ const Facturar = ({ orden, onCerrar, onGuardar }: any) => {
         <thead><tr><th>Producto</th><th>Por facturar</th><th>Cant. factura</th><th>Precio factura</th><th>Precio orden</th></tr></thead>
         <tbody>
           {pendientes.map((d: any) => {
-            const l = lineas[d.productoId];
+            const l = lineas[d.id];
             return (
               <tr key={d.id}>
-                <td>{d.producto}</td><td>{d.cantidadRecibida - d.cantidadFacturada}</td>
-                <td><input style={{ ...input, width: 80 }} type="number" min={1} value={l.cantidad} onChange={(e) => setLineas({ ...lineas, [d.productoId]: { ...l, cantidad: Math.max(1, Math.floor(Number(e.target.value))) } })} /></td>
-                <td><input style={{ ...input, width: 90 }} type="number" min={0} step="0.01" value={l.costo} onChange={(e) => setLineas({ ...lineas, [d.productoId]: { ...l, costo: Math.max(0, Number(e.target.value)) } })} /></td>
+                <td>{d.producto ?? d.descripcion}</td><td>{d.cantidadRecibida - d.cantidadFacturada}</td>
+                <td><input style={{ ...input, width: 80 }} type="number" min={1} value={l.cantidad} onChange={(e) => setLineas({ ...lineas, [d.id]: { ...l, cantidad: Math.max(1, Math.floor(Number(e.target.value))) } })} /></td>
+                <td><input style={{ ...input, width: 90 }} type="number" min={0} step="0.01" value={l.costo} onChange={(e) => setLineas({ ...lineas, [d.id]: { ...l, costo: Math.max(0, Number(e.target.value)) } })} /></td>
                 <td>{formatSoles(d.costoUnitario)}</td>
               </tr>
             );
@@ -402,7 +423,7 @@ const Facturar = ({ orden, onCerrar, onGuardar }: any) => {
             }
             onGuardar({
               serie: serie.trim(), numero: numero.trim(), fechaEmision: fechaEmision || undefined, esCredito,
-              detalle: pendientes.map((d: any) => ({ productoId: d.productoId, cantidad: lineas[d.productoId].cantidad, costoUnitario: lineas[d.productoId].costo })),
+              detalle: pendientes.map((d: any) => ({ ordenCompraDetalleId: d.id, productoId: d.productoId, cantidad: lineas[d.id].cantidad, costoUnitario: lineas[d.id].costo })),
             });
           }}>
           Registrar factura
