@@ -42,6 +42,7 @@ export const Ordenes = ({ config }: { config: any }) => {
   const { sucursales }: any = useAppSelector((s: RootState) => s.extentions);
 
   const [ordenes, setOrdenes] = useState<any[]>([]);
+  const [departamentos, setDepartamentos] = useState<any[]>([]);
   const [estadoFiltro, setEstadoFiltro] = useState("");
   const [cargando, setCargando] = useState(false);
   const [dialogo, setDialogo] = useState<Dialogo>(null);
@@ -64,6 +65,7 @@ export const Ordenes = ({ config }: { config: any }) => {
     dispatch(getProveedores() as any);
     dispatch(getProductosCompra() as any);
     dispatch(getSucursales() as any);
+    axiosInstance.get("/departamentos/listar").then((r: any) => setDepartamentos(r.data?.data ?? [])).catch(() => {});
   }, []);
   useEffect(() => {
     cargar();
@@ -145,7 +147,12 @@ export const Ordenes = ({ config }: { config: any }) => {
                     <td className={styles.accionesCell}>
                       <button className={styles.verBtn} onClick={() => abrirDetalle(o, "ver")}>Ver</button>
                       {p.emitir && <button className={styles.editarBtn} onClick={() => accion(() => axiosInstance.put(`/ordenes-compra/${o.id}/emitir`), "Orden emitida")}>Emitir</button>}
-                      {p.aprobar && <button className={styles.editarBtn} onClick={() => accion(() => axiosInstance.put(`/ordenes-compra/${o.id}/aprobar`), "Orden aprobada")}>Aprobar</button>}
+                      {p.aprobar && (
+                        <button className={styles.editarBtn} title={o.aprobadorAsignado ? `Le toca aprobar a ${o.aprobadorAsignado}` : undefined}
+                          onClick={() => accion(() => axiosInstance.put(`/ordenes-compra/${o.id}/aprobar`), "Orden aprobada")}>
+                          Aprobar
+                        </button>
+                      )}
                       {p.recibir && <button className={styles.editarBtn} onClick={() => abrirDetalle(o, "recibir")}>Recibir</button>}
                       {p.facturar && <button className={styles.editarBtn} onClick={() => abrirDetalle(o, "facturar")}>Facturar</button>}
                       {p.cerrar && <button className={styles.verBtn} onClick={() => abrirDetalle(o, "cerrar")}>Cerrar</button>}
@@ -168,6 +175,7 @@ export const Ordenes = ({ config }: { config: any }) => {
 
       {dialogo?.tipo === "nueva" && (
         <NuevaOrden proveedores={proveedores ?? []} productos={productosCompra ?? []} sucursales={sucursales ?? []}
+          departamentos={departamentos}
           aprobacion={config?.montoAprobacionOc}
           onCerrar={() => setDialogo(null)}
           onGuardar={(payload: any) => accion(() => axiosInstance.post(`/ordenes-compra/crear`, payload), "Orden creada")} />
@@ -228,15 +236,20 @@ const Modal = ({ titulo, onCerrar, children }: any) => (
   </div>
 );
 
-const NuevaOrden = ({ proveedores, productos, sucursales, aprobacion, onCerrar, onGuardar }: any) => {
+const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobacion, onCerrar, onGuardar }: any) => {
   const [tipoOrden, setTipoOrden] = useState<"BIEN" | "SERVICIO">("BIEN");
   const [proveedorId, setProveedorId] = useState(0);
   const [sucursalId, setSucursalId] = useState(0);
   const [observacion, setObservacion] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([{ productoId: 0, descripcion: "", cantidad: 1, costoUnitario: 0 }]);
+  const [departamentoId, setDepartamentoId] = useState(0);
+  const [aprobadorAsignadoId, setAprobadorAsignadoId] = useState("");
   const esServicio = tipoOrden === "SERVICIO";
 
   const total = lineas.reduce((a, l) => a + l.cantidad * l.costoUnitario, 0);
+  const requiereAprobacion = aprobacion != null && total > aprobacion;
+  const departamentoElegido = departamentos.find((d: any) => d.id === departamentoId);
+  const aprobadoresDelDepartamento = departamentoElegido?.aprobadores ?? [];
   const setLinea = (i: number, cambio: Partial<Linea>) => setLineas(lineas.map((l, j) => (j === i ? { ...l, ...cambio } : l)));
 
   const { errors, setError, clearError } = useFormErrors();
@@ -248,9 +261,15 @@ const NuevaOrden = ({ proveedores, productos, sucursales, aprobacion, onCerrar, 
       setError("productos", msg);
       return toast.error(msg);
     }
+    if (!borrador && requiereAprobacion) {
+      if (!departamentoId) { setError("departamentoId", "Elige el departamento que debe aprobar"); return toast.error("Elige el departamento que debe aprobar"); }
+      if (!aprobadorAsignadoId) { setError("aprobadorAsignadoId", "Elige el aprobador"); return toast.error("Elige el aprobador"); }
+    }
     onGuardar({
       tipoOrden, proveedorId: proveedorId || undefined, sucursalId: sucursalId || undefined, observacion: observacion || undefined,
       borrador,
+      departamentoId: requiereAprobacion ? departamentoId || undefined : undefined,
+      aprobadorAsignadoId: requiereAprobacion ? aprobadorAsignadoId || undefined : undefined,
       detalle: validas.map((l) =>
         esServicio ? { descripcion: l.descripcion.trim(), cantidad: l.cantidad, costoUnitario: l.costoUnitario }
                     : { productoId: l.productoId, cantidad: l.cantidad, costoUnitario: l.costoUnitario }
@@ -299,8 +318,28 @@ const NuevaOrden = ({ proveedores, productos, sucursales, aprobacion, onCerrar, 
       <textarea style={{ ...input, marginTop: 10 }} placeholder="Observación (opcional)" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
       <p style={{ marginTop: 10 }}>
         <strong>Total: {formatSoles(total)}</strong>
-        {aprobacion != null && total > aprobacion && <span style={{ color: "#b45309" }}> · requiere aprobación (umbral {formatSoles(aprobacion)})</span>}
+        {requiereAprobacion && <span style={{ color: "#b45309" }}> · requiere aprobación (umbral {formatSoles(aprobacion)})</span>}
       </p>
+      {requiereAprobacion && (
+        <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr", marginBottom: 10 }}>
+          <div>
+            <select style={{ ...input, ...estiloError(!!errors.departamentoId) }} value={departamentoId}
+              onChange={(e) => { setDepartamentoId(Number(e.target.value)); setAprobadorAsignadoId(""); clearError("departamentoId"); }}>
+              <option value={0}>Departamento que aprueba</option>
+              {departamentos.map((d: any) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+            </select>
+            <CampoError mensaje={errors.departamentoId} />
+          </div>
+          <div>
+            <select style={{ ...input, ...estiloError(!!errors.aprobadorAsignadoId) }} value={aprobadorAsignadoId} disabled={!departamentoId}
+              onChange={(e) => { setAprobadorAsignadoId(e.target.value); clearError("aprobadorAsignadoId"); }}>
+              <option value="">Aprobador</option>
+              {aprobadoresDelDepartamento.map((a: any) => <option key={a.userId} value={a.userId}>{a.nombre}</option>)}
+            </select>
+            <CampoError mensaje={errors.aprobadorAsignadoId} />
+          </div>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
         <button className={styles.verBtn} onClick={() => guardar(true)} disabled={Object.keys(errors).length > 0}>Guardar borrador</button>
         <button className={styles.registrarBtn} onClick={() => guardar(false)} disabled={Object.keys(errors).length > 0}>Emitir orden</button>
@@ -312,7 +351,8 @@ const NuevaOrden = ({ proveedores, productos, sucursales, aprobacion, onCerrar, 
 const DetalleOrden = ({ orden, onCerrar, onAnularRecepcion }: any) => (
   <Modal titulo={`Orden ${orden.numero}`} onCerrar={onCerrar}>
     <p>{orden.proveedor ?? "Sin proveedor"} · {orden.sucursal ?? "—"} · {ESTADOS[orden.estadoOrden]?.label}
-      {orden.aprobadoPor && ` · aprobada por ${orden.aprobadoPor}`}{orden.motivoCierre && ` · cierre: ${orden.motivoCierre}`}</p>
+      {orden.aprobadoPor && ` · aprobada por ${orden.aprobadoPor}`}{orden.motivoCierre && ` · cierre: ${orden.motivoCierre}`}
+      {!orden.aprobadoPor && orden.departamento && ` · pendiente de aprobar por ${orden.departamento}${orden.aprobadorAsignado ? ` (${orden.aprobadorAsignado})` : ""}`}</p>
     <table className={styles.table}>
       <thead><tr><th>Producto</th><th>Pedido</th><th>Recibido</th><th>Facturado</th><th>Costo</th></tr></thead>
       <tbody>

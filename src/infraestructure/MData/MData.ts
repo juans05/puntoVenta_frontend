@@ -81,6 +81,13 @@ export const menuSidebar = [
             icon: "mdi:office-building-marker-outline",
             url: "dashboard/pedidos/salones",
           },
+          {
+            code: "1300",
+            id: 144,
+            value: "Departamentos",
+            icon: "mdi:account-tie-outline",
+            url: "dashboard/departamentos",
+          },
         ],
       },
     ],
