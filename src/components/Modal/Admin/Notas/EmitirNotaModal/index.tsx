@@ -73,8 +73,36 @@ export const EmitirNotaModal = ({ isOpen, comprobante, tipoInicial, onClose, onS
 
       <div className={styles.resumen}>
         <div><span>Cliente</span><span>{comprobante.clienteNombre || comprobante.nombre}</span></div>
-        <div><span>Total</span><span>S/ {comprobante.total ?? comprobante.valorTotal}</span></div>
+        {comprobante.numeroDocumento && (
+          <div><span>Documento</span><span>{comprobante.numeroDocumento}</span></div>
+        )}
+        <div><span>Total</span><span>S/ {Number(comprobante.total ?? comprobante.valorTotal ?? 0).toFixed(2)}</span></div>
       </div>
+
+      {comprobante.detalle?.length > 0 && (
+        <div className={styles.detalleTabla}>
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Cant.</th>
+                <th>P.Unit</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comprobante.detalle.map((d: any, i: number) => (
+                <tr key={i}>
+                  <td>{d.nombre}</td>
+                  <td>{d.cantidad}</td>
+                  <td>{Number(d.valorUnitario).toFixed(2)}</td>
+                  <td>{Number(d.valorUnitarioTotal).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className={styles.tabsTipo}>
         <button

@@ -103,7 +103,7 @@ const SelectUbigeo = ({
             <div ref={ref} className={isOpen ? `${styles.wrapper__select} ${styles.wrapper__selectOpen}` : styles.wrapper__select}>
                 <div className={disabled ? `${styles.input__select} ${styles.disabled__select}` : `${styles.input__select}`} onClick={() => setIsOpen(!isOpen)}>
                     <div className={styles.selected__value}>
-                        {typeof valueOptions === "object" ? <span>{valueOptions?.departamento}/${valueOptions?.provincia}/${valueOptions?.distrito}</span> : <span>{valueOptions}</span>} 
+                        {typeof valueOptions === "object" ? <span>{`${valueOptions?.departamento}/${valueOptions?.provincia}/${valueOptions?.distrito}`}</span> : <span>{valueOptions}</span>} 
                     </div>
                     <div>
                         <Input isLabel label={label} readOnly={searching ? true : false} autocomplete="off" placeholder={placeholder} onChange={searchOptions} name="option"

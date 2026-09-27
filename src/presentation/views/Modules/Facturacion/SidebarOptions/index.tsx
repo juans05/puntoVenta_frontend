@@ -37,6 +37,7 @@ const SidebarOptions = ({ onClose,
 
     const signout = () => {
         localStorage.clear();
+        sessionStorage.clear();
         return (window.location.href = "/");
     }
 

@@ -52,8 +52,11 @@ interface IDataHistory {
   dateEnd: string;
 }
 
+// Rango por defecto de 30 dias (igual que la pantalla de Notas de Credito/Debito) -- antes
+// arrancaba en "solo hoy", asi que un documento creado ayer no aparecia hasta que el
+// usuario ajustara el filtro de fecha a mano.
 const dataHistory: IDataHistory = {
-  dateStart: moment(new Date()).format("DD/MM/YYYY"),
+  dateStart: moment(new Date()).subtract(30, "days").format("DD/MM/YYYY"),
   dateEnd: moment(new Date()).format("DD/MM/YYYY"),
 };
 
@@ -104,12 +107,7 @@ export const DocumentosFacturados = () => {
       serieCorrelativo: `${value?.serie} - ${value?.correlativo}`,
       total: value?.valorTotal,
       estadoComprobante: value?.estadoComprobante,
-      tipoDocumento:
-        value?.tipoDocumentoVentaId === 1
-          ? "factura"
-          : value?.tipoDocumentoVentaId === 2
-          ? "Boleta"
-          : "Ticket Interno",
+      tipoDocumento: value?.tipoDocumentoVenta || "Ticket Interno",
       tipoDocumentoVentaId: value?.tipoDocumentoVentaId,
     };
   });
@@ -120,7 +118,9 @@ export const DocumentosFacturados = () => {
     : newDataVentas?.filter((v: any) => {
         if (filterTipo === "1") return v.tipoDocumentoVentaId === 1;
         if (filterTipo === "2") return v.tipoDocumentoVentaId === 2;
-        if (filterTipo === "3") return v.tipoDocumentoVentaId === 3;
+        // "Otros" (tab 3) agrupa todo lo que no es Factura ni Boleta -- mismo criterio que
+        // countOtros de abajo, que es lo que el numero del tab le promete al usuario.
+        if (filterTipo === "3") return v.tipoDocumentoVentaId !== 1 && v.tipoDocumentoVentaId !== 2;
         return true;
       });
 
@@ -197,7 +197,19 @@ export const DocumentosFacturados = () => {
     if (estaAnulado(data)) return toast.error("El comprobante ya está anulado");
     if (!esFacturaOBoleta(data)) return toast.error("Solo se puede emitir una nota contra una Factura o Boleta");
     setTipoNotaElegido(tipoNota);
-    setNotaComprobante(data);
+    setNotaComprobante({
+      ...data,
+      idComprobante: data?.idComprobante,
+      // /facturacion/listar devuelve el detalle con "producto" como nombre plano (a diferencia
+      // de /facturacion/buscar, que usa la entidad con producto.nombre) -- se normaliza aqui al
+      // mismo shape {nombre, cantidad, valorUnitario, valorUnitarioTotal} que espera el modal.
+      detalle: (data?.comprobanteDetalles || []).map((d: any) => ({
+        nombre: d.producto ?? "Producto",
+        cantidad: d.cantidad,
+        valorUnitario: d.valorUnitario,
+        valorUnitarioTotal: d.valorUnitarioTotal,
+      })),
+    });
   };
 
   const handleAnular = (data: any) => {

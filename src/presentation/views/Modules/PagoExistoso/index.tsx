@@ -20,6 +20,7 @@ const PagoExitoso = () => {
     const [dimensions,] = useState({ width: 80, height: 297 });
     const { productsBySale, turned, tipoVenta, correlative, code,efectivo, numeroDocumento }: ISalesState = useAppSelector((state: RootState) => state.sales)
     const { me, customer }: any = useAppSelector((state: RootState) => state.auth)
+    const { activeTenant }: any = useAppSelector((state: RootState) => state.myBusiness)
     const navigate = useNavigate();
     const dispatch = useAppDispatch()
 
@@ -75,14 +76,14 @@ const PagoExitoso = () => {
                         <div className={styles.bodySuccess__content}>
                             <div className={styles.headerSucces__Pay}>
                                 <div>
-                                    <p>SOLIS EGUIZABAL VENTURA</p>
+                                    <p>{activeTenant?.nombreComercial || activeTenant?.razonSocial}</p>
                                 </div>
                                 <div>
                                     <label htmlFor="">RUC:</label>
-                                    <p>10430936315</p>
+                                    <p>{activeTenant?.ruc}</p>
                                 </div>
                                 <div>
-                                    <p>JR César Vallejo 881 Los Olivos</p>
+                                    <p>{activeTenant?.direccion}</p>
                                 </div>
                             </div>
                             <div className={styles.sale__number}>
@@ -163,14 +164,8 @@ const PagoExitoso = () => {
 
                             <div className={styles.about}>
                                 <p>Gracias por su preferencia</p>
-                                <p>Solis Salon SPA</p>
-                                <p>Dios lo bendiga</p>
-                            </div>
-                            <div className={styles.note}>
-                                ***** Por el décimo comprobante generado, llévate un premio sorpresa ****
-                            </div>
-                            <div className={styles.note}>
-                                ***** Ven en tu cumpleaños y llevate un premio sorpresa ****
+                                <p>Generado con PuntoVenta</p>
+                                <p>{activeTenant?.nombreComercial || activeTenant?.razonSocial}</p>
                             </div>
                         </div>
                     </div>

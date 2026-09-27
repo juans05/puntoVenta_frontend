@@ -85,7 +85,7 @@
   height: 38px;
 }
 
-.buscarBtn {
+button.buscarBtn {
   background: #6C5DD3;
   color: #fff;
   border: 0;
@@ -100,7 +100,7 @@
   cursor: not-allowed;
 }
 
-.addLineBtn {
+button.addLineBtn {
   border: 1px solid #6C5DD3;
   color: #6C5DD3;
   background: #fff;
@@ -271,7 +271,7 @@
   color: #1a1a1a;
 }
 
-.guardarBtn {
+button.guardarBtn {
   width: 100%;
   background: #6C5DD3;
   color: #fff;
@@ -289,7 +289,7 @@
   cursor: not-allowed;
 }
 
-.cancelarBtn {
+button.cancelarBtn {
   width: 100%;
   background: #fff;
   color: #475467;

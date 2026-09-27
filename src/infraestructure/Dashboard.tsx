@@ -89,6 +89,11 @@ const DashboardRoutes = () => {
         <Route path="sucursales" element={<Sucursales />}/>
         <Route path="cajas" element={<Cajas />}/>
         <Route path="compras" element={<Compras />}/>
+        {/* Mismas paginas que "productos"/"clientes", montadas en otra ruta para que el menu
+            "Compras > Productos y servicios / Proveedores" tenga su propio NavLink activo en
+            vez de compartir pathname con "Ventas y pagos > Productos y servicios / Clientes". */}
+        <Route path="compras/productos" element={<Productos />}/>
+        <Route path="compras/proveedores" element={<ClientesProveedores />}/>
         <Route path="configuracion-flujo" element={<ConfiguracionFlujo />}/>
         <Route path="departamentos" element={<Departamentos />}/>
         <Route path="gastos" element={<Gastos />}/>

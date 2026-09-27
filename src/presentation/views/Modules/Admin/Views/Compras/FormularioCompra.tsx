@@ -460,10 +460,10 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
                 />
               </div>
               <div>
-                <Input isLabel label="Serie" name="serie" value={docSerie} disabled={!esEdicion} onChange={(e: any) => setDocSerie(e.target.value)} />
+                <Input isLabel label="Serie" name="serie" value={docSerie} onChange={(e: any) => setDocSerie(e.target.value)} />
               </div>
               <div>
-                <Input isLabel label="Número" name="numero" value={docNumero} disabled={!esEdicion} onChange={(e: any) => setDocNumero(e.target.value)} />
+                <Input isLabel label="Número" name="numero" value={docNumero} onChange={(e: any) => setDocNumero(e.target.value)} />
               </div>
               <div>
                 <label>Fecha de Emisión</label>

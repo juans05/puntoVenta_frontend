@@ -1,4 +1,5 @@
 import { ChangeEvent, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Tab } from "../../../../../../components/Layout";
 import { Sidebar } from "../../../../../../components/Layout/Sidebar";
 import styles from "./clientsAndSuppliers.module.css";
@@ -116,7 +117,11 @@ export const ClientesProveedores = () => {
   const [currentPage, setcurrentPage] = useState(1);
   const [itemsPerPage, setitemsPerPage] = useState(50);
 
-  const [activeTab, setActiveTab] = useState(1);
+  const location = useLocation();
+  // Entrada desde el menu "Compras > Proveedores" (misma pagina, montada en otra ruta -- ver
+  // Dashboard.tsx -- para que ese NavLink tenga su propio estado activo, distinto del de
+  // "Ventas y pagos > Clientes").
+  const [activeTab, setActiveTab] = useState(location.pathname.endsWith("/proveedores") ? 2 : 1);
 
   const totalActivo = activeTab === 1 ? totalClients : totalProviders;
   const indexOfLastItem = currentPage * itemsPerPage;

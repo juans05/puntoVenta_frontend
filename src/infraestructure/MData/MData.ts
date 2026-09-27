@@ -18,8 +18,11 @@ export const menuSidebar = [
   },
 
   // === ADMINISTRACIÓN ===
+  // code "1400" = "Configuración" en module.json (Usuarios/Sucursales/RolesPermisos/Departamentos
+  // viven ahi) -- antes decia "200" ("Productos"), asi que este grupo solo aparecia si el rol
+  // tenia acceso a Productos, sin relacion real con los permisos de administracion/configuracion.
   {
-    code: "200",
+    code: "1400",
     id: 9,
     value: "Administración",
     icon: "mdi:cog-outline",
@@ -153,7 +156,88 @@ export const menuSidebar = [
     ],
   },
 
-  // === TU OPERACIÓN ===
+  // === VENTAS Y PAGOS ===
+  // Mismo code "400" que "Tu Operación": el filtro del Sidebar solo mira el code
+  // del nodo top-level (ver LayoutView), asi que partir el grupo no le quita
+  // acceso a nadie que ya viera "Tu Operación".
+  {
+    code: "400",
+    id: 40,
+    value: "Ventas y pagos",
+    icon: "mdi:cash-register",
+    url: "",
+    children: [
+      {
+        code: "300",
+        id: 401,
+        value: "Estimaciones",
+        icon: "mdi:file-chart-outline",
+        url: "dashboard/cotizaciones",
+      },
+      {
+        code: "900",
+        id: 402,
+        value: "Facturas",
+        icon: "healthicons:i-documents-accepted",
+        url: "dashboard/documentos-facturados",
+      },
+      {
+        code: "300",
+        id: 403,
+        value: "Estados de cuenta de los clientes",
+        icon: "mdi:cash-plus",
+        url: "dashboard/cuentas-por-cobrar",
+      },
+      {
+        code: "400",
+        id: 404,
+        value: "Clientes",
+        icon: "mdi:users-group",
+        url: "dashboard/clientes",
+      },
+      {
+        code: "200",
+        id: 405,
+        value: "Productos y servicios",
+        icon: "solar:bag-4-bold",
+        url: "dashboard/productos",
+      },
+    ],
+  },
+
+  // === COMPRAS ===
+  {
+    code: "400",
+    id: 41,
+    value: "Compras",
+    icon: "mdi:truck-delivery-outline",
+    url: "",
+    children: [
+      {
+        code: "1100",
+        id: 411,
+        value: "Facturas",
+        icon: "mdi:file-document-outline",
+        url: "dashboard/compras",
+      },
+      {
+        code: "400",
+        id: 412,
+        value: "Proveedores",
+        icon: "mdi:domain",
+        url: "dashboard/compras/proveedores",
+      },
+      {
+        code: "200",
+        id: 413,
+        value: "Productos y servicios",
+        icon: "solar:bag-4-bold",
+        url: "dashboard/compras/productos",
+      },
+    ],
+  },
+
+  // === TU OPERACIÓN (resto) ===
   {
     code: "400",
     id: 4,
@@ -169,32 +253,11 @@ export const menuSidebar = [
         url: "dashboard/cajas",
       },
       {
-        code: "1100",
-        id: 12,
-        value: "Compras",
-        icon: "mdi:truck-delivery-outline",
-        url: "dashboard/compras",
-      },
-      {
         code: "1300",
         id: 13,
         value: "Gastos",
         icon: "mdi:cash-minus",
         url: "dashboard/gastos",
-      },
-      {
-        code: "400",
-        id: 4,
-        value: "Clientes / Proveedores",
-        icon: "mdi:users-group",
-        url: "dashboard/clientes",
-      },
-      {
-        code: "200",
-        id: 2,
-        value: "Productos/Servicios",
-        icon: "solar:bag-4-bold",
-        url: "dashboard/productos",
       },
       {
         code: "300",

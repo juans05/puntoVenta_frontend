@@ -103,6 +103,8 @@ const initialForm = {
   gestionLotes: false,
   multiPrecioActivo: false,
   esServicio: false,
+  seVende: true,
+  seCompra: true,
   cuentaIngresoId: 0,
   cuentaInventarioId: 0,
   cuentaCostoId: 0,
@@ -158,6 +160,8 @@ export const ProductoModal = () => {
     gestionLotes,
     multiPrecioActivo,
     esServicio,
+    seVende,
+    seCompra,
   } = formValues;
 
   const cuentasOptions = cuentasContables.map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
@@ -635,6 +639,44 @@ export const ProductoModal = () => {
                     colorOne="#7c3aed"
                     colorTwo="#ede9fe"
                     id="switchEsServicio"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3 mx-1 mt-3">
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
+                    <Icon icon="mdi:cart-arrow-up" width={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-900">Vender esto</p>
+                    <p className="text-xs text-gray-400">
+                      Permite agregar este producto o servicio a las Facturas.
+                    </p>
+                  </div>
+                  <Toggle
+                    isOn={seVende}
+                    handleToggle={() => setFormValues({ ...formValues, seVende: !seVende })}
+                    colorOne="#3b82f6"
+                    colorTwo="#dbeafe"
+                    id="switchSeVende"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3 mx-1 mt-3">
+                  <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
+                    <Icon icon="mdi:cart-arrow-down" width={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-900">Comprar esto</p>
+                    <p className="text-xs text-gray-400">
+                      Permite agregar este producto o servicio a las Compras.
+                    </p>
+                  </div>
+                  <Toggle
+                    isOn={seCompra}
+                    handleToggle={() => setFormValues({ ...formValues, seCompra: !seCompra })}
+                    colorOne="#f59e0b"
+                    colorTwo="#fef3c7"
+                    id="switchSeCompra"
                   />
                 </div>
 
