@@ -313,6 +313,20 @@ export const menuSidebar = [
         icon: "mdi:file-chart-outline",
         url: "dashboard/contabilidad/reporte-compras",
       },
+      {
+        code: "1600",
+        id: 255,
+        value: "Plan de Cuentas",
+        icon: "mdi:sitemap-outline",
+        url: "dashboard/contabilidad/plan-de-cuentas",
+      },
+      {
+        code: "1600",
+        id: 256,
+        value: "Asientos Contables",
+        icon: "mdi:book-open-page-variant-outline",
+        url: "dashboard/contabilidad/asientos-contables",
+      },
     ],
   },
 ]
