@@ -364,7 +364,7 @@ const DetalleOrden = ({ orden, onCerrar, onAnularRecepcion }: any) => (
     <h4 style={{ margin: "14px 0 6px" }}>Recepciones</h4>
     {orden.recepciones.length === 0 ? <p>Aún no hay recepciones.</p> : orden.recepciones.map((r: any) => (
       <div key={r.id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-        <span>{r.numero} · {r.fecha} · {r.estadoRecepcion}</span>
+        <span>{r.numero} · {r.fecha} · {r.estadoRecepcion}{r.numeroGuiaRemision && ` · Guía ${r.numeroGuiaRemision}`}</span>
         {r.estadoRecepcion === "ACTIVA" && <button className={styles.anularBtn} onClick={() => onAnularRecepcion(r.id)}>Anular</button>}
       </div>
     ))}
@@ -376,9 +376,12 @@ const Recibir = ({ orden, onCerrar, onGuardar }: any) => {
     Object.fromEntries(orden.detalle.map((d: any) => [d.id, d.cantidadPedida - d.cantidadRecibida]))
   );
   const [observacion, setObservacion] = useState("");
+  const [numeroGuiaRemision, setNumeroGuiaRemision] = useState("");
   const { errors, setError, clearError } = useFormErrors();
   return (
     <Modal titulo={`Recibir mercadería · ${orden.numero}`} onCerrar={onCerrar}>
+      <input style={{ ...input, marginBottom: 10 }} placeholder="N° de guía de remisión del proveedor (opcional)"
+        value={numeroGuiaRemision} onChange={(e) => setNumeroGuiaRemision(e.target.value)} />
       <table className={styles.table}>
         <thead><tr><th>Producto</th><th>Pendiente</th><th>Recibo ahora</th></tr></thead>
         <tbody>
@@ -404,7 +407,7 @@ const Recibir = ({ orden, onCerrar, onGuardar }: any) => {
               setError("cantidades", "Indica al menos una cantidad recibida");
               return toast.error("Indica al menos una cantidad recibida");
             }
-            onGuardar({ observacion: observacion || undefined, detalle });
+            onGuardar({ observacion: observacion || undefined, numeroGuiaRemision: numeroGuiaRemision || undefined, detalle });
           }}>
           Registrar recepción
         </button>
