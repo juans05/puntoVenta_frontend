@@ -463,6 +463,22 @@ const Facturar = ({ orden, monedas, tiposIgv, onCerrar, onGuardar }: any) => {
   const [tipoIgvId, setTipoIgvId] = useState<number>(0);
   const [observacion, setObservacion] = useState("");
   const { errors, setError, clearError } = useFormErrors();
+
+  // Sugiere serie/numero al abrir (mismo endpoint y criterio que el registro manual de compras en
+  // FormularioCompra.tsx) -- queda editable por si el documento real del proveedor es distinto.
+  useEffect(() => {
+    axiosInstance
+      .get(`/compras/obtener-serie-numero?sucursalId=${orden.sucursalId || 0}`)
+      .then(({ data }: any) => {
+        if (data?.data) {
+          setSerie(data.data.serie || "");
+          setNumero(data.data.numero || "");
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const pendientes = orden.detalle.filter((d: any) => d.cantidadRecibida - d.cantidadFacturada > 0);
   // Clave por Id de la linea (no por producto): las lineas de servicio no tienen productoId.
   const [lineas, setLineas] = useState<Record<number, { cantidad: number; costo: number }>>(
@@ -472,12 +488,12 @@ const Facturar = ({ orden, monedas, tiposIgv, onCerrar, onGuardar }: any) => {
     <Modal titulo={`Factura del proveedor · ${orden.numero}`} onCerrar={onCerrar}>
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr" }}>
         <div style={campo}>
-          <label style={label}>Serie<Ayuda texto="Obligatorio: serie de la factura o boleta que te dio el proveedor (ej. F001)." /></label>
+          <label style={label}>Serie<Ayuda texto="Obligatorio: serie de la factura o boleta que te dio el proveedor (ej. F001). Se sugiere un valor automáticamente, pero puedes corregirlo por el real del proveedor." /></label>
           <input style={{ ...input, ...estiloError(!!errors.serie) }} placeholder="Serie (F001)" value={serie}
             onChange={(e) => { setSerie(e.target.value); clearError("serie"); }} />
         </div>
         <div style={campo}>
-          <label style={label}>Número<Ayuda texto="Obligatorio: número correlativo del documento del proveedor." /></label>
+          <label style={label}>Número<Ayuda texto="Obligatorio: número correlativo del documento del proveedor. Se sugiere un valor automáticamente, pero puedes corregirlo por el real del proveedor." /></label>
           <input style={{ ...input, ...estiloError(!!errors.numero) }} placeholder="Número" value={numero}
             onChange={(e) => { setNumero(e.target.value); clearError("numero"); }} />
         </div>
