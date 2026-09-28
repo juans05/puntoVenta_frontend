@@ -10,9 +10,12 @@ import {
   ajustarStock,
   clearActiveProducto,
   closeModalProducto,
+  createCategory,
   createProducto,
+  deleteCategory,
   deleteProducts,
   eliminarImagenProducto,
+  getCategorias,
   getProducts,
   subirImagenProducto,
   updateProducts,
@@ -40,14 +43,6 @@ const BTN_SECONDARY =
   "border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg px-4 py-2 hover:bg-gray-50 transition-colors";
 
 const TASA_IGV_DEFAULT = 0.18;
-
-const DETRACCION_OPCIONES = [
-  { id: 0, value: "Ninguno" },
-  { id: 4, value: "4%" },
-  { id: 10, value: "10%" },
-  { id: 12, value: "12%" },
-  { id: 15, value: "15%" },
-];
 
 const DESTINO_PREPARACION_OPCIONES = ["Ninguno", "Cocina", "Barra"];
 
@@ -118,7 +113,10 @@ Modal.setAppElement("#root");
 const IMAGEN_MAX_BYTES = 5 * 1024 * 1024;
 const IMAGEN_EXTENSIONES = ["jpg", "jpeg", "png", "webp"];
 const IMAGEN_TIPOS = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-export const ProductoModal = () => {
+interface IProductoModalProps {
+  onGuardado?: (producto: any) => void;
+}
+export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
   const { modalProducts, activeProducto, categorias }: any =
     useAppSelector((state: RootState) => state.adminProducts);
   const { sucursales, monedas, tiposIgv, unidadesMedida }: IExtensionesState = useAppSelector(
@@ -171,6 +169,15 @@ export const ProductoModal = () => {
   const cuentaCostoTexto = formValues.cuentaCostoId ? `${cuentasContables.find((c: any) => c.id === formValues.cuentaCostoId)?.codigo ?? ""} - ${nombreCuenta(formValues.cuentaCostoId)}` : "";
 
   const [isStock, setIsStock] = useState<boolean>(false);
+  const [paises, setPaises] = useState<any[]>([]);
+  const [tiposDetraccion, setTiposDetraccion] = useState<any[]>([]);
+  const [detraccionNueva, setDetraccionNueva] = useState<{ porcentaje: string; descripcion: string } | null>(null);
+  // "+ Agregar" de Moneda / Afectación IGV: a diferencia de Categoria (solo nombre), estos
+  // catalogos tienen mas de un campo obligatorio -- se resuelven con un mini-formulario propio
+  // en vez de alta inmediata desde el droplist.
+  const [monedaNueva, setMonedaNueva] = useState<{ codigo: string; simbolo: string; locale: string; paisId: number } | null>(null);
+  const [tipoIgvNuevo, setTipoIgvNuevo] = useState<{ codigo: string; descripcion: string; aplicaPorcentajeImpuesto: boolean } | null>(null);
+  const [guardandoCatalogo, setGuardandoCatalogo] = useState(false);
 
   useEffect(() => {
     dispatch(getSucursales() as any);
@@ -178,7 +185,104 @@ export const ProductoModal = () => {
     dispatch(getTiposIgv() as any);
     dispatch(getUnidadesMedida() as any);
     axiosInstance.get("/cuentas-contables/listar").then((r: any) => setCuentasContables(r.data?.data ?? [])).catch(() => {});
+    axiosInstance.get("/extensiones/paises").then((r: any) => setPaises(r.data?.data ?? [])).catch(() => {});
+    cargarTiposDetraccion();
   }, [dispatch]);
+
+  const cargarTiposDetraccion = () => {
+    axiosInstance.get("/extensiones/tipos-detraccion").then((r: any) => setTiposDetraccion(r.data?.data ?? [])).catch(() => {});
+  };
+
+  const guardarDetraccionNueva = async () => {
+    if (!detraccionNueva) return;
+    const porcentaje = Number(detraccionNueva.porcentaje);
+    if (!detraccionNueva.porcentaje.trim() || Number.isNaN(porcentaje) || porcentaje < 0 || porcentaje > 100) {
+      return toast.error("Escribe un porcentaje válido (0-100)");
+    }
+    setGuardandoCatalogo(true);
+    try {
+      await axiosInstance.post("/extensiones/tipos-detraccion/crear", { porcentaje, descripcion: detraccionNueva.descripcion || undefined });
+      cargarTiposDetraccion();
+      setFormValues((prev: any) => ({ ...prev, porcentajeDetraccion: porcentaje }));
+      toast.success("Porcentaje de detracción creado");
+      setDetraccionNueva(null);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "No se pudo crear el porcentaje de detracción");
+    } finally {
+      setGuardandoCatalogo(false);
+    }
+  };
+  // El droplist muestra el % como id (mismo contrato que antes con la lista fija), pero eliminar
+  // necesita el id real de la fila en BD -- se busca por porcentaje en la lista ya cargada.
+  const eliminarDetraccion = async (porcentaje: number) => {
+    const fila = tiposDetraccion.find((t: any) => Number(t.porcentaje) === porcentaje);
+    if (!fila) return;
+    try {
+      await axiosInstance.put(`/extensiones/tipos-detraccion/${fila.id}/estado`, { estado: false });
+      cargarTiposDetraccion();
+      toast.success("Porcentaje de detracción eliminado");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "No se pudo eliminar");
+    }
+  };
+
+  const guardarMonedaNueva = async () => {
+    if (!monedaNueva) return;
+    if (!monedaNueva.codigo.trim() || !monedaNueva.simbolo.trim() || !monedaNueva.locale.trim() || !monedaNueva.paisId) {
+      return toast.error("Completa código, símbolo, locale y país");
+    }
+    setGuardandoCatalogo(true);
+    try {
+      const { data }: any = await axiosInstance.post("/extensiones/monedas/crear", monedaNueva);
+      const creada = data?.data;
+      dispatch(getMonedas() as any);
+      if (creada?.id) setFormValues((prev: any) => ({ ...prev, monedaId: creada.id, moneda: creada.simbolo }));
+      toast.success("Moneda creada");
+      setMonedaNueva(null);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "No se pudo crear la moneda");
+    } finally {
+      setGuardandoCatalogo(false);
+    }
+  };
+  const eliminarMoneda = async (id: number) => {
+    try {
+      await axiosInstance.put(`/extensiones/monedas/${id}/estado`, { estado: false });
+      dispatch(getMonedas() as any);
+      toast.success("Moneda eliminada");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "No se pudo eliminar");
+    }
+  };
+
+  const guardarTipoIgvNuevo = async () => {
+    if (!tipoIgvNuevo) return;
+    if (!tipoIgvNuevo.codigo.trim() || !tipoIgvNuevo.descripcion.trim()) {
+      return toast.error("Completa código y descripción");
+    }
+    setGuardandoCatalogo(true);
+    try {
+      const { data }: any = await axiosInstance.post("/extensiones/tipos-igv/crear", tipoIgvNuevo);
+      const creado = data?.data;
+      dispatch(getTiposIgv() as any);
+      if (creado?.id) setFormValues((prev: any) => ({ ...prev, tipoIgvId: creado.id, tipoIgv: `${creado.codigo} - ${creado.descripcion}` }));
+      toast.success("Código de Afectación IGV creado");
+      setTipoIgvNuevo(null);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "No se pudo crear el código IGV");
+    } finally {
+      setGuardandoCatalogo(false);
+    }
+  };
+  const eliminarTipoIgv = async (id: number) => {
+    try {
+      await axiosInstance.put(`/extensiones/tipos-igv/${id}/estado`, { estado: false });
+      dispatch(getTiposIgv() as any);
+      toast.success("Código de Afectación IGV eliminado");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "No se pudo eliminar");
+    }
+  };
 
   useEffect(() => {
     if (activeProducto) {
@@ -234,6 +338,23 @@ export const ProductoModal = () => {
     id: value?.categoriaId,
     value: value?.nombre,
   }));
+
+  // "+ Agregar categoria" del droplist: alta rapida (solo nombre, sin abrir otro modal) ya que
+  // Categoria no tiene mas campos obligatorios -- ver CategoriaModal para el mismo alta.
+  const crearCategoriaRapida = async (busqueda: string) => {
+    if (!busqueda.trim()) return toast.error("Escribe un nombre para la categoría");
+    const creada: any = await dispatch(createCategory({ nombre: busqueda.trim(), usuarioCreacion: "admin" }) as any);
+    if (creada?.categoriaId) {
+      setFormValues((prev: any) => ({ ...prev, categoriaId: creada.categoriaId, nombreCategoria: creada.nombre }));
+      toast.success("Categoría creada");
+    }
+    dispatch(getCategorias() as any);
+  };
+  const eliminarCategoriaRapida = (id: number) => {
+    dispatch(deleteCategory(id) as any);
+    dispatch(getCategorias() as any);
+    toast.success("Categoría eliminada");
+  };
 
   const sucursalesOptions = (sucursales as any[])?.map((s: any) => ({ id: s.id, value: s.value })) ?? [];
   const monedasOptions = (monedas as any[])?.map((m: any) => ({ id: m.id, value: m.value })) ?? [];
@@ -311,8 +432,9 @@ export const ProductoModal = () => {
         dispatch(getProducts(0, 0, "", 1, 20) as any);
       }, 300);
     } else {
+      let creado: any = null;
       try {
-        const creado: any = await dispatch(
+        creado = await dispatch(
           createProducto({
             ...buildPayload(),
             usuarioCreacion: "admin",
@@ -337,6 +459,7 @@ export const ProductoModal = () => {
       toast.success("Se creó un nuevo producto");
       limpiarImagen();
       setFormValues(initialForm);
+      if (creado?.productoId) onGuardado?.(creado);
 
       // Refrescar la lista de productos después de crear uno nuevo (con pequeño delay)
       setTimeout(() => {
@@ -571,6 +694,7 @@ export const ProductoModal = () => {
   ];
 
   return (
+    <>
     <Modal
       isOpen={modalProducts}
       style={customStyles}
@@ -736,6 +860,9 @@ export const ProductoModal = () => {
                     defaultValue={nombreCategoria}
                     options={newCategorias}
                     onChange={handleChangeSelect}
+                    onAgregarNuevo={crearCategoriaRapida}
+                    agregarNuevoLabel="categoría"
+                    onEliminarOpcion={eliminarCategoriaRapida}
                   />
                   <SelectPro
                     isLabel
@@ -759,6 +886,9 @@ export const ProductoModal = () => {
                     defaultValue={moneda}
                     options={monedasOptions}
                     onChange={handleChangeSelect}
+                    onAgregarNuevo={(busqueda) => setMonedaNueva({ codigo: busqueda.toUpperCase(), simbolo: "", locale: "es-PE", paisId: 0 })}
+                    agregarNuevoLabel="moneda"
+                    onEliminarOpcion={eliminarMoneda}
                   />
                   <SelectPro
                     isLabel
@@ -770,21 +900,24 @@ export const ProductoModal = () => {
                     defaultValue={tipoIgv}
                     options={tiposIgvOptions}
                     onChange={handleChangeSelect}
+                    onAgregarNuevo={(busqueda) => setTipoIgvNuevo({ codigo: busqueda, descripcion: "", aplicaPorcentajeImpuesto: true })}
+                    agregarNuevoLabel="código de Afectación IGV"
+                    onEliminarOpcion={eliminarTipoIgv}
                   />
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500">Detracción</label>
-                    <select
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"
-                      value={porcentajeDetraccion}
-                      onChange={(e) => setFormValues({ ...formValues, porcentajeDetraccion: Number(e.target.value) })}
-                    >
-                      {DETRACCION_OPCIONES.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.value}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <SelectPro
+                    isLabel
+                    label="Detracción"
+                    isSearch
+                    defaultValue={
+                      tiposDetraccion.find((t: any) => Number(t.porcentaje) === Number(porcentajeDetraccion))?.value ??
+                      (Number(porcentajeDetraccion) === 0 ? "Ninguno" : `${porcentajeDetraccion}%`)
+                    }
+                    options={tiposDetraccion.map((t: any) => ({ id: t.porcentaje, value: t.value }))}
+                    onChange={(idValue: any) => setFormValues({ ...formValues, porcentajeDetraccion: Number(idValue) })}
+                    onAgregarNuevo={(busqueda) => setDetraccionNueva({ porcentaje: busqueda.replace("%", ""), descripcion: "" })}
+                    agregarNuevoLabel="porcentaje de detracción"
+                    onEliminarOpcion={(id) => eliminarDetraccion(Number(id))}
+                  />
 
                   <Input
                     name="precioVentaSinInpuesto"
@@ -1394,5 +1527,78 @@ export const ProductoModal = () => {
         )}
       </div>
     </Modal>
+
+    {monedaNueva && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setMonedaNueva(null)}>
+        <div style={{ background: "#fff", borderRadius: 12, padding: 20, width: "min(420px, 100%)" }} onClick={(e) => e.stopPropagation()}>
+          <h4 style={{ margin: "0 0 12px" }}>Nueva moneda</h4>
+          <div style={{ display: "grid", gap: 10 }}>
+            <Input isLabel label="Código (ej. USD)" name="codigo" value={monedaNueva.codigo} onChange={(e: any) => setMonedaNueva({ ...monedaNueva, codigo: e.target.value.toUpperCase() })} />
+            <Input isLabel label="Símbolo (ej. $)" name="simbolo" value={monedaNueva.simbolo} onChange={(e: any) => setMonedaNueva({ ...monedaNueva, simbolo: e.target.value })} />
+            <Input isLabel label="Locale (ej. en-US)" name="locale" value={monedaNueva.locale} onChange={(e: any) => setMonedaNueva({ ...monedaNueva, locale: e.target.value })} />
+            <SelectPro
+              isLabel
+              label="País"
+              isSearch
+              options={(paises as any[]).map((p: any) => ({ id: p.id, value: p.nombre ?? p.value }))}
+              onChange={(idValue: any) => setMonedaNueva({ ...monedaNueva, paisId: Number(idValue) })}
+            />
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+            <Button size="sm" onClick={() => setMonedaNueva(null)} type="button">Cancelar</Button>
+            <Button size="sm" onClick={guardarMonedaNueva} disabled={guardandoCatalogo} type="button">
+              {guardandoCatalogo ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {detraccionNueva && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setDetraccionNueva(null)}>
+        <div style={{ background: "#fff", borderRadius: 12, padding: 20, width: "min(420px, 100%)" }} onClick={(e) => e.stopPropagation()}>
+          <h4 style={{ margin: "0 0 4px" }}>Nuevo porcentaje de detracción</h4>
+          <p style={{ fontSize: 12, color: "#9c6f00", background: "#fff8e1", padding: 8, borderRadius: 6, margin: "0 0 12px" }}>
+            ⚠️ Debe corresponder a un porcentaje real de detracción SUNAT. Uno inventado puede invalidar el comprobante.
+          </p>
+          <div style={{ display: "grid", gap: 10 }}>
+            <Input isLabel label="Porcentaje (ej. 6)" name="porcentaje" value={detraccionNueva.porcentaje} onChange={(e: any) => setDetraccionNueva({ ...detraccionNueva, porcentaje: e.target.value })} />
+            <Input isLabel label="Descripción (opcional)" name="descripcion" value={detraccionNueva.descripcion} onChange={(e: any) => setDetraccionNueva({ ...detraccionNueva, descripcion: e.target.value })} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+            <Button size="sm" onClick={() => setDetraccionNueva(null)} type="button">Cancelar</Button>
+            <Button size="sm" onClick={guardarDetraccionNueva} disabled={guardandoCatalogo} type="button">
+              {guardandoCatalogo ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {tipoIgvNuevo && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setTipoIgvNuevo(null)}>
+        <div style={{ background: "#fff", borderRadius: 12, padding: 20, width: "min(420px, 100%)" }} onClick={(e) => e.stopPropagation()}>
+          <h4 style={{ margin: "0 0 4px" }}>Nuevo código de Afectación IGV</h4>
+          <p style={{ fontSize: 12, color: "#9c6f00", background: "#fff8e1", padding: 8, borderRadius: 6, margin: "0 0 12px" }}>
+            ⚠️ Debe corresponder a un código real de la Tabla 07 de SUNAT. Un código inventado puede invalidar el comprobante.
+          </p>
+          <div style={{ display: "grid", gap: 10 }}>
+            <Input isLabel label="Código SUNAT (ej. 10, 20, 30)" name="codigo" value={tipoIgvNuevo.codigo} onChange={(e: any) => setTipoIgvNuevo({ ...tipoIgvNuevo, codigo: e.target.value })} />
+            <Input isLabel label="Descripción" name="descripcion" value={tipoIgvNuevo.descripcion} onChange={(e: any) => setTipoIgvNuevo({ ...tipoIgvNuevo, descripcion: e.target.value })} />
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <input type="checkbox" checked={tipoIgvNuevo.aplicaPorcentajeImpuesto} onChange={(e) => setTipoIgvNuevo({ ...tipoIgvNuevo, aplicaPorcentajeImpuesto: e.target.checked })} />
+              Gravado (aplica el % de IGV del tenant)
+            </label>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+            <Button size="sm" onClick={() => setTipoIgvNuevo(null)} type="button">Cancelar</Button>
+            <Button size="sm" onClick={guardarTipoIgvNuevo} disabled={guardandoCatalogo} type="button">
+              {guardandoCatalogo ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };

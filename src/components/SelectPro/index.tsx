@@ -27,6 +27,12 @@ interface IProps {
     disabled?: boolean
     id?: string
     required?: boolean
+    // Fila "+ Agregar ..." al fondo de la lista -- recibe el texto tipeado en el buscador para
+    // poder precargarlo (ej. nombre del producto/categoria que no se encontro).
+    onAgregarNuevo?: (busqueda: string) => void
+    agregarNuevoLabel?: string
+    // Boton de eliminar por opcion (icono a la derecha de cada fila).
+    onEliminarOpcion?: (id: number, value: string) => void
 }
 
 interface IOption {
@@ -48,7 +54,10 @@ const SelectPro = ({
     defaultValue,
     disabled,
     id,
-    required
+    required,
+    onAgregarNuevo,
+    agregarNuevoLabel,
+    onEliminarOpcion,
 }: IProps) => {
 
     const [, setShowOptions] = useState(false);
@@ -143,10 +152,22 @@ const SelectPro = ({
                         {
                             resultsOptions && resultsOptions?.length > 0 ? resultsOptions?.map((item: IOption, index: number) => (
                                 <motion.div key={index}>
-                                    <li>
-                                        <p onClick={() => {
+                                    <li style={onEliminarOpcion ? { display: "flex", alignItems: "center", justifyContent: "space-between" } : undefined}>
+                                        <p style={{ flex: 1 }} onClick={() => {
                                             setValueOption(item, name, id)
                                         }} >{item.value}</p>
+                                        {onEliminarOpcion && (
+                                            <span
+                                                style={{ padding: "0 10px", cursor: "pointer", flexShrink: 0 }}
+                                                title="Eliminar"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (window.confirm(`¿Eliminar "${item.value}"?`)) onEliminarOpcion(Number(item.id), item.value);
+                                                }}
+                                            >
+                                                <Svg icon={Icons.deleteButton} />
+                                            </span>
+                                        )}
                                     </li>
                                 </motion.div>
                             )) :
@@ -155,6 +176,21 @@ const SelectPro = ({
                                     <p>No se encontraron más resultados</p>
                                 </div>
                         }
+                        {onAgregarNuevo && (
+                            <motion.div>
+                                <li>
+                                    <p
+                                        style={{ color: "var(--brand-600, #157AE0)" }}
+                                        onClick={() => {
+                                            onAgregarNuevo(search);
+                                            setIsOpen(false);
+                                        }}
+                                    >
+                                        + Agregar {agregarNuevoLabel ?? "nuevo"}{search ? ` "${search}"` : ""}
+                                    </p>
+                                </li>
+                            </motion.div>
+                        )}
                     </motion.div>
                 )}
             </div>

@@ -650,9 +650,12 @@ export const createCategory = (category: any) => {
           type: types.CREATE_CATEGORY,
           payload: data?.data,
         });
+        return data?.data;
       }
+      return null;
     } catch (error: any) {
       console.log(error);
+      return null;
     }
   };
 };

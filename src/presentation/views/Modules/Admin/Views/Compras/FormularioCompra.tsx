@@ -21,6 +21,12 @@ import {
   clearActiveProveedor,
 } from "../../../../../../redux/reducers/Admin/clientes-proveedores/clientesProveedoresAnfitrionas.reducer";
 import { ProveedorModal } from "../../../../../../components/Modal/Admin/Proveedores";
+import {
+  openModalProducto,
+  activeProducto as activeProductoMain,
+  clearActiveProducto,
+} from "../../../../../../redux/reducers/Admin/productos/producto.reducer";
+import { ProductoModal } from "../../../../../../components/Modal/Admin/Producto";
 import axiosInstance from "../../../../../../utils/axios";
 import Input from "../../../../../../components/Input";
 import SelectPro from "../../../../../../components/SelectPro";
@@ -289,6 +295,22 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const seleccionarProducto = (index: number, idValue: any, value: string) =>
     setDetalle(detalle.map((linea, i) => (i === index ? { ...linea, productoId: Number(idValue), nombre: value } : linea)));
 
+  // "+ Crear producto" del droplist de una linea: abre el modal completo de Producto (precio,
+  // stock, etc. no caben en un alta rapida) precargado con el nombre buscado, y al guardar
+  // selecciona el producto creado en esa misma linea.
+  const [lineaCreandoProducto, setLineaCreandoProducto] = useState<number | null>(null);
+  const crearProductoDesdeLinea = (index: number, busqueda: string) => {
+    setLineaCreandoProducto(index);
+    dispatch(activeProductoMain({ nombre: busqueda }) as any);
+    dispatch(openModalProducto() as any);
+  };
+  const productoCreado = (p: any) => {
+    dispatch(clearActiveProducto() as any);
+    if (lineaCreandoProducto !== null) seleccionarProducto(lineaCreandoProducto, p.productoId, p.nombre);
+    setLineaCreandoProducto(null);
+    dispatch(getProductosCompra() as any);
+  };
+
   // Calculo en vivo solo para mostrar un preview -- el backend es la fuente de verdad al guardar.
   const subtotalProductos = detalle.reduce((acc, l) => acc + (Number(l.cantidad) || 0) * (Number(l.costoUnitario) || 0), 0);
   const montoDescuento =
@@ -521,6 +543,8 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
                     defaultValue={linea.nombre}
                     onChange={(idValue: any, value: string) => seleccionarProducto(index, idValue, value)}
                     placeholder="Selecciona un producto"
+                    onAgregarNuevo={(busqueda) => crearProductoDesdeLinea(index, busqueda)}
+                    agregarNuevoLabel="producto"
                   />
                 </div>
                 <div>
@@ -630,6 +654,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
         </div>
       </div>
       <ProveedorModal onGuardado={proveedorRegistrado} />
+      <ProductoModal onGuardado={productoCreado} />
     </div>
   );
 };
