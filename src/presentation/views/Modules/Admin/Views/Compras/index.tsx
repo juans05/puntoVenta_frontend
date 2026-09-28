@@ -50,6 +50,7 @@ export const Compras = () => {
 
   const [compraEditandoId, setCompraEditandoId] = useState<number | undefined>(undefined);
   const [compraViendoId, setCompraViendoId] = useState<number | undefined>(undefined);
+  const [notaCompraDe, setNotaCompraDe] = useState<any>(null);
   const [prefillXml, setPrefillXml] = useState<any>(null);
   const [colaXml, setColaXml] = useState<any[]>([]); // XML pendientes de revisar tras el actual
   const [totalXml, setTotalXml] = useState(0);
@@ -562,6 +563,9 @@ export const Compras = () => {
                           <button className={styles.editarBtn} onClick={() => abrirEditar(c.id)}>
                             Editar
                           </button>
+                          <button className={styles.editarBtn} onClick={() => setNotaCompraDe(c)}>
+                            Nota
+                          </button>
                           <button className={styles.anularBtn} onClick={() => confirmarAnular(c.id)}>
                             Anular
                           </button>
@@ -576,7 +580,95 @@ export const Compras = () => {
       )}
 
       <CompraVerModal isOpen={!!compraViendoId} onClose={() => setCompraViendoId(undefined)} compraId={compraViendoId} />
+      {notaCompraDe && (
+        <NotaCompraModal
+          compra={notaCompraDe}
+          onCerrar={() => setNotaCompraDe(null)}
+          onCreada={() => { setNotaCompraDe(null); recargar(); }}
+        />
+      )}
       <Toaster richColors position="top-right" duration={2000} />
+    </div>
+  );
+};
+
+const overlayNota: React.CSSProperties = {
+  position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 1000,
+  display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+};
+const modalNota: React.CSSProperties = {
+  background: "#fff", borderRadius: 12, padding: 20, width: "min(420px, 100%)", maxHeight: "90vh", overflow: "auto",
+};
+
+// Nota de credito/debito de compra: siempre afecta el monto completo de la compra (no ajustes
+// parciales), mismo criterio que la nota de credito/debito de ventas. La devolucion de stock
+// (si el motivo elegido la revierte) y el asiento contable los maneja el backend.
+const NotaCompraModal = ({ compra, onCerrar, onCreada }: any) => {
+  const [tipo, setTipo] = useState<"CREDITO" | "DEBITO">("CREDITO");
+  const [motivos, setMotivos] = useState<any[]>([]);
+  const [motivoNotaId, setMotivoNotaId] = useState("");
+  const [observacion, setObservacion] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    setMotivoNotaId("");
+    axiosInstance
+      .get(`/extensiones/motivos-nota?tipoDocumentoVentaId=${tipo === "CREDITO" ? 4 : 5}`)
+      .then((r: any) => setMotivos(r.data?.data ?? []))
+      .catch(() => setMotivos([]));
+  }, [tipo]);
+
+  const guardar = async () => {
+    if (!motivoNotaId) return toast.error("Selecciona un motivo");
+    setGuardando(true);
+    try {
+      await axiosInstance.post("/compras/notas/crear", {
+        compraId: compra.id, tipo, motivoNotaId: Number(motivoNotaId), observacion: observacion || undefined,
+      });
+      toast.success(`Nota de ${tipo === "CREDITO" ? "crédito" : "débito"} registrada`);
+      onCreada();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "No se pudo registrar la nota");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <div style={overlayNota} onClick={onCerrar}>
+      <div style={modalNota} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>Nota sobre {compra.numeroCompra}</h3>
+          <button onClick={onCerrar} aria-label="Cerrar">✕</button>
+        </div>
+        <p style={{ fontSize: 13, color: "#6b7280", marginTop: 0 }}>
+          Afecta el monto completo de la compra: S/ {Number(compra.total).toFixed(2)}
+        </p>
+
+        <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
+          <label><input type="radio" checked={tipo === "CREDITO"} onChange={() => setTipo("CREDITO")} /> Crédito (a favor)</label>
+          <label><input type="radio" checked={tipo === "DEBITO"} onChange={() => setTipo("DEBITO")} /> Débito (cargo)</label>
+        </div>
+
+        <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Motivo</label>
+        <select style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 8, padding: "6px 8px", marginTop: 4 }}
+          value={motivoNotaId} onChange={(e) => setMotivoNotaId(e.target.value)}>
+          <option value="">Selecciona un motivo...</option>
+          {motivos.map((m: any) => (
+            <option key={m.id} value={m.id}>{m.codigo} - {m.descripcion}{m.revierteStock ? " (revierte stock)" : ""}</option>
+          ))}
+        </select>
+
+        <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginTop: 10, display: "block" }}>Observación (opcional)</label>
+        <textarea style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 8, padding: "6px 8px", marginTop: 4 }}
+          value={observacion} onChange={(e) => setObservacion(e.target.value)} />
+
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+          <button className={styles.registrarBtn} disabled={guardando} onClick={guardar}>
+            {guardando ? "Guardando..." : "Registrar nota"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
