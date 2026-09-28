@@ -3,10 +3,11 @@ import { toast } from "sonner";
 import styles from "./compras.module.css";
 import axiosInstance from "../../../../../../utils/axios";
 import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
+import { Ayuda } from "../../../../../../components/Ayuda";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { RootState } from "../../../../../../redux/rootState";
 import { getProveedores, getProductosCompra } from "../../../../../../redux/reducers/Admin/compras/compra.reducer";
-import { getSucursales } from "../../../../../../redux/reducers/extensiones/extensiones..reducer";
+import { getSucursales, getMonedas, getTiposIgv } from "../../../../../../redux/reducers/extensiones/extensiones..reducer";
 
 // Flujo completo de compras: Orden -> Recepcion (sube el stock) -> Factura con cruce.
 // Solo se muestra cuando Configuracion > Flujo de compras = COMPLETO.
@@ -39,7 +40,7 @@ type Dialogo = null | { tipo: "nueva" } | { tipo: "recibir" | "facturar" | "ver"
 export const Ordenes = ({ config }: { config: any }) => {
   const dispatch = useAppDispatch();
   const { proveedores, productosCompra }: any = useAppSelector((s: RootState) => s.compras);
-  const { sucursales }: any = useAppSelector((s: RootState) => s.extentions);
+  const { sucursales, monedas, tiposIgv }: any = useAppSelector((s: RootState) => s.extentions);
 
   const [ordenes, setOrdenes] = useState<any[]>([]);
   const [departamentos, setDepartamentos] = useState<any[]>([]);
@@ -65,6 +66,8 @@ export const Ordenes = ({ config }: { config: any }) => {
     dispatch(getProveedores() as any);
     dispatch(getProductosCompra() as any);
     dispatch(getSucursales() as any);
+    dispatch(getMonedas() as any);
+    dispatch(getTiposIgv() as any);
     axiosInstance.get("/departamentos/listar").then((r: any) => setDepartamentos(r.data?.data ?? [])).catch(() => {});
   }, []);
   useEffect(() => {
@@ -188,7 +191,7 @@ export const Ordenes = ({ config }: { config: any }) => {
           onGuardar={(payload: any) => accion(() => axiosInstance.post(`/ordenes-compra/${dialogo.orden.id}/recepciones`, payload), "Recepción registrada: el stock subió")} />
       )}
       {dialogo?.tipo === "facturar" && (
-        <Facturar orden={dialogo.orden} onCerrar={() => setDialogo(null)}
+        <Facturar orden={dialogo.orden} monedas={monedas ?? []} tiposIgv={tiposIgv ?? []} onCerrar={() => setDialogo(null)}
           onGuardar={(payload: any) => facturarConCruce(dialogo.orden.id, payload, () => { setDialogo(null); cargar(); })} />
       )}
       {dialogo?.tipo === "cerrar" && (
@@ -261,6 +264,16 @@ const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobac
       setError("productos", msg);
       return toast.error(msg);
     }
+    // Mismo criterio que el backend (ValidarDetalle): un producto no puede repetirse en la orden,
+    // si necesitas mas cantidad se edita la misma linea en vez de agregar otra igual.
+    if (!esServicio) {
+      const productoIds = validas.map((l) => l.productoId);
+      if (new Set(productoIds).size !== productoIds.length) {
+        const msg = "Un producto no puede repetirse en la misma orden";
+        setError("productos", msg);
+        return toast.error(msg);
+      }
+    }
     if (!borrador && requiereAprobacion) {
       if (!departamentoId) { setError("departamentoId", "Elige el departamento que debe aprobar"); return toast.error("Elige el departamento que debe aprobar"); }
       if (!aprobadorAsignadoId) { setError("aprobadorAsignadoId", "Elige el aprobador"); return toast.error("Elige el aprobador"); }
@@ -279,43 +292,65 @@ const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobac
 
   return (
     <Modal titulo="Nueva orden de compra" onCerrar={onCerrar}>
-      <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
+      <div style={{ display: "flex", gap: 16, marginBottom: 10, alignItems: "center" }}>
         <label><input type="radio" checked={!esServicio} onChange={() => setTipoOrden("BIEN")} /> 📦 Bien (con recepción)</label>
         <label><input type="radio" checked={esServicio} onChange={() => setTipoOrden("SERVICIO")} /> 🧰 Servicio (directo a factura)</label>
+        <Ayuda texto="Bien: la orden pasa por Recepción antes de facturarse (sube el stock cuando llega la mercadería). Servicio: no hay recepción, se factura directamente al proveedor." />
       </div>
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
-        <select style={input} value={proveedorId} onChange={(e) => setProveedorId(Number(e.target.value))}>
-          <option value={0}>Proveedor</option>
-          {proveedores.map((p: any) => <option key={p.proveedorId ?? p.id} value={p.proveedorId ?? p.id}>{p.nombre}{p.ruc ? ` (${p.ruc})` : ""}</option>)}
-        </select>
-        <select style={input} value={sucursalId} onChange={(e) => setSucursalId(Number(e.target.value))}>
-          <option value={0}>📍 Sucursal</option>
-          {sucursales.map((s: any) => <option key={s.id} value={s.id}>{s.value}</option>)}
-        </select>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <select style={input} value={proveedorId} onChange={(e) => setProveedorId(Number(e.target.value))}>
+            <option value={0}>Proveedor</option>
+            {proveedores.map((p: any) => <option key={p.proveedorId ?? p.id} value={p.proveedorId ?? p.id}>{p.nombre}{p.ruc ? ` (${p.ruc})` : ""}</option>)}
+          </select>
+          <Ayuda texto="Opcional. A quién le compras. Puedes dejarlo en blanco y completarlo después editando la orden mientras siga en borrador." />
+        </div>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <select style={input} value={sucursalId} onChange={(e) => setSucursalId(Number(e.target.value))}>
+            <option value={0}>📍 Sucursal</option>
+            {sucursales.map((s: any) => <option key={s.id} value={s.id}>{s.value}</option>)}
+          </select>
+          <Ayuda texto="Opcional. La sucursal donde ingresará la mercadería o se registrará el gasto." />
+        </div>
       </div>
       <h4 style={{ margin: "14px 0 6px" }}>{esServicio ? "Servicios" : "Productos"}</h4>
       <CampoError mensaje={errors.productos} />
       {lineas.map((l, i) => (
-        <div key={i} style={{ display: "grid", gap: 6, gridTemplateColumns: "3fr 1fr 1fr auto", marginBottom: 6 }}>
+        <div key={i} style={{ display: "grid", gap: 6, gridTemplateColumns: "3fr 1fr 1fr auto", marginBottom: 6, alignItems: "center" }}>
           {esServicio ? (
-            <input style={{ ...input, ...estiloError(!!errors.productos) }} placeholder="Descripción del servicio" value={l.descripcion}
-              onChange={(e) => { setLinea(i, { descripcion: e.target.value }); clearError("productos"); }} />
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <input style={{ ...input, ...estiloError(!!errors.productos) }} placeholder="Descripción del servicio" value={l.descripcion}
+                onChange={(e) => { setLinea(i, { descripcion: e.target.value }); clearError("productos"); }} />
+              <Ayuda texto="Obligatorio: describe el servicio que te va a facturar el proveedor." />
+            </div>
           ) : (
-            <select style={{ ...input, ...estiloError(!!errors.productos) }} value={l.productoId}
-              onChange={(e) => { setLinea(i, { productoId: Number(e.target.value) }); clearError("productos"); }}>
-              <option value={0}>Producto</option>
-              {productos.map((p: any) => <option key={p.productoId} value={p.productoId}>{p.nombre}</option>)}
-            </select>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <select style={{ ...input, ...estiloError(!!errors.productos) }} value={l.productoId}
+                onChange={(e) => { setLinea(i, { productoId: Number(e.target.value) }); clearError("productos"); }}>
+                <option value={0}>Producto</option>
+                {productos.map((p: any) => <option key={p.productoId} value={p.productoId}>{p.nombre}</option>)}
+              </select>
+              <Ayuda texto="Obligatorio: elige un producto del catálogo. No se puede repetir el mismo producto en dos líneas -- si necesitas más cantidad, edita esa misma línea." />
+            </div>
           )}
-          <input style={input} type="number" min={1} value={l.cantidad} onChange={(e) => setLinea(i, { cantidad: Math.max(1, Math.floor(Number(e.target.value))) })} title="Cantidad" />
-          <input style={input} type="number" min={0} step="0.01" value={l.costoUnitario} onChange={(e) => setLinea(i, { costoUnitario: Math.max(0, Number(e.target.value)) })} title="Costo unitario" />
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <input style={input} type="number" min={1} value={l.cantidad} onChange={(e) => setLinea(i, { cantidad: Math.max(1, Math.floor(Number(e.target.value))) })} title="Cantidad" />
+            <Ayuda texto="Obligatorio: cantidad a pedir, número entero mayor a 0." />
+          </div>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <input style={input} type="number" min={0} step="0.01" value={l.costoUnitario} onChange={(e) => setLinea(i, { costoUnitario: Math.max(0, Number(e.target.value)) })} title="Costo unitario" />
+            <Ayuda texto="Costo pactado con el proveedor por unidad, sin IGV. No puede ser negativo; déjalo en 0 si aún no lo conoces." />
+          </div>
           <button onClick={() => setLineas(lineas.filter((_, j) => j !== i))} disabled={lineas.length === 1}>✕</button>
         </div>
       ))}
       <button onClick={() => setLineas([...lineas, { productoId: 0, descripcion: "", cantidad: 1, costoUnitario: 0 }])}>
         + Agregar {esServicio ? "servicio" : "producto"}
       </button>
-      <textarea style={{ ...input, marginTop: 10 }} placeholder="Observación (opcional)" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
+      <div style={{ display: "flex", alignItems: "center", marginTop: 10 }}>
+        <textarea style={input} placeholder="Observación (opcional)" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
+        <Ayuda texto="Opcional. Notas internas sobre la orden -- no se envían al proveedor." />
+      </div>
       <p style={{ marginTop: 10 }}>
         <strong>Total: {formatSoles(total)}</strong>
         {requiereAprobacion && <span style={{ color: "#b45309" }}> · requiere aprobación (umbral {formatSoles(aprobacion)})</span>}
@@ -323,19 +358,25 @@ const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobac
       {requiereAprobacion && (
         <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr", marginBottom: 10 }}>
           <div>
-            <select style={{ ...input, ...estiloError(!!errors.departamentoId) }} value={departamentoId}
-              onChange={(e) => { setDepartamentoId(Number(e.target.value)); setAprobadorAsignadoId(""); clearError("departamentoId"); }}>
-              <option value={0}>Departamento que aprueba</option>
-              {departamentos.map((d: any) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
-            </select>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <select style={{ ...input, ...estiloError(!!errors.departamentoId) }} value={departamentoId}
+                onChange={(e) => { setDepartamentoId(Number(e.target.value)); setAprobadorAsignadoId(""); clearError("departamentoId"); }}>
+                <option value={0}>Departamento que aprueba</option>
+                {departamentos.map((d: any) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+              </select>
+              <Ayuda texto="Obligatorio porque el total supera el monto configurado para requerir aprobación. Elige la jefatura responsable de aprobar esta orden." />
+            </div>
             <CampoError mensaje={errors.departamentoId} />
           </div>
           <div>
-            <select style={{ ...input, ...estiloError(!!errors.aprobadorAsignadoId) }} value={aprobadorAsignadoId} disabled={!departamentoId}
-              onChange={(e) => { setAprobadorAsignadoId(e.target.value); clearError("aprobadorAsignadoId"); }}>
-              <option value="">Aprobador</option>
-              {aprobadoresDelDepartamento.map((a: any) => <option key={a.userId} value={a.userId}>{a.nombre}</option>)}
-            </select>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <select style={{ ...input, ...estiloError(!!errors.aprobadorAsignadoId) }} value={aprobadorAsignadoId} disabled={!departamentoId}
+                onChange={(e) => { setAprobadorAsignadoId(e.target.value); clearError("aprobadorAsignadoId"); }}>
+                <option value="">Aprobador</option>
+                {aprobadoresDelDepartamento.map((a: any) => <option key={a.userId} value={a.userId}>{a.nombre}</option>)}
+              </select>
+              <Ayuda texto="Obligatorio: la persona de esa jefatura que debe aprobar la orden antes de que se pueda emitir." />
+            </div>
             <CampoError mensaje={errors.aprobadorAsignadoId} />
           </div>
         </div>
@@ -416,11 +457,15 @@ const Recibir = ({ orden, onCerrar, onGuardar }: any) => {
   );
 };
 
-const Facturar = ({ orden, onCerrar, onGuardar }: any) => {
+const Facturar = ({ orden, monedas, tiposIgv, onCerrar, onGuardar }: any) => {
   const [serie, setSerie] = useState("");
   const [numero, setNumero] = useState("");
   const [fechaEmision, setFechaEmision] = useState("");
   const [esCredito, setEsCredito] = useState(false);
+  const [fechaVencimiento, setFechaVencimiento] = useState("");
+  const [monedaId, setMonedaId] = useState<number>(orden.monedaId || 0);
+  const [tipoIgvId, setTipoIgvId] = useState<number>(0);
+  const [observacion, setObservacion] = useState("");
   const { errors, setError, clearError } = useFormErrors();
   const pendientes = orden.detalle.filter((d: any) => d.cantidadRecibida - d.cantidadFacturada > 0);
   // Clave por Id de la linea (no por producto): las lineas de servicio no tienen productoId.
@@ -430,16 +475,54 @@ const Facturar = ({ orden, onCerrar, onGuardar }: any) => {
   return (
     <Modal titulo={`Factura del proveedor · ${orden.numero}`} onCerrar={onCerrar}>
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr" }}>
-        <input style={{ ...input, ...estiloError(!!errors.serie) }} placeholder="Serie (F001)" value={serie}
-          onChange={(e) => { setSerie(e.target.value); clearError("serie"); }} />
-        <input style={{ ...input, ...estiloError(!!errors.numero) }} placeholder="Número" value={numero}
-          onChange={(e) => { setNumero(e.target.value); clearError("numero"); }} />
-        <input style={input} type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} />
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <input style={{ ...input, ...estiloError(!!errors.serie) }} placeholder="Serie (F001)" value={serie}
+            onChange={(e) => { setSerie(e.target.value); clearError("serie"); }} />
+          <Ayuda texto="Obligatorio: serie de la factura o boleta que te dio el proveedor (ej. F001)." />
+        </div>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <input style={{ ...input, ...estiloError(!!errors.numero) }} placeholder="Número" value={numero}
+            onChange={(e) => { setNumero(e.target.value); clearError("numero"); }} />
+          <Ayuda texto="Obligatorio: número correlativo del documento del proveedor." />
+        </div>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <input style={input} type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} />
+          <Ayuda texto="Opcional. Fecha de emisión del documento del proveedor; si se deja vacío se usa la fecha de hoy." />
+        </div>
       </div>
       <CampoError mensaje={errors.serie ?? errors.numero} />
-      <label style={{ display: "block", margin: "8px 0" }}>
-        <input type="checkbox" checked={esCredito} onChange={(e) => setEsCredito(e.target.checked)} /> Compra a crédito
-      </label>
+      <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr", marginTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <select style={input} value={monedaId} onChange={(e) => setMonedaId(Number(e.target.value))}>
+            <option value={0}>Divisa</option>
+            {monedas.map((m: any) => <option key={m.id} value={m.id}>{m.value}</option>)}
+          </select>
+          <Ayuda texto="Opcional. Moneda del documento del proveedor; si no se elige, se asume la moneda por defecto del negocio." />
+        </div>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <select style={input} value={tipoIgvId} onChange={(e) => setTipoIgvId(Number(e.target.value))}>
+            <option value={0}>Afectación IGV</option>
+            {tiposIgv.map((t: any) => <option key={t.id} value={t.id}>{t.codigo} - {t.value}</option>)}
+          </select>
+          <Ayuda texto="Opcional. Cómo afecta el IGV a este documento (Gravado/Exonerado/Inafecto); si no se elige, se calcula como Gravado." />
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", marginTop: 8 }}>
+        <label>
+          <input type="checkbox" checked={esCredito} onChange={(e) => setEsCredito(e.target.checked)} /> Compra a crédito
+        </label>
+        <Ayuda texto="Marca esta opción si el pago al proveedor queda pendiente (no se paga al contado). Necesita que la orden tenga un proveedor asignado." />
+      </div>
+      {esCredito && (
+        <div style={{ marginTop: 8, maxWidth: 220 }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <input style={{ ...input, ...estiloError(!!errors.fechaVencimiento) }} type="date" placeholder="Fecha de vencimiento" value={fechaVencimiento}
+              onChange={(e) => { setFechaVencimiento(e.target.value); clearError("fechaVencimiento"); }} />
+            <Ayuda texto="Obligatorio en compra a crédito: fecha límite para pagarle al proveedor." />
+          </div>
+          <CampoError mensaje={errors.fechaVencimiento} />
+        </div>
+      )}
       <table className={styles.table}>
         <thead><tr><th>Producto</th><th>Por facturar</th><th>Cant. factura</th><th>Precio factura</th><th>Precio orden</th></tr></thead>
         <tbody>
@@ -456,16 +539,33 @@ const Facturar = ({ orden, onCerrar, onGuardar }: any) => {
           })}
         </tbody>
       </table>
+      <div style={{ display: "flex", alignItems: "center", marginTop: 8 }}>
+        <textarea style={input} placeholder="Observación (opcional)" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
+        <Ayuda texto="Opcional. Notas internas sobre esta factura -- no se envían al proveedor." />
+      </div>
       <p style={{ color: "#6b7280", fontSize: 12 }}>Si algo no coincide con lo recibido o con el precio de la orden, se te mostrarán las diferencias antes de guardar. La factura no modifica el stock.</p>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button className={styles.registrarBtn} disabled={!!errors.serie}
+        <button className={styles.registrarBtn} disabled={!!errors.serie || !!errors.fechaVencimiento}
           onClick={() => {
             if (!serie.trim() || !numero.trim()) {
               setError("serie", "Indica serie y número de la factura");
               return toast.error("Indica serie y número de la factura");
             }
+            // Mismo criterio que el backend (CrearCompraCore): una compra a credito necesita un
+            // proveedor -- la orden puede no tenerlo porque Proveedor es opcional al crearla.
+            if (esCredito && !orden.proveedorId) {
+              const msg = "Esta orden no tiene proveedor asignado: una compra a crédito necesita uno. Asígnalo editando la orden o desmarca 'Compra a crédito'.";
+              setError("serie", msg);
+              return toast.error(msg);
+            }
+            if (esCredito && !fechaVencimiento) {
+              setError("fechaVencimiento", "Indica la fecha de vencimiento");
+              return toast.error("Indica la fecha de vencimiento del pago a crédito");
+            }
             onGuardar({
               serie: serie.trim(), numero: numero.trim(), fechaEmision: fechaEmision || undefined, esCredito,
+              fechaVencimiento: esCredito ? fechaVencimiento : undefined,
+              monedaId: monedaId || undefined, tipoIgvId: tipoIgvId || undefined, observacion: observacion || undefined,
               detalle: pendientes.map((d: any) => ({ ordenCompraDetalleId: d.id, productoId: d.productoId, cantidad: lineas[d.id].cantidad, costoUnitario: lineas[d.id].costo })),
             });
           }}>
