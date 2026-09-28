@@ -306,85 +306,86 @@ export const menuSidebar = [
     ],
   },
 
-  // === ADMINISTRACIÓN ===
-  // code "1400" = "Configuración" en module.json (Usuarios/Sucursales/RolesPermisos/Departamentos
-  // viven ahi) -- antes decia "200" ("Productos"), asi que este grupo solo aparecia si el rol
-  // tenia acceso a Productos, sin relacion real con los permisos de administracion/configuracion.
-  {
-    code: "1400",
-    id: 9,
-    value: "Administración",
-    icon: "mdi:cog-outline",
-    url: "",
-    children: [
-      {
-        code: "200",
-        id: 9,
-        value: "Usuarios",
-        icon: "mdi:user",
-        url: "dashboard/usuarios",
-      },
-      {
-        code: "200",
-        id: 10,
-        value: "Sucursales",
-        icon: "mdi:storefront",
-        url: "dashboard/sucursales",
-      },
-      {
-        code: "800",
-        id: 5,
-        value: "Mi Empresa",
-        icon: "bxs:business",
-        url: "dashboard/mi-empresa",
-      },
-      {
-        code: "200",
-        id: 15,
-        value: "Roles y Permisos",
-        icon: "mdi:shield-account-outline",
-        url: "dashboard/roles-permisos",
-      },
-      {
-        code: "1300",
-        id: 14,
-        value: "Configuraciones",
-        icon: "mdi:cog-outline",
-        url: "",
-        children: [
-          {
-            code: "1300",
-            id: 141,
-            value: "Categorías y métodos de pago",
-            icon: "mdi:tag-multiple-outline",
-            url: "dashboard/gastos/catalogos",
-          },
-          {
-            code: "1300",
-            id: 143,
-            value: "Flujo de compras",
-            icon: "mdi:swap-horizontal-bold",
-            url: "dashboard/configuracion-flujo",
-          },
-          {
-            code: "1300",
-            id: 142,
-            value: "Salones de recojo",
-            icon: "mdi:office-building-marker-outline",
-            url: "dashboard/pedidos/salones",
-          },
-          {
-            code: "1300",
-            id: 144,
-            value: "Departamentos",
-            icon: "mdi:account-tie-outline",
-            url: "dashboard/departamentos",
-          },
-        ],
-      },
-    ],
-  },
 ]
+
+// Administración: ya no vive en el sidebar, se muestra en el dropdown del nombre de la
+// empresa en el Navbar (ver Navbar/index.tsx). code "1400" = "Configuración" en module.json
+// (Usuarios/Sucursales/RolesPermisos/Departamentos viven ahi) -- se usa para ocultar todo el
+// bloque a quien no tenga ese modulo, igual que antes se hacia con el grupo del sidebar.
+export const adminMenu: IMenu = {
+  code: "1400",
+  id: 9,
+  value: "Administración",
+  icon: "mdi:cog-outline",
+  url: "",
+  children: [
+    {
+      code: "200",
+      id: 9,
+      value: "Usuarios",
+      icon: "mdi:user",
+      url: "dashboard/usuarios",
+    },
+    {
+      code: "200",
+      id: 10,
+      value: "Sucursales",
+      icon: "mdi:storefront",
+      url: "dashboard/sucursales",
+    },
+    {
+      code: "800",
+      id: 5,
+      value: "Mi Empresa",
+      icon: "bxs:business",
+      url: "dashboard/mi-empresa",
+    },
+    {
+      code: "200",
+      id: 15,
+      value: "Roles y Permisos",
+      icon: "mdi:shield-account-outline",
+      url: "dashboard/roles-permisos",
+    },
+    {
+      code: "1300",
+      id: 14,
+      value: "Configuraciones",
+      icon: "mdi:cog-outline",
+      url: "",
+      children: [
+        {
+          code: "1300",
+          id: 141,
+          value: "Categorías y métodos de pago",
+          icon: "mdi:tag-multiple-outline",
+          url: "dashboard/gastos/catalogos",
+        },
+        {
+          code: "1300",
+          id: 143,
+          value: "Flujo de compras",
+          icon: "mdi:swap-horizontal-bold",
+          url: "dashboard/configuracion-flujo",
+        },
+        {
+          code: "1300",
+          id: 142,
+          value: "Salones de recojo",
+          icon: "mdi:office-building-marker-outline",
+          url: "dashboard/pedidos/salones",
+        },
+        {
+          code: "1300",
+          id: 144,
+          value: "Departamentos",
+          icon: "mdi:account-tie-outline",
+          url: "dashboard/departamentos",
+        },
+      ],
+    },
+  ],
+}
 
 // No forma parte del sistema de módulos por tenant (AspNetModule/rutas): se agrega
 // manualmente en el Sidebar solo cuando me.isSuperAdmin es true.

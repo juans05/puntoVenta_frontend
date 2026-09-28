@@ -7,12 +7,13 @@ import { useAppDispatch, useAppSelector } from "../../../redux/store";
 import { getSucursales } from "../../../redux/reducers/extensiones/extensiones..reducer";
 import { SUCURSAL_ACTIVA_KEY } from "../../../utils/axios";
 import { RootState } from "../../../redux/rootState";
-import { menuSidebar } from "../../../infraestructure/MData/MData";
+import { adminMenu, menuSidebar } from "../../../infraestructure/MData/MData";
 import { Avatar } from "../../Avatar";
 
 export const Navbar = ({ onClickSidebar }: any) => {
   const refMenu = useRef<HTMLDivElement>(null);
   const [isActive, setIsActive] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const { tenantEmpresa }: any = useAppSelector(
     (state: RootState) => state.myBusiness
   );
@@ -44,6 +45,13 @@ export const Navbar = ({ onClickSidebar }: any) => {
     sessionStorage.clear();
     return (window.location.href = "/");
   };
+
+  const cerrarMenu = () => {
+    setIsActive(false);
+    setConfigOpen(false);
+  };
+
+  const tieneAdmin = me?.isSuperAdmin || me?.rutas?.some((ruta: any) => ruta.modulo === adminMenu.code);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -156,10 +164,68 @@ export const Navbar = ({ onClickSidebar }: any) => {
               <div
                 ref={refMenu}
                 className={`z-50 ${isActive ? `` : `hidden`
-                  } absolute top-11 right-0 min-w-[190px] text-base list-none bg-white border border-neutral-100 rounded-lg shadow-dropdown overflow-hidden`}
+                  } absolute top-11 right-0 min-w-[240px] text-base list-none bg-white border border-neutral-100 rounded-lg shadow-dropdown overflow-hidden`}
                 id="dropdown-user"
               >
-                <div className="px-4 py-3 bg-neutral-50" role="none">
+                {tieneAdmin && (
+                  <>
+                    <div className="px-4 py-3 bg-neutral-50 flex items-center gap-2" role="none">
+                      <Icon icon="mdi:domain" className="w-5 h-5 text-neutral-500 shrink-0" />
+                      <p className="text-sm font-semibold text-neutral-800 truncate">
+                        {tenantEmpresa?.nombre ?? me?.nombre}
+                      </p>
+                    </div>
+                    <ul className="py-1 border-b border-neutral-100" role="none">
+                      {adminMenu.children!.map((item: any) =>
+                        item.children ? (
+                          <li key={item.id}>
+                            <button
+                              type="button"
+                              onClick={() => setConfigOpen(!configOpen)}
+                              className="flex items-center justify-between w-full gap-2 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
+                            >
+                              <span className="flex items-center gap-2">
+                                <Icon icon={item.icon} className="w-4 h-4 text-neutral-500" />
+                                {item.value}
+                              </span>
+                              <Icon
+                                icon="mdi:chevron-right"
+                                className={`w-4 h-4 text-neutral-400 transition-transform ${configOpen ? "rotate-90" : ""}`}
+                              />
+                            </button>
+                            {configOpen && (
+                              <ul className="pb-1">
+                                {item.children.map((sub: any) => (
+                                  <li key={sub.id}>
+                                    <NavLink
+                                      to={`/${sub.url}`}
+                                      onClick={cerrarMenu}
+                                      className="flex items-center gap-2 pl-10 pr-4 py-2 text-sm text-neutral-600 hover:bg-neutral-50 transition-colors"
+                                    >
+                                      {sub.value}
+                                    </NavLink>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        ) : (
+                          <li key={item.id}>
+                            <NavLink
+                              to={`/${item.url}`}
+                              onClick={cerrarMenu}
+                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
+                            >
+                              <Icon icon={item.icon} className="w-4 h-4 text-neutral-500" />
+                              {item.value}
+                            </NavLink>
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </>
+                )}
+                <div className="px-4 py-3" role="none">
                   <p
                     className="text-sm font-semibold text-neutral-800 truncate"
                     role="none"
