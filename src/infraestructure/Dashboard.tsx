@@ -91,6 +91,12 @@ const DashboardRoutes = () => {
         <Route path="sucursales" element={<Sucursales />}/>
         <Route path="cajas" element={<Cajas />}/>
         <Route path="compras" element={<Compras />}/>
+        {/* Entradas del menu Compras: mismo componente, tab inicial distinto y key para que el
+            estado se reinicie al cambiar de entrada. Las notas de credito/debito de compra se
+            crean desde el boton "Nota" de cada fila del tab de comprobantes (no hay listado propio). */}
+        <Route path="compras/ordenes" element={<Compras key={location.pathname} tabInicial="ordenes" />}/>
+        <Route path="compras/notas-credito" element={<Compras key={location.pathname} />}/>
+        <Route path="compras/notas-debito" element={<Compras key={location.pathname} />}/>
         {/* Mismas paginas que "productos"/"clientes", montadas en otra ruta para que el menu
             "Compras > Productos y servicios / Proveedores" tenga su propio NavLink activo en
             vez de compartir pathname con "Ventas y pagos > Productos y servicios / Clientes". */}

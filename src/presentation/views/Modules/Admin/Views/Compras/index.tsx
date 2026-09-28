@@ -43,7 +43,7 @@ const rangoPorPeriodo = (periodo: Periodo): { start?: Date; end: Date } => {
   return { start, end };
 };
 
-export const Compras = () => {
+export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
   const dispatch = useAppDispatch();
   const { compras }: any = useAppSelector((state: RootState) => state.compras);
   const { me }: any = useAppSelector((state: RootState) => state.auth);
@@ -72,7 +72,7 @@ export const Compras = () => {
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
   const [sucursalIdFiltro, setSucursalIdFiltro] = useState<number>(0);
-  const [tabActiva, setTabActiva] = useState<Tab>("cpe");
+  const [tabActiva, setTabActiva] = useState<Tab>(tabInicial);
   // Configuracion > Flujo de compras: en COMPLETO las compras entran por orden -> recepcion -> factura.
   const [flujoConfig, setFlujoConfig] = useState<any>(null);
   const flujoCompleto = flujoConfig?.flujoCompras === "COMPLETO";

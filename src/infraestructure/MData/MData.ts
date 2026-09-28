@@ -12,9 +12,298 @@ export const menuSidebar = [
   {
     code: "100",
     id: 1,
-    value: "Inicio",
+    value: "Panel",
     icon: "ic:round-dashboard",
     url: "dashboard",
+  },
+
+  // === VENTAS ===
+  {
+    code: "300",
+    id: 3,
+    value: "Ventas",
+    icon: "mdi:cash-register",
+    url: "",
+    children: [
+      {
+        code: "300",
+        id: 31,
+        value: "Facturación",
+        icon: "mdi:file-document-multiple-outline",
+        url: "",
+        children: [
+          {
+            code: "900",
+            id: 311,
+            value: "Comprobantes emitidos",
+            icon: "healthicons:i-documents-accepted",
+            url: "dashboard/documentos-facturados",
+          },
+          {
+            code: "300",
+            id: 312,
+            value: "Factura",
+            icon: "mdi:file-document-plus-outline",
+            url: "dashboard/nueva-factura/factura",
+          },
+          {
+            code: "300",
+            id: 313,
+            value: "Boleta",
+            icon: "mdi:receipt-text-outline",
+            url: "dashboard/nueva-factura/boleta",
+          },
+        ],
+      },
+      {
+        code: "300",
+        id: 32,
+        value: "Nota de crédito",
+        icon: "mdi:file-document-minus-outline",
+        url: "dashboard/notas-credito-debito/credito",
+      },
+      {
+        code: "300",
+        id: 33,
+        value: "Nota de débito",
+        icon: "mdi:file-document-plus-outline",
+        url: "dashboard/notas-credito-debito/debito",
+      },
+      {
+        code: "300",
+        id: 34,
+        value: "Órdenes de venta",
+        icon: "mdi:clipboard-check-outline",
+        url: "dashboard/pedidos-venta",
+      },
+    ],
+  },
+
+  // === COMPRAS ===
+  // Mismo code "400" que tenia el grupo antes de esta reorganizacion (no le quita acceso a nadie).
+  {
+    code: "400",
+    id: 4,
+    value: "Compras",
+    icon: "mdi:truck-delivery-outline",
+    url: "",
+    children: [
+      {
+        code: "1100",
+        id: 41,
+        value: "Orden de compra",
+        icon: "mdi:cart-outline",
+        url: "dashboard/compras/ordenes",
+      },
+      {
+        code: "1100",
+        id: 42,
+        value: "Nota de crédito",
+        icon: "mdi:file-document-minus-outline",
+        url: "dashboard/compras/notas-credito",
+      },
+      {
+        code: "1100",
+        id: 43,
+        value: "Nota de débito",
+        icon: "mdi:file-document-plus-outline",
+        url: "dashboard/compras/notas-debito",
+      },
+      {
+        code: "1100",
+        id: 44,
+        value: "Facturación",
+        icon: "mdi:file-document-outline",
+        url: "dashboard/compras",
+      },
+    ],
+  },
+
+  // === CONTABILIDAD ===
+  {
+    code: "1600",
+    id: 25,
+    value: "Contabilidad",
+    icon: "mdi:book-open-variant-outline",
+    url: "",
+    children: [
+      {
+        code: "1600",
+        id: 251,
+        value: "Asientos contables",
+        icon: "mdi:book-open-page-variant-outline",
+        url: "dashboard/contabilidad/asientos-contables",
+      },
+      {
+        code: "1600",
+        id: 252,
+        value: "Plan de cuentas",
+        icon: "mdi:sitemap-outline",
+        url: "dashboard/contabilidad/plan-de-cuentas",
+      },
+      {
+        code: "400",
+        id: 253,
+        value: "Clientes",
+        icon: "mdi:users-group",
+        url: "dashboard/clientes",
+      },
+      {
+        code: "400",
+        id: 254,
+        value: "Proveedores",
+        icon: "mdi:domain",
+        url: "dashboard/compras/proveedores",
+      },
+    ],
+  },
+
+  // === INFORMES ===
+  // Los libros electronicos ya son el PLE (14.1 ventas / 8.1 compras), no hay pantalla aparte.
+  {
+    code: "900",
+    id: 15,
+    value: "Informes",
+    icon: "mdi:chart-line",
+    url: "",
+    children: [
+      {
+        code: "1600",
+        id: 151,
+        value: "Libro Electrónico de Ventas (PLE)",
+        icon: "mdi:book-outline",
+        url: "dashboard/contabilidad/libro-ventas",
+      },
+      {
+        code: "1600",
+        id: 152,
+        value: "Libro Electrónico de Compras (PLE)",
+        icon: "mdi:book-outline",
+        url: "dashboard/contabilidad/libro-compras",
+      },
+      {
+        code: "1600",
+        id: 153,
+        value: "Reporte Detallado de Ventas",
+        icon: "mdi:file-chart-outline",
+        url: "dashboard/contabilidad/reporte-ventas",
+      },
+      {
+        code: "1600",
+        id: 154,
+        value: "Reporte Detallado de Compras",
+        icon: "mdi:file-chart-outline",
+        url: "dashboard/contabilidad/reporte-compras",
+      },
+      {
+        code: "1600",
+        id: 155,
+        value: "Estado de Resultados",
+        icon: "mdi:chart-line-variant",
+        url: "dashboard/contabilidad/estado-resultados",
+      },
+      {
+        code: "1600",
+        id: 156,
+        value: "Balance General",
+        icon: "mdi:scale-balance",
+        url: "dashboard/contabilidad/balance-general",
+      },
+      {
+        code: "700",
+        id: 157,
+        value: "Reporte de Cierre de Caja",
+        icon: "solar:hand-money-bold",
+        url: "dashboard/reporte-cierre-caja",
+      },
+      {
+        code: "1300",
+        id: 158,
+        value: "ROI Publicidad",
+        icon: "mdi:chart-line",
+        url: "dashboard/publicidad",
+      },
+    ],
+  },
+
+  // === INVENTARIO ===
+  {
+    code: "200",
+    id: 17,
+    value: "Inventario",
+    icon: "healthicons:rdt-result-out-stock",
+    url: "",
+    children: [
+      {
+        code: "300",
+        id: 171,
+        value: "Guías de remisión",
+        icon: "mdi:truck-outline",
+        url: "dashboard/guias-remision",
+      },
+      {
+        code: "200",
+        id: 172,
+        value: "Inventario",
+        icon: "healthicons:rdt-result-out-stock",
+        url: "dashboard/inventario",
+      },
+      {
+        code: "200",
+        id: 173,
+        value: "Productos",
+        icon: "solar:bag-4-bold",
+        url: "dashboard/productos",
+      },
+    ],
+  },
+
+  // === BANCOS ===
+  {
+    code: "700",
+    id: 7,
+    value: "Bancos",
+    icon: "mdi:bank-outline",
+    url: "",
+    children: [
+      {
+        code: "700",
+        id: 71,
+        value: "Caja",
+        icon: "mdi:wallet-outline",
+        url: "dashboard/cajas",
+      },
+      {
+        code: "300",
+        id: 72,
+        value: "Pagos",
+        icon: "mdi:cash-multiple",
+        url: "",
+        children: [
+          {
+            code: "300",
+            id: 721,
+            value: "Cuentas por cobrar",
+            icon: "mdi:cash-plus",
+            url: "dashboard/cuentas-por-cobrar",
+          },
+          {
+            code: "300",
+            id: 722,
+            value: "Cuentas por pagar",
+            icon: "mdi:cash-minus",
+            url: "dashboard/cuentas-por-pagar",
+          },
+          {
+            code: "1300",
+            id: 723,
+            value: "Gastos",
+            icon: "mdi:cash-minus",
+            url: "dashboard/gastos",
+          },
+        ],
+      },
+    ],
   },
 
   // === ADMINISTRACIÓN ===
@@ -92,317 +381,6 @@ export const menuSidebar = [
             url: "dashboard/departamentos",
           },
         ],
-      },
-    ],
-  },
-
-  // === VENTA & COMPROBANTE ===
-  {
-    code: "300",
-    id: 3,
-    value: "Venta & Comprobante",
-    icon: "mdi:file-document-multiple-outline",
-    url: "",
-    children: [
-      {
-        code: "900",
-        id: 7,
-        value: "Comprobante de Pago",
-        icon: "healthicons:i-documents-accepted",
-        url: "dashboard/documentos-facturados",
-      },
-      {
-        code: "300",
-        id: 16,
-        value: "Emitir Factura",
-        icon: "mdi:file-document-plus-outline",
-        url: "dashboard/nueva-factura/factura",
-      },
-      {
-        code: "300",
-        id: 20,
-        value: "Emitir Boleta",
-        icon: "mdi:receipt-text-outline",
-        url: "dashboard/nueva-factura/boleta",
-      },
-      {
-        code: "300",
-        id: 19,
-        value: "Emitir NC",
-        icon: "mdi:file-document-minus-outline",
-        url: "dashboard/notas-credito-debito/credito",
-      },
-      {
-        code: "300",
-        id: 21,
-        value: "Emitir ND",
-        icon: "mdi:file-document-plus-outline",
-        url: "dashboard/notas-credito-debito/debito",
-      },
-      {
-        code: "300",
-        id: 23,
-        value: "Emitir Nota de Venta",
-        icon: "mdi:note-outline",
-        url: "dashboard/nueva-factura/nota-venta",
-      },
-      {
-        code: "300",
-        id: 24,
-        value: "Emitir Cotización",
-        icon: "mdi:file-chart-outline",
-        url: "dashboard/cotizaciones",
-      },
-    ],
-  },
-
-  // === VENTAS Y PAGOS ===
-  // Mismo code "400" que "Tu Operación": el filtro del Sidebar solo mira el code
-  // del nodo top-level (ver LayoutView), asi que partir el grupo no le quita
-  // acceso a nadie que ya viera "Tu Operación".
-  {
-    code: "400",
-    id: 40,
-    value: "Ventas y pagos",
-    icon: "mdi:cash-register",
-    url: "",
-    children: [
-      {
-        code: "300",
-        id: 401,
-        value: "Estimaciones",
-        icon: "mdi:file-chart-outline",
-        url: "dashboard/cotizaciones",
-      },
-      {
-        code: "900",
-        id: 402,
-        value: "Facturas",
-        icon: "healthicons:i-documents-accepted",
-        url: "dashboard/documentos-facturados",
-      },
-      {
-        code: "300",
-        id: 403,
-        value: "Estados de cuenta de los clientes",
-        icon: "mdi:cash-plus",
-        url: "dashboard/cuentas-por-cobrar",
-      },
-      {
-        code: "400",
-        id: 404,
-        value: "Clientes",
-        icon: "mdi:users-group",
-        url: "dashboard/clientes",
-      },
-      {
-        code: "200",
-        id: 405,
-        value: "Productos y servicios",
-        icon: "solar:bag-4-bold",
-        url: "dashboard/productos",
-      },
-    ],
-  },
-
-  // === COMPRAS ===
-  {
-    code: "400",
-    id: 41,
-    value: "Compras",
-    icon: "mdi:truck-delivery-outline",
-    url: "",
-    children: [
-      {
-        code: "1100",
-        id: 411,
-        value: "Facturas",
-        icon: "mdi:file-document-outline",
-        url: "dashboard/compras",
-      },
-      {
-        code: "400",
-        id: 412,
-        value: "Proveedores",
-        icon: "mdi:domain",
-        url: "dashboard/compras/proveedores",
-      },
-      {
-        code: "200",
-        id: 413,
-        value: "Productos y servicios",
-        icon: "solar:bag-4-bold",
-        url: "dashboard/compras/productos",
-      },
-    ],
-  },
-
-  // === TU OPERACIÓN (resto) ===
-  {
-    code: "400",
-    id: 4,
-    value: "Tu Operación",
-    icon: "mdi:briefcase-outline",
-    url: "",
-    children: [
-      {
-        code: "700",
-        id: 11,
-        value: "Cajas",
-        icon: "mdi:wallet-outline",
-        url: "dashboard/cajas",
-      },
-      {
-        code: "1300",
-        id: 13,
-        value: "Gastos",
-        icon: "mdi:cash-minus",
-        url: "dashboard/gastos",
-      },
-      {
-        code: "300",
-        id: 122,
-        value: "Pedidos de venta",
-        icon: "mdi:clipboard-check-outline",
-        url: "dashboard/pedidos-venta",
-      },
-      {
-        code: "300",
-        id: 121,
-        value: "Pedidos",
-        icon: "mdi:clipboard-list-outline",
-        url: "dashboard/pedidos",
-      },
-      {
-        code: "300",
-        id: 123,
-        value: "Guías de remisión",
-        icon: "mdi:truck-outline",
-        url: "dashboard/guias-remision",
-      },
-      {
-        code: "200",
-        id: 17,
-        value: "Inventario",
-        icon: "healthicons:rdt-result-out-stock",
-        url: "dashboard/inventario",
-      },
-    ],
-  },
-
-  // === CUENTAS (por cobrar / por pagar) ===
-  {
-    code: "300",
-    id: 30,
-    value: "Cuentas",
-    icon: "mdi:cash-multiple",
-    url: "",
-    children: [
-      {
-        code: "300",
-        id: 301,
-        value: "Cuentas por cobrar",
-        icon: "mdi:cash-plus",
-        url: "dashboard/cuentas-por-cobrar",
-      },
-      {
-        code: "300",
-        id: 302,
-        value: "Cuentas por pagar",
-        icon: "mdi:cash-minus",
-        url: "dashboard/cuentas-por-pagar",
-      },
-    ],
-  },
-
-  // === REPORTES & ANÁLISIS ===
-  {
-    code: "900",
-    id: 15,
-    value: "Reportes & Análisis",
-    icon: "mdi:chart-line",
-    url: "",
-    children: [
-      {
-        code: "700",
-        id: 5,
-        value: "Reporte de Cierre de Caja",
-        icon: "solar:hand-money-bold",
-        url: "dashboard/reporte-cierre-caja",
-      },
-      {
-        code: "1300",
-        id: 15,
-        value: "ROI Publicidad",
-        icon: "mdi:chart-line",
-        url: "dashboard/publicidad",
-      },
-    ],
-  },
-
-  // === CONTABILIDAD ===
-  {
-    code: "1600",
-    id: 25,
-    value: "Contabilidad",
-    icon: "mdi:book-open-variant-outline",
-    url: "",
-    children: [
-      {
-        code: "1600",
-        id: 251,
-        value: "Libro Electrónico de Ventas",
-        icon: "mdi:book-outline",
-        url: "dashboard/contabilidad/libro-ventas",
-      },
-      {
-        code: "1600",
-        id: 252,
-        value: "Libro Electrónico de Compras",
-        icon: "mdi:book-outline",
-        url: "dashboard/contabilidad/libro-compras",
-      },
-      {
-        code: "1600",
-        id: 253,
-        value: "Reporte Detallado de Ventas",
-        icon: "mdi:file-chart-outline",
-        url: "dashboard/contabilidad/reporte-ventas",
-      },
-      {
-        code: "1600",
-        id: 254,
-        value: "Reporte Detallado de Compras",
-        icon: "mdi:file-chart-outline",
-        url: "dashboard/contabilidad/reporte-compras",
-      },
-      {
-        code: "1600",
-        id: 255,
-        value: "Plan de Cuentas",
-        icon: "mdi:sitemap-outline",
-        url: "dashboard/contabilidad/plan-de-cuentas",
-      },
-      {
-        code: "1600",
-        id: 256,
-        value: "Asientos Contables",
-        icon: "mdi:book-open-page-variant-outline",
-        url: "dashboard/contabilidad/asientos-contables",
-      },
-      {
-        code: "1600",
-        id: 257,
-        value: "Estado de Resultados",
-        icon: "mdi:chart-line-variant",
-        url: "dashboard/contabilidad/estado-resultados",
-      },
-      {
-        code: "1600",
-        id: 258,
-        value: "Balance General",
-        icon: "mdi:scale-balance",
-        url: "dashboard/contabilidad/balance-general",
       },
     ],
   },
