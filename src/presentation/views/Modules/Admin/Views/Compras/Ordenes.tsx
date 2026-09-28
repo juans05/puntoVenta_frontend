@@ -30,6 +30,8 @@ const modal: React.CSSProperties = {
   background: "#fff", borderRadius: 12, padding: 20, width: "min(760px, 100%)", maxHeight: "90vh", overflow: "auto",
 };
 const input: React.CSSProperties = { border: "1px solid #d1d5db", borderRadius: 8, padding: "6px 8px", width: "100%" };
+const label: React.CSSProperties = { display: "flex", alignItems: "center", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 };
+const campo: React.CSSProperties = { display: "flex", flexDirection: "column" };
 
 const formatSoles = (n: number) => `S/ ${Number(n).toFixed(2)}`;
 const mensajeError = (e: any, def: string) => e?.response?.data?.message ?? def;
@@ -292,64 +294,62 @@ const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobac
 
   return (
     <Modal titulo="Nueva orden de compra" onCerrar={onCerrar}>
-      <div style={{ display: "flex", gap: 16, marginBottom: 10, alignItems: "center" }}>
-        <label><input type="radio" checked={!esServicio} onChange={() => setTipoOrden("BIEN")} /> 📦 Bien (con recepción)</label>
-        <label><input type="radio" checked={esServicio} onChange={() => setTipoOrden("SERVICIO")} /> 🧰 Servicio (directo a factura)</label>
-        <Ayuda texto="Bien: la orden pasa por Recepción antes de facturarse (sube el stock cuando llega la mercadería). Servicio: no hay recepción, se factura directamente al proveedor." />
+      <div style={campo}>
+        <label style={label}>Tipo de orden<Ayuda texto="Bien: la orden pasa por Recepción antes de facturarse (sube el stock cuando llega la mercadería). Servicio: no hay recepción, se factura directamente al proveedor." /></label>
+        <div style={{ display: "flex", gap: 16, marginBottom: 10, alignItems: "center" }}>
+          <label style={{ fontWeight: 400 }}><input type="radio" checked={!esServicio} onChange={() => setTipoOrden("BIEN")} /> 📦 Bien (con recepción)</label>
+          <label style={{ fontWeight: 400 }}><input type="radio" checked={esServicio} onChange={() => setTipoOrden("SERVICIO")} /> 🧰 Servicio (directo a factura)</label>
+        </div>
       </div>
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={campo}>
+          <label style={label}>Proveedor<Ayuda texto="Opcional. A quién le compras. Puedes dejarlo en blanco y completarlo después editando la orden mientras siga en borrador." /></label>
           <select style={input} value={proveedorId} onChange={(e) => setProveedorId(Number(e.target.value))}>
-            <option value={0}>Proveedor</option>
+            <option value={0}>Selecciona un proveedor</option>
             {proveedores.map((p: any) => <option key={p.proveedorId ?? p.id} value={p.proveedorId ?? p.id}>{p.nombre}{p.ruc ? ` (${p.ruc})` : ""}</option>)}
           </select>
-          <Ayuda texto="Opcional. A quién le compras. Puedes dejarlo en blanco y completarlo después editando la orden mientras siga en borrador." />
         </div>
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={campo}>
+          <label style={label}>Sucursal<Ayuda texto="Opcional. La sucursal donde ingresará la mercadería o se registrará el gasto." /></label>
           <select style={input} value={sucursalId} onChange={(e) => setSucursalId(Number(e.target.value))}>
-            <option value={0}>📍 Sucursal</option>
+            <option value={0}>📍 Selecciona una sucursal</option>
             {sucursales.map((s: any) => <option key={s.id} value={s.id}>{s.value}</option>)}
           </select>
-          <Ayuda texto="Opcional. La sucursal donde ingresará la mercadería o se registrará el gasto." />
         </div>
       </div>
       <h4 style={{ margin: "14px 0 6px" }}>{esServicio ? "Servicios" : "Productos"}</h4>
       <CampoError mensaje={errors.productos} />
+      <div style={{ display: "grid", gap: 6, gridTemplateColumns: "3fr 1fr 1fr auto" }}>
+        <label style={label}>{esServicio ? "Descripción" : "Producto"}<Ayuda texto={esServicio
+          ? "Obligatorio: describe el servicio que te va a facturar el proveedor."
+          : "Obligatorio: elige un producto del catálogo. No se puede repetir el mismo producto en dos líneas -- si necesitas más cantidad, edita esa misma línea."} /></label>
+        <label style={label}>Cantidad<Ayuda texto="Obligatorio: cantidad a pedir, número entero mayor a 0." /></label>
+        <label style={label}>Costo unitario<Ayuda texto="Costo pactado con el proveedor por unidad, sin IGV. No puede ser negativo; déjalo en 0 si aún no lo conoces." /></label>
+        <span />
+      </div>
       {lineas.map((l, i) => (
         <div key={i} style={{ display: "grid", gap: 6, gridTemplateColumns: "3fr 1fr 1fr auto", marginBottom: 6, alignItems: "center" }}>
           {esServicio ? (
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <input style={{ ...input, ...estiloError(!!errors.productos) }} placeholder="Descripción del servicio" value={l.descripcion}
-                onChange={(e) => { setLinea(i, { descripcion: e.target.value }); clearError("productos"); }} />
-              <Ayuda texto="Obligatorio: describe el servicio que te va a facturar el proveedor." />
-            </div>
+            <input style={{ ...input, ...estiloError(!!errors.productos) }} placeholder="Descripción del servicio" value={l.descripcion}
+              onChange={(e) => { setLinea(i, { descripcion: e.target.value }); clearError("productos"); }} />
           ) : (
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <select style={{ ...input, ...estiloError(!!errors.productos) }} value={l.productoId}
-                onChange={(e) => { setLinea(i, { productoId: Number(e.target.value) }); clearError("productos"); }}>
-                <option value={0}>Producto</option>
-                {productos.map((p: any) => <option key={p.productoId} value={p.productoId}>{p.nombre}</option>)}
-              </select>
-              <Ayuda texto="Obligatorio: elige un producto del catálogo. No se puede repetir el mismo producto en dos líneas -- si necesitas más cantidad, edita esa misma línea." />
-            </div>
+            <select style={{ ...input, ...estiloError(!!errors.productos) }} value={l.productoId}
+              onChange={(e) => { setLinea(i, { productoId: Number(e.target.value) }); clearError("productos"); }}>
+              <option value={0}>Selecciona un producto</option>
+              {productos.map((p: any) => <option key={p.productoId} value={p.productoId}>{p.nombre}</option>)}
+            </select>
           )}
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <input style={input} type="number" min={1} value={l.cantidad} onChange={(e) => setLinea(i, { cantidad: Math.max(1, Math.floor(Number(e.target.value))) })} title="Cantidad" />
-            <Ayuda texto="Obligatorio: cantidad a pedir, número entero mayor a 0." />
-          </div>
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <input style={input} type="number" min={0} step="0.01" value={l.costoUnitario} onChange={(e) => setLinea(i, { costoUnitario: Math.max(0, Number(e.target.value)) })} title="Costo unitario" />
-            <Ayuda texto="Costo pactado con el proveedor por unidad, sin IGV. No puede ser negativo; déjalo en 0 si aún no lo conoces." />
-          </div>
+          <input style={input} type="number" min={1} value={l.cantidad} onChange={(e) => setLinea(i, { cantidad: Math.max(1, Math.floor(Number(e.target.value))) })} />
+          <input style={input} type="number" min={0} step="0.01" value={l.costoUnitario} onChange={(e) => setLinea(i, { costoUnitario: Math.max(0, Number(e.target.value)) })} />
           <button onClick={() => setLineas(lineas.filter((_, j) => j !== i))} disabled={lineas.length === 1}>✕</button>
         </div>
       ))}
       <button onClick={() => setLineas([...lineas, { productoId: 0, descripcion: "", cantidad: 1, costoUnitario: 0 }])}>
         + Agregar {esServicio ? "servicio" : "producto"}
       </button>
-      <div style={{ display: "flex", alignItems: "center", marginTop: 10 }}>
+      <div style={{ ...campo, marginTop: 10 }}>
+        <label style={label}>Observación<Ayuda texto="Opcional. Notas internas sobre la orden -- no se envían al proveedor." /></label>
         <textarea style={input} placeholder="Observación (opcional)" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
-        <Ayuda texto="Opcional. Notas internas sobre la orden -- no se envían al proveedor." />
       </div>
       <p style={{ marginTop: 10 }}>
         <strong>Total: {formatSoles(total)}</strong>
@@ -357,26 +357,22 @@ const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobac
       </p>
       {requiereAprobacion && (
         <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr", marginBottom: 10 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <select style={{ ...input, ...estiloError(!!errors.departamentoId) }} value={departamentoId}
-                onChange={(e) => { setDepartamentoId(Number(e.target.value)); setAprobadorAsignadoId(""); clearError("departamentoId"); }}>
-                <option value={0}>Departamento que aprueba</option>
-                {departamentos.map((d: any) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
-              </select>
-              <Ayuda texto="Obligatorio porque el total supera el monto configurado para requerir aprobación. Elige la jefatura responsable de aprobar esta orden." />
-            </div>
+          <div style={campo}>
+            <label style={label}>Departamento que aprueba<Ayuda texto="Obligatorio porque el total supera el monto configurado para requerir aprobación. Elige la jefatura responsable de aprobar esta orden." /></label>
+            <select style={{ ...input, ...estiloError(!!errors.departamentoId) }} value={departamentoId}
+              onChange={(e) => { setDepartamentoId(Number(e.target.value)); setAprobadorAsignadoId(""); clearError("departamentoId"); }}>
+              <option value={0}>Selecciona un departamento</option>
+              {departamentos.map((d: any) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+            </select>
             <CampoError mensaje={errors.departamentoId} />
           </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <select style={{ ...input, ...estiloError(!!errors.aprobadorAsignadoId) }} value={aprobadorAsignadoId} disabled={!departamentoId}
-                onChange={(e) => { setAprobadorAsignadoId(e.target.value); clearError("aprobadorAsignadoId"); }}>
-                <option value="">Aprobador</option>
-                {aprobadoresDelDepartamento.map((a: any) => <option key={a.userId} value={a.userId}>{a.nombre}</option>)}
-              </select>
-              <Ayuda texto="Obligatorio: la persona de esa jefatura que debe aprobar la orden antes de que se pueda emitir." />
-            </div>
+          <div style={campo}>
+            <label style={label}>Aprobador<Ayuda texto="Obligatorio: la persona de esa jefatura que debe aprobar la orden antes de que se pueda emitir." /></label>
+            <select style={{ ...input, ...estiloError(!!errors.aprobadorAsignadoId) }} value={aprobadorAsignadoId} disabled={!departamentoId}
+              onChange={(e) => { setAprobadorAsignadoId(e.target.value); clearError("aprobadorAsignadoId"); }}>
+              <option value="">Selecciona un aprobador</option>
+              {aprobadoresDelDepartamento.map((a: any) => <option key={a.userId} value={a.userId}>{a.nombre}</option>)}
+            </select>
             <CampoError mensaje={errors.aprobadorAsignadoId} />
           </div>
         </div>
@@ -475,56 +471,59 @@ const Facturar = ({ orden, monedas, tiposIgv, onCerrar, onGuardar }: any) => {
   return (
     <Modal titulo={`Factura del proveedor · ${orden.numero}`} onCerrar={onCerrar}>
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr" }}>
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={campo}>
+          <label style={label}>Serie<Ayuda texto="Obligatorio: serie de la factura o boleta que te dio el proveedor (ej. F001)." /></label>
           <input style={{ ...input, ...estiloError(!!errors.serie) }} placeholder="Serie (F001)" value={serie}
             onChange={(e) => { setSerie(e.target.value); clearError("serie"); }} />
-          <Ayuda texto="Obligatorio: serie de la factura o boleta que te dio el proveedor (ej. F001)." />
         </div>
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={campo}>
+          <label style={label}>Número<Ayuda texto="Obligatorio: número correlativo del documento del proveedor." /></label>
           <input style={{ ...input, ...estiloError(!!errors.numero) }} placeholder="Número" value={numero}
             onChange={(e) => { setNumero(e.target.value); clearError("numero"); }} />
-          <Ayuda texto="Obligatorio: número correlativo del documento del proveedor." />
         </div>
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={campo}>
+          <label style={label}>Fecha de emisión<Ayuda texto="Opcional. Fecha de emisión del documento del proveedor; si se deja vacío se usa la fecha de hoy." /></label>
           <input style={input} type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} />
-          <Ayuda texto="Opcional. Fecha de emisión del documento del proveedor; si se deja vacío se usa la fecha de hoy." />
         </div>
       </div>
       <CampoError mensaje={errors.serie ?? errors.numero} />
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr", marginTop: 8 }}>
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={campo}>
+          <label style={label}>Divisa<Ayuda texto="Opcional. Moneda del documento del proveedor; si no se elige, se asume la moneda por defecto del negocio." /></label>
           <select style={input} value={monedaId} onChange={(e) => setMonedaId(Number(e.target.value))}>
-            <option value={0}>Divisa</option>
+            <option value={0}>Selecciona una divisa</option>
             {monedas.map((m: any) => <option key={m.id} value={m.id}>{m.value}</option>)}
           </select>
-          <Ayuda texto="Opcional. Moneda del documento del proveedor; si no se elige, se asume la moneda por defecto del negocio." />
         </div>
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={campo}>
+          <label style={label}>Afectación IGV<Ayuda texto="Opcional. Cómo afecta el IGV a este documento (Gravado/Exonerado/Inafecto); si no se elige, se calcula como Gravado." /></label>
           <select style={input} value={tipoIgvId} onChange={(e) => setTipoIgvId(Number(e.target.value))}>
-            <option value={0}>Afectación IGV</option>
+            <option value={0}>Selecciona una afectación</option>
             {tiposIgv.map((t: any) => <option key={t.id} value={t.id}>{t.codigo} - {t.value}</option>)}
           </select>
-          <Ayuda texto="Opcional. Cómo afecta el IGV a este documento (Gravado/Exonerado/Inafecto); si no se elige, se calcula como Gravado." />
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", marginTop: 8 }}>
-        <label>
+        <label style={{ fontWeight: 400 }}>
           <input type="checkbox" checked={esCredito} onChange={(e) => setEsCredito(e.target.checked)} /> Compra a crédito
         </label>
         <Ayuda texto="Marca esta opción si el pago al proveedor queda pendiente (no se paga al contado). Necesita que la orden tenga un proveedor asignado." />
       </div>
       {esCredito && (
-        <div style={{ marginTop: 8, maxWidth: 220 }}>
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <input style={{ ...input, ...estiloError(!!errors.fechaVencimiento) }} type="date" placeholder="Fecha de vencimiento" value={fechaVencimiento}
-              onChange={(e) => { setFechaVencimiento(e.target.value); clearError("fechaVencimiento"); }} />
-            <Ayuda texto="Obligatorio en compra a crédito: fecha límite para pagarle al proveedor." />
-          </div>
+        <div style={{ ...campo, marginTop: 8, maxWidth: 220 }}>
+          <label style={label}>Fecha de vencimiento<Ayuda texto="Obligatorio en compra a crédito: fecha límite para pagarle al proveedor." /></label>
+          <input style={{ ...input, ...estiloError(!!errors.fechaVencimiento) }} type="date" value={fechaVencimiento}
+            onChange={(e) => { setFechaVencimiento(e.target.value); clearError("fechaVencimiento"); }} />
           <CampoError mensaje={errors.fechaVencimiento} />
         </div>
       )}
       <table className={styles.table}>
-        <thead><tr><th>Producto</th><th>Por facturar</th><th>Cant. factura</th><th>Precio factura</th><th>Precio orden</th></tr></thead>
+        <thead><tr>
+          <th>Producto</th><th>Por facturar</th>
+          <th>Cant. factura<Ayuda texto="Cantidad que te está facturando el proveedor en este documento. No puede superar lo pendiente por facturar." /></th>
+          <th>Precio factura<Ayuda texto="Precio unitario que figura en la factura del proveedor. Si no coincide con el precio de la orden, se te avisará antes de guardar." /></th>
+          <th>Precio orden</th>
+        </tr></thead>
         <tbody>
           {pendientes.map((d: any) => {
             const l = lineas[d.id];
@@ -539,9 +538,9 @@ const Facturar = ({ orden, monedas, tiposIgv, onCerrar, onGuardar }: any) => {
           })}
         </tbody>
       </table>
-      <div style={{ display: "flex", alignItems: "center", marginTop: 8 }}>
+      <div style={{ ...campo, marginTop: 8 }}>
+        <label style={label}>Observación<Ayuda texto="Opcional. Notas internas sobre esta factura -- no se envían al proveedor." /></label>
         <textarea style={input} placeholder="Observación (opcional)" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
-        <Ayuda texto="Opcional. Notas internas sobre esta factura -- no se envían al proveedor." />
       </div>
       <p style={{ color: "#6b7280", fontSize: 12 }}>Si algo no coincide con lo recibido o con el precio de la orden, se te mostrarán las diferencias antes de guardar. La factura no modifica el stock.</p>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
