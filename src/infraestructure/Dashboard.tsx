@@ -38,6 +38,8 @@ import { ReporteDetalladoVentas } from "../presentation/views/Modules/Admin/View
 import { ReporteDetalladoCompras } from "../presentation/views/Modules/Admin/Views/Contabilidad/ReporteDetalladoCompras";
 import { PlanDeCuentas } from "../presentation/views/Modules/Admin/Views/Contabilidad/PlanDeCuentas";
 import { AsientosContables } from "../presentation/views/Modules/Admin/Views/Contabilidad/AsientosContables";
+import { EstadoResultados } from "../presentation/views/Modules/Admin/Views/Contabilidad/EstadoResultados";
+import { BalanceGeneral } from "../presentation/views/Modules/Admin/Views/Contabilidad/BalanceGeneral";
 import NuevaFactura from "../presentation/views/Modules/NuevaFactura";
 import { ConfiguracionFlujo } from "../presentation/views/Modules/Admin/Views/ConfiguracionFlujo";
 import { Departamentos } from "../presentation/views/Modules/Admin/Views/Departamentos";
@@ -116,6 +118,8 @@ const DashboardRoutes = () => {
         <Route path="contabilidad/reporte-compras" element={<ReporteDetalladoCompras />}/>
         <Route path="contabilidad/plan-de-cuentas" element={<PlanDeCuentas />}/>
         <Route path="contabilidad/asientos-contables" element={<AsientosContables />}/>
+        <Route path="contabilidad/estado-resultados" element={<EstadoResultados />}/>
+        <Route path="contabilidad/balance-general" element={<BalanceGeneral />}/>
 {/*             <Route path="my-business" element={<MyBusiness />} /> */}
       </Route>
     </Routes>

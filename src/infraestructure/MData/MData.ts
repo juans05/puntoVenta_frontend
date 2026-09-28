@@ -390,6 +390,20 @@ export const menuSidebar = [
         icon: "mdi:book-open-page-variant-outline",
         url: "dashboard/contabilidad/asientos-contables",
       },
+      {
+        code: "1600",
+        id: 257,
+        value: "Estado de Resultados",
+        icon: "mdi:chart-line-variant",
+        url: "dashboard/contabilidad/estado-resultados",
+      },
+      {
+        code: "1600",
+        id: 258,
+        value: "Balance General",
+        icon: "mdi:scale-balance",
+        url: "dashboard/contabilidad/balance-general",
+      },
     ],
   },
 ]
