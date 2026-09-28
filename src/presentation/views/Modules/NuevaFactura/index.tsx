@@ -188,7 +188,7 @@ const NuevaFactura = () => {
       return;
     }
     dispatch(resetSale());
-    dispatch(getProducts(0, 0, "", 1, 100, undefined));
+    dispatch(getProducts(0, 0, "", 1, 100, undefined, { seVende: true }));
     dispatch(getPayMethods());
     dispatch(getTiposIgv() as any);
     dispatch(getUnidadesMedida() as any);

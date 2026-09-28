@@ -66,7 +66,7 @@ export const Ordenes = ({ config }: { config: any }) => {
 
   useEffect(() => {
     dispatch(getProveedores() as any);
-    dispatch(getProductosCompra() as any);
+    dispatch(getProductosCompra(true) as any);
     dispatch(getSucursales() as any);
     dispatch(getMonedas() as any);
     dispatch(getTiposIgv() as any);

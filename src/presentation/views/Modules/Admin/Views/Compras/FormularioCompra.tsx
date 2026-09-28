@@ -124,7 +124,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   };
 
   useEffect(() => {
-    dispatch(getProductosCompra() as any);
+    dispatch(getProductosCompra(true) as any);
     dispatch(getPayMethods() as any);
     dispatch(getMonedas() as any);
     dispatch(getTiposIgv() as any);
@@ -308,7 +308,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
     dispatch(clearActiveProducto() as any);
     if (lineaCreandoProducto !== null) seleccionarProducto(lineaCreandoProducto, p.productoId, p.nombre);
     setLineaCreandoProducto(null);
-    dispatch(getProductosCompra() as any);
+    dispatch(getProductosCompra(true) as any);
   };
 
   // Calculo en vivo solo para mostrar un preview -- el backend es la fuente de verdad al guardar.

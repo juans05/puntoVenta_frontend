@@ -71,7 +71,7 @@ const Facturacion = ({ requiereCaja = true }: IProps) => {
             return navigate('/')
         }
         setLoadingProducts(true)
-        dispatch(getProducts(0, 0, debounceSearch, 1, 100, undefined)).finally(() => setLoadingProducts(false))
+        dispatch(getProducts(0, 0, debounceSearch, 1, 100, undefined, { seVende: true })).finally(() => setLoadingProducts(false))
     }, [dispatch, customer, debounceSearch, token])
 
     // useEffect(() => {

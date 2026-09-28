@@ -83,7 +83,7 @@ const Pedidos = () => {
       return;
     }
     dispatch(resetPedidosAction());
-    dispatch(getProducts(0, 0, "", 1, 100, undefined));
+    dispatch(getProducts(0, 0, "", 1, 100, undefined, { seVende: true }));
     conCarga("Cargando pedidos...", () => dispatch(fetchPedidos({ page, amount, estadoPedido: estadoFiltro })) as any);
   }, []);
 

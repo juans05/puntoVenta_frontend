@@ -444,15 +444,21 @@ export const getProducts = (
   page: number,
   amount: number,
   groupName?: string,
-
+  // seVende/seCompra: solo los pickers de Ventas/Compras filtran por esto (ver NuevaFactura,
+  // Facturacion, Pedidos, getProductosCompra) -- Admin > Productos/Inventario los omite a
+  // proposito, porque ahi se administran los productos aunque no se vendan/compren mas.
+  filtros?: { seVende?: boolean; seCompra?: boolean },
 ) => {
   return async (dispatch: Dispatch<types.IGetAllProducts | AnyAction>) => {
     // console.log(value)
     try {
-      const response: any = await axiosInstance.get(
-        `/productos/listar?${groupName != undefined && groupName !== 'Todos' ? `CategoriaId=${categoriaId}&GrupoId=${grupoId}&Value=${value}&Page=${page}&Amount=${amount}` : `CategoriaId=${categoriaId}&Value=${value}&Page=${page}&Amount=${amount}`}`
-        /*  `/productos/listar?${groupName!=undefined && groupName!=='Todos' ?`CategoriaId=${categoriaId}&GrupoId=${grupoId}&Value=${value}&Page=${page}&Amount=${amount}`:`Value=${value}&Page=${page}&Amount=${amount}` }` */
-      );
+      const base = groupName != undefined && groupName !== 'Todos'
+        ? `CategoriaId=${categoriaId}&GrupoId=${grupoId}&Value=${value}&Page=${page}&Amount=${amount}`
+        : `CategoriaId=${categoriaId}&Value=${value}&Page=${page}&Amount=${amount}`;
+      const extra =
+        (filtros?.seVende !== undefined ? `&SeVende=${filtros.seVende}` : "") +
+        (filtros?.seCompra !== undefined ? `&SeCompra=${filtros.seCompra}` : "");
+      const response: any = await axiosInstance.get(`/productos/listar?${base}${extra}`);
       const { status, data } = response;
       if (status === 200) {
         dispatch({

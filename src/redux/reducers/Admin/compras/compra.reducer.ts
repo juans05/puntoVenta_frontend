@@ -87,11 +87,14 @@ export const getProveedores = () => {
   };
 };
 
-export const getProductosCompra = () => {
+// seCompra: solo Compras/Ordenes lo pasan en true -- PedidosVenta tambien usa esta accion (nombre
+// heredado, en realidad es "traeme todos los productos") para su propio picker de venta, y no debe
+// filtrarse por SeCompra.
+export const getProductosCompra = (seCompra?: boolean) => {
   return async (dispatch: Dispatch<AnyAction>) => {
     try {
       const response: any = await axiosInstance.get(
-        `/productos/listar?CategoriaId=0&Value=&Page=1&Amount=200`
+        `/productos/listar?CategoriaId=0&Value=&Page=1&Amount=200${seCompra !== undefined ? `&SeCompra=${seCompra}` : ""}`
       );
       const { status, data } = response;
       if (status === 200) {
