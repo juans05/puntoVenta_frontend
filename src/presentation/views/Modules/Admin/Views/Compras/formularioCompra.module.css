@@ -137,6 +137,14 @@ button.addLineBtn {
   margin-bottom: 4px;
 }
 
+.detalleRowExtra {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: -4px;
+}
+
 .subtotalLinea {
   font-size: 14px;
   font-weight: 600;

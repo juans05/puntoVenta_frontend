@@ -20,7 +20,7 @@ import { Button } from "@tremor/react";
 import { toast } from "sonner";
 import { IExtensionesState } from "../../../../redux/reducers/extensiones/interfaces";
 import SelectUbigeo from "../../../SelectPro/SelectUbigeo";
-import { TIPO_DOCUMENTO_RULES, getNumeroDocumentoError } from "../../../../utils/validations";
+import { TIPO_DOCUMENTO_RULES, getNumeroDocumentoError, validateEmail } from "../../../../utils/validations";
 import { useFormErrors } from "../../../FormError";
 
 const customStyles = {};
@@ -166,6 +166,20 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
       toast.error(numeroDocumentoError);
       return;
     }
+    // Email/teléfono obligatorios solo al CREAR -- clientes antiguos sin estos datos deben poder
+    // seguir editándose (ej. corregir la dirección) sin que esto bloquee el guardado.
+    if (!activeClients?.id) {
+      if (!telefono.trim()) {
+        setError("telefono", "El teléfono es obligatorio");
+        toast.error("El teléfono es obligatorio");
+        return;
+      }
+      if (!email.trim() || !validateEmail(email.trim())) {
+        setError("email", email.trim() ? "El email no es válido" : "El email es obligatorio");
+        toast.error(email.trim() ? "El email no es válido" : "El email es obligatorio");
+        return;
+      }
+    }
     if (activeClients?.id) {
       dispatch(
         updateCliente({
@@ -305,7 +319,9 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
                     name="telefono"
                     isLabel
                     label="Teléfono"
+                    required
                     value={telefono}
+                    error={errors.telefono}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -314,7 +330,9 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
                     name="email"
                     isLabel
                     label="Email"
+                    required
                     value={email}
+                    error={errors.email}
                     onChange={handleInputChange}
                   />
                 </div>

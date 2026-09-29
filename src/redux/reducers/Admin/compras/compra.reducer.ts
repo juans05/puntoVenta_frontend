@@ -119,7 +119,9 @@ export const importarXmlCompra = (archivo: File): Promise<any> => {
     .then((res: any) => res.data?.data);
 };
 
-export const crearCompra = (payload: any, onSuccess?: () => void) => {
+// onSuccess recibe la compra creada (id, proveedorId, etc.) -- FormularioCompra la necesita para
+// aplicar los pagos iniciales despues de crearla (ver CuentasController.CrearPagoProveedor).
+export const crearCompra = (payload: any, onSuccess?: (compra?: any) => void) => {
   return async (dispatch: Dispatch<AnyAction>) => {
     try {
       const response: any = await axiosInstance.post(`/compras/crear`, payload);
@@ -127,7 +129,7 @@ export const crearCompra = (payload: any, onSuccess?: () => void) => {
       if (status === 200) {
         toast.success("Compra registrada correctamente");
         dispatch(getCompras(1, 20) as any);
-        onSuccess?.();
+        onSuccess?.(response.data?.data);
       }
     } catch (error: any) {
       console.log(error);
@@ -136,7 +138,7 @@ export const crearCompra = (payload: any, onSuccess?: () => void) => {
   };
 };
 
-export const actualizarCompra = (id: number, payload: any, onSuccess?: () => void) => {
+export const actualizarCompra = (id: number, payload: any, onSuccess?: (compra?: any) => void) => {
   return async (dispatch: Dispatch<AnyAction>) => {
     try {
       const response: any = await axiosInstance.put(`/compras/actualizar/${id}`, payload);
@@ -144,7 +146,7 @@ export const actualizarCompra = (id: number, payload: any, onSuccess?: () => voi
       if (status === 200) {
         toast.success("Compra actualizada correctamente");
         dispatch(getCompras(1, 20) as any);
-        onSuccess?.();
+        onSuccess?.(response.data?.data);
       }
     } catch (error: any) {
       console.log(error);

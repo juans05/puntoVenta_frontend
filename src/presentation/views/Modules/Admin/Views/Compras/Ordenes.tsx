@@ -7,7 +7,7 @@ import { Ayuda } from "../../../../../../components/Ayuda";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { RootState } from "../../../../../../redux/rootState";
 import { getProveedores, getProductosCompra } from "../../../../../../redux/reducers/Admin/compras/compra.reducer";
-import { getSucursales, getMonedas, getTiposIgv } from "../../../../../../redux/reducers/extensiones/extensiones..reducer";
+import { getSucursales, getMonedas, getTiposIgv, getPayMethods } from "../../../../../../redux/reducers/extensiones/extensiones..reducer";
 
 // Flujo completo de compras: Orden -> Recepcion (sube el stock) -> Factura con cruce.
 // Solo se muestra cuando Configuracion > Flujo de compras = COMPLETO.
@@ -36,16 +36,19 @@ const campo: React.CSSProperties = { display: "flex", flexDirection: "column" };
 const formatSoles = (n: number) => `S/ ${Number(n).toFixed(2)}`;
 const mensajeError = (e: any, def: string) => e?.response?.data?.message ?? def;
 
-type Linea = { productoId: number; descripcion: string; cantidad: number; costoUnitario: number };
+type Linea = { productoId: number; descripcion: string; cantidad: number; costoUnitario: number; centroCostoId: number; cuentaContableId: number };
 type Dialogo = null | { tipo: "nueva" } | { tipo: "recibir" | "facturar" | "ver" | "cerrar"; orden: any };
 
 export const Ordenes = ({ config }: { config: any }) => {
   const dispatch = useAppDispatch();
   const { proveedores, productosCompra }: any = useAppSelector((s: RootState) => s.compras);
-  const { sucursales, monedas, tiposIgv }: any = useAppSelector((s: RootState) => s.extentions);
+  const { sucursales, monedas, tiposIgv, payMethods }: any = useAppSelector((s: RootState) => s.extentions);
 
   const [ordenes, setOrdenes] = useState<any[]>([]);
   const [departamentos, setDepartamentos] = useState<any[]>([]);
+  const [centrosCosto, setCentrosCosto] = useState<any[]>([]);
+  const [cuentasContables, setCuentasContables] = useState<any[]>([]);
+  const [tiposDetraccion, setTiposDetraccion] = useState<any[]>([]);
   const [estadoFiltro, setEstadoFiltro] = useState("");
   const [cargando, setCargando] = useState(false);
   const [dialogo, setDialogo] = useState<Dialogo>(null);
@@ -70,7 +73,11 @@ export const Ordenes = ({ config }: { config: any }) => {
     dispatch(getSucursales() as any);
     dispatch(getMonedas() as any);
     dispatch(getTiposIgv() as any);
+    dispatch(getPayMethods() as any);
     axiosInstance.get("/departamentos/listar").then((r: any) => setDepartamentos(r.data?.data ?? [])).catch(() => {});
+    axiosInstance.get("/extensiones/centros-costo").then((r: any) => setCentrosCosto(r.data?.data ?? [])).catch(() => {});
+    axiosInstance.get("/cuentas-contables/listar").then((r: any) => setCuentasContables(r.data?.data ?? [])).catch(() => {});
+    axiosInstance.get("/extensiones/tipos-detraccion").then((r: any) => setTiposDetraccion(r.data?.data ?? [])).catch(() => {});
   }, []);
   useEffect(() => {
     cargar();
@@ -180,7 +187,7 @@ export const Ordenes = ({ config }: { config: any }) => {
 
       {dialogo?.tipo === "nueva" && (
         <NuevaOrden proveedores={proveedores ?? []} productos={productosCompra ?? []} sucursales={sucursales ?? []}
-          departamentos={departamentos}
+          departamentos={departamentos} centrosCosto={centrosCosto} cuentasContables={cuentasContables}
           aprobacion={config?.montoAprobacionOc}
           onCerrar={() => setDialogo(null)}
           onGuardar={(payload: any) => accion(() => axiosInstance.post(`/ordenes-compra/crear`, payload), "Orden creada")} />
@@ -193,8 +200,21 @@ export const Ordenes = ({ config }: { config: any }) => {
           onGuardar={(payload: any) => accion(() => axiosInstance.post(`/ordenes-compra/${dialogo.orden.id}/recepciones`, payload), "Recepción registrada: el stock subió")} />
       )}
       {dialogo?.tipo === "facturar" && (
-        <Facturar orden={dialogo.orden} monedas={monedas ?? []} tiposIgv={tiposIgv ?? []} onCerrar={() => setDialogo(null)}
-          onGuardar={(payload: any) => facturarConCruce(dialogo.orden.id, payload, () => { setDialogo(null); cargar(); })} />
+        <Facturar orden={dialogo.orden} monedas={monedas ?? []} tiposIgv={tiposIgv ?? []}
+          tiposDetraccion={tiposDetraccion} payMethods={payMethods ?? []} onCerrar={() => setDialogo(null)}
+          onGuardar={(payload: any, pagos: any[]) => facturarConCruce(dialogo.orden.id, payload, async (compra: any) => {
+            for (const p of pagos) {
+              try {
+                await axiosInstance.post("/pagos-proveedor/crear", {
+                  socioId: compra?.proveedorId, metodoPagoId: p.metodoPagoId,
+                  detalle: [{ documentoId: compra?.id, monto: Number(p.monto) }],
+                });
+              } catch (e: any) {
+                toast.error(e?.response?.data?.message ?? "La factura se registró, pero un pago no se pudo aplicar");
+              }
+            }
+            setDialogo(null); cargar();
+          })} />
       )}
       {dialogo?.tipo === "cerrar" && (
         <CerrarOrden orden={dialogo.orden} onCerrar={() => setDialogo(null)}
@@ -206,20 +226,20 @@ export const Ordenes = ({ config }: { config: any }) => {
 
 // La factura se manda primero sin confirmar: si el backend responde [DIFERENCIAS] (modo ADVERTIR)
 // se muestran y, si el usuario acepta, se reenvia con confirmarDiferencias.
-const facturarConCruce = async (ordenId: number, payload: any, alTerminar: () => void) => {
+const facturarConCruce = async (ordenId: number, payload: any, alTerminar: (compra?: any) => void) => {
   try {
-    await axiosInstance.post(`/ordenes-compra/${ordenId}/facturar`, payload);
+    const res: any = await axiosInstance.post(`/ordenes-compra/${ordenId}/facturar`, payload);
     toast.success("Factura registrada");
-    alTerminar();
+    alTerminar(res.data?.data);
   } catch (e: any) {
     const msg: string = e?.response?.data?.message ?? "";
     if (msg.startsWith("[DIFERENCIAS]")) {
       const detalle = msg.replace("[DIFERENCIAS]", "").trim().split("; ").join("\n• ");
       if (!window.confirm(`La factura no coincide con lo recibido:\n\n• ${detalle}\n\n¿Registrarla de todos modos?`)) return;
       try {
-        await axiosInstance.post(`/ordenes-compra/${ordenId}/facturar`, { ...payload, confirmarDiferencias: true });
+        const res2: any = await axiosInstance.post(`/ordenes-compra/${ordenId}/facturar`, { ...payload, confirmarDiferencias: true });
         toast.success("Factura registrada con diferencias");
-        alTerminar();
+        alTerminar(res2.data?.data);
       } catch (e2) {
         toast.error(mensajeError(e2, "No se pudo registrar la factura"));
       }
@@ -241,12 +261,14 @@ const Modal = ({ titulo, onCerrar, children }: any) => (
   </div>
 );
 
-const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobacion, onCerrar, onGuardar }: any) => {
+const lineaOrdenVacia: Linea = { productoId: 0, descripcion: "", cantidad: 1, costoUnitario: 0, centroCostoId: 0, cuentaContableId: 0 };
+
+const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, centrosCosto, cuentasContables, aprobacion, onCerrar, onGuardar }: any) => {
   const [tipoOrden, setTipoOrden] = useState<"BIEN" | "SERVICIO">("BIEN");
   const [proveedorId, setProveedorId] = useState(0);
   const [sucursalId, setSucursalId] = useState(0);
   const [observacion, setObservacion] = useState("");
-  const [lineas, setLineas] = useState<Linea[]>([{ productoId: 0, descripcion: "", cantidad: 1, costoUnitario: 0 }]);
+  const [lineas, setLineas] = useState<Linea[]>([{ ...lineaOrdenVacia }]);
   const [departamentoId, setDepartamentoId] = useState(0);
   const [aprobadorAsignadoId, setAprobadorAsignadoId] = useState("");
   const esServicio = tipoOrden === "SERVICIO";
@@ -285,10 +307,11 @@ const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobac
       borrador,
       departamentoId: requiereAprobacion ? departamentoId || undefined : undefined,
       aprobadorAsignadoId: requiereAprobacion ? aprobadorAsignadoId || undefined : undefined,
-      detalle: validas.map((l) =>
-        esServicio ? { descripcion: l.descripcion.trim(), cantidad: l.cantidad, costoUnitario: l.costoUnitario }
-                    : { productoId: l.productoId, cantidad: l.cantidad, costoUnitario: l.costoUnitario }
-      ),
+      detalle: validas.map((l) => ({
+        ...(esServicio ? { descripcion: l.descripcion.trim() } : { productoId: l.productoId }),
+        cantidad: l.cantidad, costoUnitario: l.costoUnitario,
+        centroCostoId: l.centroCostoId || undefined, cuentaContableId: l.cuentaContableId || undefined,
+      })),
     });
   };
 
@@ -342,9 +365,19 @@ const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobac
           <input style={input} type="number" min={1} value={l.cantidad} onChange={(e) => setLinea(i, { cantidad: Math.max(1, Math.floor(Number(e.target.value))) })} />
           <input style={input} type="number" min={0} step="0.01" value={l.costoUnitario} onChange={(e) => setLinea(i, { costoUnitario: Math.max(0, Number(e.target.value)) })} />
           <button onClick={() => setLineas(lineas.filter((_, j) => j !== i))} disabled={lineas.length === 1}>✕</button>
+          <div style={{ display: "grid", gap: 6, gridTemplateColumns: "1fr 1fr", gridColumn: "1 / -1" }}>
+            <select style={input} value={l.centroCostoId} onChange={(e) => setLinea(i, { centroCostoId: Number(e.target.value) })}>
+              <option value={0}>Centro de costo (opcional)</option>
+              {(centrosCosto ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.value}</option>)}
+            </select>
+            <select style={input} value={l.cuentaContableId} onChange={(e) => setLinea(i, { cuentaContableId: Number(e.target.value) })}>
+              <option value={0}>Cuenta contable (opcional)</option>
+              {(cuentasContables ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+            </select>
+          </div>
         </div>
       ))}
-      <button onClick={() => setLineas([...lineas, { productoId: 0, descripcion: "", cantidad: 1, costoUnitario: 0 }])}>
+      <button onClick={() => setLineas([...lineas, { ...lineaOrdenVacia }])}>
         + Agregar {esServicio ? "servicio" : "producto"}
       </button>
       <div style={{ ...campo, marginTop: 10 }}>
@@ -453,7 +486,7 @@ const Recibir = ({ orden, onCerrar, onGuardar }: any) => {
   );
 };
 
-const Facturar = ({ orden, monedas, tiposIgv, onCerrar, onGuardar }: any) => {
+const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCerrar, onGuardar }: any) => {
   const [serie, setSerie] = useState("");
   const [numero, setNumero] = useState("");
   const [fechaEmision, setFechaEmision] = useState("");
@@ -461,7 +494,12 @@ const Facturar = ({ orden, monedas, tiposIgv, onCerrar, onGuardar }: any) => {
   const [fechaVencimiento, setFechaVencimiento] = useState("");
   const [monedaId, setMonedaId] = useState<number>(orden.monedaId || 0);
   const [tipoIgvId, setTipoIgvId] = useState<number>(0);
+  const [tipoCambio, setTipoCambio] = useState("");
+  const [tipoDetraccionId, setTipoDetraccionId] = useState<number>(0);
+  const [numeroDetraccion, setNumeroDetraccion] = useState("");
+  const [fechaDetraccion, setFechaDetraccion] = useState("");
   const [observacion, setObservacion] = useState("");
+  const [pagos, setPagos] = useState<{ metodoPagoId: number; monto: string }[]>([]);
   const { errors, setError, clearError } = useFormErrors();
 
   // Sugiere serie/numero al abrir (mismo endpoint y criterio que el registro manual de compras en
@@ -519,6 +557,29 @@ const Facturar = ({ orden, monedas, tiposIgv, onCerrar, onGuardar }: any) => {
           </select>
         </div>
       </div>
+      <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr", marginTop: 8 }}>
+        <div style={campo}>
+          <label style={label}>T. Cambio<Ayuda texto="Opcional. Tipo de cambio del dia si la Divisa no es la moneda base del negocio." /></label>
+          <input style={input} type="number" value={tipoCambio} onChange={(e) => setTipoCambio(e.target.value)} />
+        </div>
+        <div style={campo}>
+          <label style={label}>Detracción<Ayuda texto="Opcional. Porcentaje de detracción SUNAT que aplica a este documento." /></label>
+          <select style={input} value={tipoDetraccionId} onChange={(e) => setTipoDetraccionId(Number(e.target.value))}>
+            <option value={0}>No aplica</option>
+            {(tiposDetraccion ?? []).map((t: any) => <option key={t.id} value={t.id}>{t.value}</option>)}
+          </select>
+        </div>
+        <div style={campo}>
+          <label style={label}>N° de constancia</label>
+          <input style={input} disabled={!tipoDetraccionId} value={numeroDetraccion} onChange={(e) => setNumeroDetraccion(e.target.value)} />
+        </div>
+      </div>
+      {tipoDetraccionId > 0 && (
+        <div style={{ ...campo, marginTop: 8, maxWidth: 220 }}>
+          <label style={label}>Fecha de detracción</label>
+          <input style={input} type="date" value={fechaDetraccion} onChange={(e) => setFechaDetraccion(e.target.value)} />
+        </div>
+      )}
       <div style={{ display: "flex", alignItems: "center", marginTop: 8 }}>
         <label style={{ fontWeight: 400 }}>
           <input type="checkbox" checked={esCredito} onChange={(e) => setEsCredito(e.target.checked)} /> Compra a crédito
@@ -531,6 +592,24 @@ const Facturar = ({ orden, monedas, tiposIgv, onCerrar, onGuardar }: any) => {
           <input style={{ ...input, ...estiloError(!!errors.fechaVencimiento) }} type="date" value={fechaVencimiento}
             onChange={(e) => { setFechaVencimiento(e.target.value); clearError("fechaVencimiento"); }} />
           <CampoError mensaje={errors.fechaVencimiento} />
+        </div>
+      )}
+      {esCredito && (
+        <div style={{ marginTop: 8 }}>
+          <label style={label}>Pagos iniciales (opcional)<Ayuda texto="Aplica de una vez parte (o todo) el pago de esta factura; el resto queda en Cuentas por pagar." /></label>
+          {pagos.map((p, i) => (
+            <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+              <select style={{ ...input, flex: 1 }} value={p.metodoPagoId}
+                onChange={(e) => setPagos(pagos.map((x, j) => (j === i ? { ...x, metodoPagoId: Number(e.target.value) } : x)))}>
+                <option value={0}>Medio de pago</option>
+                {(payMethods ?? []).map((m: any) => <option key={m.id} value={m.id}>{m.value}</option>)}
+              </select>
+              <input style={{ ...input, width: 110 }} type="number" min={0} value={p.monto}
+                onChange={(e) => setPagos(pagos.map((x, j) => (j === i ? { ...x, monto: e.target.value } : x)))} />
+              <button type="button" onClick={() => setPagos(pagos.filter((_, j) => j !== i))} title="Quitar pago">✕</button>
+            </div>
+          ))}
+          <button type="button" onClick={() => setPagos([...pagos, { metodoPagoId: 0, monto: "" }])}>+ Añadir pago</button>
         </div>
       )}
       <table className={styles.table}>
@@ -577,12 +656,17 @@ const Facturar = ({ orden, monedas, tiposIgv, onCerrar, onGuardar }: any) => {
               setError("fechaVencimiento", "Indica la fecha de vencimiento");
               return toast.error("Indica la fecha de vencimiento del pago a crédito");
             }
+            const pagosValidos = pagos.filter((p) => p.metodoPagoId > 0 && Number(p.monto) > 0);
             onGuardar({
               serie: serie.trim(), numero: numero.trim(), fechaEmision: fechaEmision || undefined, esCredito,
               fechaVencimiento: esCredito ? fechaVencimiento : undefined,
               monedaId: monedaId || undefined, tipoIgvId: tipoIgvId || undefined, observacion: observacion || undefined,
+              tipoCambio: Number(tipoCambio) || undefined,
+              tipoDetraccionId: tipoDetraccionId || undefined,
+              numeroDetraccion: tipoDetraccionId ? numeroDetraccion || undefined : undefined,
+              fechaDetraccion: tipoDetraccionId && fechaDetraccion ? fechaDetraccion : undefined,
               detalle: pendientes.map((d: any) => ({ ordenCompraDetalleId: d.id, productoId: d.productoId, cantidad: lineas[d.id].cantidad, costoUnitario: lineas[d.id].costo })),
-            });
+            }, esCredito ? pagosValidos : []);
           }}>
           Registrar factura
         </button>

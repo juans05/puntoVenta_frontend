@@ -38,9 +38,16 @@ interface IDetalleLinea {
   nombre: string;
   cantidad: number;
   costoUnitario: number;
+  centroCostoId: number;
+  cuentaContableId: number;
 }
 
-const lineaVacia: IDetalleLinea = { productoId: 0, nombre: "", cantidad: 1, costoUnitario: 0 };
+const lineaVacia: IDetalleLinea = { productoId: 0, nombre: "", cantidad: 1, costoUnitario: 0, centroCostoId: 0, cuentaContableId: 0 };
+
+interface IPagoInicial {
+  metodoPagoId: number;
+  monto: string;
+}
 
 export interface IPrefillXml {
   proveedorId?: number | null;
@@ -98,6 +105,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const [fechaKardex, setFechaKardex] = useState(hoyIso());
   const [monedaId, setMonedaId] = useState<number>(0);
   const [tipoIgvId, setTipoIgvId] = useState<number>(0);
+  const [tipoCambio, setTipoCambio] = useState<string>("");
 
   const [tipoDescuento, setTipoDescuento] = useState<"%" | "S/">("%");
   const [descuentoValor, setDescuentoValor] = useState<string>("0");
@@ -106,6 +114,16 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const [fechaVencimiento, setFechaVencimiento] = useState("");
   const [metodoPagoId, setMetodoPagoId] = useState<number>(0);
   const [observacion, setObservacion] = useState("");
+  const [pagos, setPagos] = useState<IPagoInicial[]>([]);
+
+  // Detraccion SUNAT (SPOT): opcional, solo si el servicio/bien esta afecto.
+  const [tipoDetraccionId, setTipoDetraccionId] = useState<number>(0);
+  const [numeroDetraccion, setNumeroDetraccion] = useState("");
+  const [fechaDetraccion, setFechaDetraccion] = useState("");
+
+  const [tiposDetraccion, setTiposDetraccion] = useState<any[]>([]);
+  const [centrosCosto, setCentrosCosto] = useState<any[]>([]);
+  const [cuentasContables, setCuentasContables] = useState<any[]>([]);
 
   const [detalle, setDetalle] = useState<IDetalleLinea[]>([]);
   const [loading, setLoading] = useState(false);
@@ -130,6 +148,9 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
     dispatch(getTiposIgv() as any);
     dispatch(getAllUbigeos() as any);
     dispatch(getTypeDocument() as any);
+    axiosInstance.get("/extensiones/tipos-detraccion").then((r: any) => setTiposDetraccion(r.data?.data ?? [])).catch(() => {});
+    axiosInstance.get("/extensiones/centros-costo").then((r: any) => setCentrosCosto(r.data?.data ?? [])).catch(() => {});
+    axiosInstance.get("/cuentas-contables/listar").then((r: any) => setCuentasContables(r.data?.data ?? [])).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -156,12 +177,18 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
           setOtrosCargos(String(c?.otrosCargos ?? 0));
           setEsCredito(!!c?.esCredito);
           setFechaVencimiento(c?.fechaVencimiento ?? "");
+          setTipoCambio(c?.tipoCambio != null ? String(c.tipoCambio) : "");
+          setTipoDetraccionId(c?.tipoDetraccionId ?? 0);
+          setNumeroDetraccion(c?.numeroDetraccion ?? "");
+          setFechaDetraccion(toIso(c?.fechaDetraccion));
           setDetalle(
             (c?.detalle ?? []).map((d: any) => ({
               productoId: d.productoId,
               nombre: d.producto ?? "",
               cantidad: d.cantidad,
               costoUnitario: d.costoUnitario,
+              centroCostoId: d.centroCostoId ?? 0,
+              cuentaContableId: d.cuentaContableId ?? 0,
             }))
           );
         })
@@ -181,6 +208,8 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
           nombre: l.descripcion,
           cantidad: l.cantidad || 1,
           costoUnitario: l.precioUnitario || 0,
+          centroCostoId: 0,
+          cuentaContableId: 0,
         }))
       );
     }
@@ -198,6 +227,12 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const metodoPagoSeleccionado = (payMethods ?? []).find((m: any) => Number(m.id) === Number(metodoPagoId))?.value ?? "";
   const monedaSeleccionada = (monedas ?? []).find((m: any) => Number(m.id) === Number(monedaId))?.value ?? "";
   const tipoIgvSeleccionado = (tiposIgv ?? []).find((t: any) => Number(t.id) === Number(tipoIgvId))?.value ?? "";
+  const tipoDetraccionSeleccionado = (tiposDetraccion ?? []).find((t: any) => Number(t.id) === Number(tipoDetraccionId))?.value ?? "";
+  const centrosCostoOptions = (centrosCosto ?? []).map((c: any) => ({ id: c.id, value: c.value }));
+  const cuentasContablesOptions = (cuentasContables ?? []).map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
+  const nombreCentroCosto = (id: number) => (centrosCosto ?? []).find((c: any) => c.id === id)?.value ?? "";
+  const nombreCuentaContable = (id: number) => cuentasContablesOptions.find((c: any) => c.id === id)?.value ?? "";
+  const totalPagos = pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
 
   const limpiarProveedor = () => {
     setProveedorId(0);
@@ -339,6 +374,11 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
       setError("proveedorNombre", "Busca o completa los datos del proveedor");
       return toast.error("Busca o completa los datos del proveedor");
     }
+    const pagosValidos = pagos.filter((p) => p.metodoPagoId > 0 && Number(p.monto) > 0);
+    if (!esEdicion && esCredito && pagosValidos.length > 0 && totalPagos > total + 0.01) {
+      setError("pagos", "La suma de los pagos no puede superar el total");
+      return toast.error("La suma de los pagos no puede superar el total");
+    }
 
     const payload = {
       sucursalId: sucursalId > 0 ? sucursalId : null,
@@ -361,17 +401,41 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
       otrosCargos: otrosCargosNum || undefined,
       esCredito,
       fechaVencimiento: esCredito && fechaVencimiento ? fechaVencimiento : undefined,
+      tipoCambio: Number(tipoCambio) || undefined,
+      tipoDetraccionId: tipoDetraccionId > 0 ? tipoDetraccionId : undefined,
+      numeroDetraccion: numeroDetraccion || undefined,
+      fechaDetraccion: tipoDetraccionId > 0 && fechaDetraccion ? fechaDetraccion : undefined,
       detalle: lineasValidas.map((l) => ({
         productoId: l.productoId,
         cantidad: Number(l.cantidad),
         costoUnitario: Number(l.costoUnitario),
+        centroCostoId: l.centroCostoId > 0 ? l.centroCostoId : undefined,
+        cuentaContableId: l.cuentaContableId > 0 ? l.cuentaContableId : undefined,
       })),
+    };
+
+    // Pagos iniciales (solo al crear, con la compra ya a credito): reusa el mismo endpoint que
+    // Cuentas por Pagar, una llamada por metodo de pago, aplicada sobre la compra recien creada.
+    const aplicarPagosIniciales = async (compra: any) => {
+      if (!esEdicion && pagosValidos.length > 0 && compra?.id && compra?.proveedorId) {
+        for (const p of pagosValidos) {
+          try {
+            await axiosInstance.post("/pagos-proveedor/crear", {
+              socioId: compra.proveedorId, metodoPagoId: p.metodoPagoId,
+              detalle: [{ documentoId: compra.id, monto: Number(p.monto) }],
+            });
+          } catch (e: any) {
+            toast.error(e?.response?.data?.message ?? "La compra se registró, pero un pago no se pudo aplicar");
+          }
+        }
+      }
+      onGuardado();
     };
 
     setLoading(true);
     try {
       if (esEdicion) await dispatch(actualizarCompra(compraId!, payload, onGuardado) as any);
-      else await dispatch(crearCompra(payload, onGuardado) as any);
+      else await dispatch(crearCompra(payload, aplicarPagosIniciales) as any);
     } finally {
       setLoading(false);
     }
@@ -515,6 +579,47 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
                   placeholder="18%"
                 />
               </div>
+              <div>
+                <Input
+                  isLabel
+                  label="T. Cambio"
+                  name="tipoCambio"
+                  type="number"
+                  value={tipoCambio}
+                  onChange={(e: any) => setTipoCambio(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            <h4>💰 Detracción (opcional)</h4>
+            <div className={styles.grid}>
+              <div>
+                <label>Tipo</label>
+                <SelectPro
+                  isSearch
+                  options={(tiposDetraccion ?? []).map((t: any) => ({ id: t.id, value: t.value }))}
+                  defaultValue={tipoDetraccionSeleccionado}
+                  onChange={(idValue: any) => setTipoDetraccionId(Number(idValue))}
+                  placeholder="No aplica"
+                />
+              </div>
+              <div>
+                <Input
+                  isLabel
+                  label="N° de constancia"
+                  name="numeroDetraccion"
+                  value={numeroDetraccion}
+                  onChange={(e: any) => setNumeroDetraccion(e.target.value)}
+                  disabled={!tipoDetraccionId}
+                />
+              </div>
+              <div>
+                <label>Fecha de detracción</label>
+                <input type="date" className={styles.dateInput} value={fechaDetraccion} disabled={!tipoDetraccionId}
+                  onChange={(e) => setFechaDetraccion(e.target.value)} />
+              </div>
             </div>
           </div>
 
@@ -564,6 +669,22 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
                 <button type="button" className={styles.removeRow} onClick={() => quitarLinea(index)} title="Quitar producto">
                   🗑
                 </button>
+                <div className={styles.detalleRowExtra}>
+                  <SelectPro
+                    isSearch
+                    options={centrosCostoOptions}
+                    defaultValue={nombreCentroCosto(linea.centroCostoId)}
+                    onChange={(idValue: any) => cambiarLinea(index, "centroCostoId", Number(idValue))}
+                    placeholder="Centro de costo (opcional)"
+                  />
+                  <SelectPro
+                    isSearch
+                    options={cuentasContablesOptions}
+                    defaultValue={nombreCuentaContable(linea.cuentaContableId)}
+                    onChange={(idValue: any) => cambiarLinea(index, "cuentaContableId", Number(idValue))}
+                    placeholder="Cuenta contable (opcional)"
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -583,16 +704,47 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
                   <input type="date" value={fechaVencimiento} onChange={(e) => setFechaVencimiento(e.target.value)} />
                 </div>
               )}
-              <div className={styles.full}>
-                <label>Forma de pago</label>
-                <SelectPro
-                  isSearch
-                  options={payMethods ?? []}
-                  defaultValue={metodoPagoSeleccionado}
-                  onChange={(idValue: any) => setMetodoPagoId(Number(idValue))}
-                  placeholder="Efectivo"
-                />
-              </div>
+              {esCredito && !esEdicion ? (
+                <div className={styles.full}>
+                  <label>Pagos iniciales (opcional)</label>
+                  {pagos.map((p, i) => (
+                    <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                      <div style={{ flex: 1 }}>
+                        <SelectPro
+                          isSearch
+                          options={payMethods ?? []}
+                          defaultValue={(payMethods ?? []).find((m: any) => Number(m.id) === Number(p.metodoPagoId))?.value ?? ""}
+                          onChange={(idValue: any) => setPagos(pagos.map((x, j) => (j === i ? { ...x, metodoPagoId: Number(idValue) } : x)))}
+                          placeholder="Medio de pago"
+                        />
+                      </div>
+                      <Input
+                        type="number"
+                        name={`pagoMonto${i}`}
+                        value={p.monto}
+                        onChange={(e: any) => setPagos(pagos.map((x, j) => (j === i ? { ...x, monto: e.target.value } : x)))}
+                      />
+                      <button type="button" className={styles.removeRow} onClick={() => setPagos(pagos.filter((_, j) => j !== i))} title="Quitar pago">🗑</button>
+                    </div>
+                  ))}
+                  <button type="button" className={styles.addLineBtn} onClick={() => setPagos([...pagos, { metodoPagoId: 0, monto: "" }])}>
+                    + Añadir pago
+                  </button>
+                  {pagos.length > 0 && <p style={{ fontSize: 12, color: "#667085", marginTop: 6 }}>Pagado ahora: S/ {totalPagos.toFixed(2)} — el resto queda en Cuentas por pagar.</p>}
+                  <CampoError mensaje={errors.pagos} />
+                </div>
+              ) : (
+                <div className={styles.full}>
+                  <label>Forma de pago</label>
+                  <SelectPro
+                    isSearch
+                    options={payMethods ?? []}
+                    defaultValue={metodoPagoSeleccionado}
+                    onChange={(idValue: any) => setMetodoPagoId(Number(idValue))}
+                    placeholder="Efectivo"
+                  />
+                </div>
+              )}
               <div className={styles.full}>
                 <Input isLabel label="Observación (opcional)" name="observacion" value={observacion} onChange={(e: any) => setObservacion(e.target.value)} />
               </div>

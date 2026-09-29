@@ -13,9 +13,14 @@ const mensajeError = (e: any, def: string) => e?.response?.data?.message ?? def;
 // cuentas propias, renombrar o desactivar las que no se usan.
 export const PlanDeCuentas = () => {
   const [cuentas, setCuentas] = useState<any[]>([]);
+  const [centrosCosto, setCentrosCosto] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [editando, setEditando] = useState<any>(null); // null = cerrado; {} = nueva; {id,...} = editar
+
+  useEffect(() => {
+    axiosInstance.get("/extensiones/centros-costo").then((r: any) => setCentrosCosto(r.data?.data ?? [])).catch(() => {});
+  }, []);
 
   const cargar = async () => {
     setLoading(true);
@@ -31,7 +36,12 @@ export const PlanDeCuentas = () => {
   useEffect(() => { cargar(); }, []);
 
   const porId = useMemo(() => new Map(cuentas.map((c) => [c.id, c])), [cuentas]);
-  const nivel = (c: any): number => (c.cuentaPadreId != null && porId.has(c.cuentaPadreId) ? 1 + nivel(porId.get(c.cuentaPadreId)) : 0);
+  // Tope de profundidad: el backend ya bloquea ciclos al guardar (ver CuentaContableRepository.
+  // FormaCiclo), pero esto evita que un ciclo preexistente en los datos cuelgue el navegador acá.
+  const nivel = (c: any, vistos = new Set<number>()): number =>
+    c.cuentaPadreId != null && porId.has(c.cuentaPadreId) && !vistos.has(c.id)
+      ? 1 + nivel(porId.get(c.cuentaPadreId), new Set(vistos).add(c.id))
+      : 0;
 
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -107,30 +117,79 @@ export const PlanDeCuentas = () => {
       </div>
 
       {editando && (
-        <EditarCuenta cuenta={editando} cuentas={cuentas} onCerrar={() => setEditando(null)}
+        <EditarCuenta cuenta={editando} cuentas={cuentas} centrosCosto={centrosCosto} onCerrar={() => setEditando(null)}
           onGuardar={(payload: any) => guardar(payload, editando.id)} />
       )}
     </div>
   );
 };
 
-const EditarCuenta = ({ cuenta, cuentas, onCerrar, onGuardar }: any) => {
+const EditarCuenta = ({ cuenta, cuentas, centrosCosto, onCerrar, onGuardar }: any) => {
   const [codigo, setCodigo] = useState(cuenta.codigo ?? "");
   const [nombre, setNombre] = useState(cuenta.nombre ?? "");
   const [tipo, setTipo] = useState(cuenta.tipo ?? "Activo");
   const [cuentaPadreId, setCuentaPadreId] = useState(cuenta.cuentaPadreId ?? 0);
   const [estado, setEstado] = useState(cuenta.estado ?? true);
+
+  // Metadata adicional (formato EEFF Peru) -- opcional, no la usa ningun asiento automatico todavia.
+  const [nivel, setNivel] = useState(cuenta.nivel ?? "");
+  const [claseCuenta, setClaseCuenta] = useState(cuenta.claseCuenta ?? "");
+  const [tipoAnexo, setTipoAnexo] = useState(!!cuenta.tipoAnexo);
+  const [cuentaMonetaria, setCuentaMonetaria] = useState(!!cuenta.cuentaMonetaria);
+  const [ajusteDifCambio, setAjusteDifCambio] = useState(!!cuenta.ajusteDifCambio);
+  const [centroCostoId, setCentroCostoId] = useState(cuenta.centroCostoId ?? 0);
+  const [codigoEeff, setCodigoEeff] = useState(cuenta.codigoEeff ?? "");
+  const [codigoEeffTributario, setCodigoEeffTributario] = useState(cuenta.codigoEeffTributario ?? "");
+  const [codigoEeffNiif, setCodigoEeffNiif] = useState(cuenta.codigoEeffNiif ?? "");
+  const [clasificacionBienServicio, setClasificacionBienServicio] = useState(cuenta.clasificacionBienServicio ?? "");
+  const [destino, setDestino] = useState(!!cuenta.destino);
+  const [cuentaCargo1Id, setCuentaCargo1Id] = useState(cuenta.cuentaCargo1Id ?? 0);
+  const [cuentaAbono1Id, setCuentaAbono1Id] = useState(cuenta.cuentaAbono1Id ?? 0);
+  const [porcentajeDestino1, setPorcentajeDestino1] = useState(cuenta.porcentajeDestino1 ?? "");
+  const [cuentaCargo2Id, setCuentaCargo2Id] = useState(cuenta.cuentaCargo2Id ?? 0);
+  const [cuentaAbono2Id, setCuentaAbono2Id] = useState(cuenta.cuentaAbono2Id ?? 0);
+  const [porcentajeDestino2, setPorcentajeDestino2] = useState(cuenta.porcentajeDestino2 ?? "");
+  const [cuentaCargo3Id, setCuentaCargo3Id] = useState(cuenta.cuentaCargo3Id ?? 0);
+  const [cuentaAbono3Id, setCuentaAbono3Id] = useState(cuenta.cuentaAbono3Id ?? 0);
+  const [porcentajeDestino3, setPorcentajeDestino3] = useState(cuenta.porcentajeDestino3 ?? "");
+  const [cuentaCierreId, setCuentaCierreId] = useState(cuenta.cuentaCierreId ?? 0);
+  const [avanzadoAbierto, setAvanzadoAbierto] = useState(false);
+
   const { errors, setError, clearError } = useFormErrors();
+
+  // Selección de cuenta contable: cualquier cuenta menos la que se está editando.
+  const otrasCuentas = (cuentas ?? []).filter((c: any) => c.id !== cuenta.id);
 
   const guardar = () => {
     if (!codigo.trim()) { setError("codigo", "El código es obligatorio"); return toast.error("El código es obligatorio"); }
     if (!nombre.trim()) { setError("nombre", "El nombre es obligatorio"); return toast.error("El nombre es obligatorio"); }
-    onGuardar({ codigo: codigo.trim(), nombre: nombre.trim(), tipo, cuentaPadreId: cuentaPadreId || undefined, estado });
+    onGuardar({
+      codigo: codigo.trim(), nombre: nombre.trim(), tipo, cuentaPadreId: cuentaPadreId || undefined, estado,
+      nivel: nivel !== "" ? Number(nivel) : undefined,
+      claseCuenta: claseCuenta.trim() || undefined,
+      tipoAnexo, cuentaMonetaria, ajusteDifCambio,
+      centroCostoId: centroCostoId || undefined,
+      codigoEeff: codigoEeff.trim() || undefined,
+      codigoEeffTributario: codigoEeffTributario.trim() || undefined,
+      codigoEeffNiif: codigoEeffNiif.trim() || undefined,
+      clasificacionBienServicio: clasificacionBienServicio.trim() || undefined,
+      destino,
+      cuentaCargo1Id: cuentaCargo1Id || undefined,
+      cuentaAbono1Id: cuentaAbono1Id || undefined,
+      porcentajeDestino1: porcentajeDestino1 !== "" ? Number(porcentajeDestino1) : undefined,
+      cuentaCargo2Id: cuentaCargo2Id || undefined,
+      cuentaAbono2Id: cuentaAbono2Id || undefined,
+      porcentajeDestino2: porcentajeDestino2 !== "" ? Number(porcentajeDestino2) : undefined,
+      cuentaCargo3Id: cuentaCargo3Id || undefined,
+      cuentaAbono3Id: cuentaAbono3Id || undefined,
+      porcentajeDestino3: porcentajeDestino3 !== "" ? Number(porcentajeDestino3) : undefined,
+      cuentaCierreId: cuentaCierreId || undefined,
+    });
   };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={onCerrar}>
-      <div className="bg-white rounded-xl p-5 w-full max-w-md max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-xl p-5 w-full max-w-xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-bold text-lg">{cuenta.id ? "Editar cuenta" : "Nueva cuenta"}</h3>
           <button onClick={onCerrar} aria-label="Cerrar">✕</button>
@@ -159,6 +218,108 @@ const EditarCuenta = ({ cuenta, cuentas, onCerrar, onGuardar }: any) => {
             <option key={c.id} value={c.id}>{c.codigo} — {c.nombre}</option>
           ))}
         </select>
+
+        <button type="button" className="text-xs font-semibold text-indigo-600 mt-4"
+          onClick={() => setAvanzadoAbierto(!avanzadoAbierto)}>
+          {avanzadoAbierto ? "▾" : "▸"} Campos avanzados (EEFF)
+        </button>
+
+        {avanzadoAbierto && (
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3 mt-3 p-3 bg-gray-50 rounded-lg text-sm">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block">Nivel</label>
+              <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={nivel} onChange={(e) => setNivel(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block">Clase Cuenta</label>
+              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={claseCuenta} onChange={(e) => setClaseCuenta(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block">Cód. EEFF</label>
+              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={codigoEeff} onChange={(e) => setCodigoEeff(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block">Cód. EEFF Trib.</label>
+              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={codigoEeffTributario} onChange={(e) => setCodigoEeffTributario(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block">Cód. EEFF NIIF</label>
+              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={codigoEeffNiif} onChange={(e) => setCodigoEeffNiif(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block">Clas. Bien o Servicio</label>
+              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={clasificacionBienServicio} onChange={(e) => setClasificacionBienServicio(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block">Centros de Costos</label>
+              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={centroCostoId} onChange={(e) => setCentroCostoId(Number(e.target.value))}>
+                <option value={0}>Sin centro de costo</option>
+                {(centrosCosto ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.value}</option>)}
+              </select>
+            </div>
+
+            <label className="flex items-center gap-2"><input type="checkbox" checked={tipoAnexo} onChange={(e) => setTipoAnexo(e.target.checked)} /> Tipo de Anexo</label>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={cuentaMonetaria} onChange={(e) => setCuentaMonetaria(e.target.checked)} /> Cuenta Monetaria</label>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={ajusteDifCambio} onChange={(e) => setAjusteDifCambio(e.target.checked)} /> Ajuste Dif. Cambio</label>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={destino} onChange={(e) => setDestino(e.target.checked)} /> Destino</label>
+
+            <div className="col-span-2 border-t border-gray-200 pt-3 grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block">Cargo 1</label>
+                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaCargo1Id} onChange={(e) => setCuentaCargo1Id(Number(e.target.value))}>
+                  <option value={0}>Sin elegir</option>
+                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block">Abono 1</label>
+                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaAbono1Id} onChange={(e) => setCuentaAbono1Id(Number(e.target.value))}>
+                  <option value={0}>Sin elegir</option>
+                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+                </select>
+              </div>
+              <div><label className="text-xs font-semibold text-gray-500 block">Porcent. 1</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={porcentajeDestino1} onChange={(e) => setPorcentajeDestino1(e.target.value)} /></div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block">Cargo 2</label>
+                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaCargo2Id} onChange={(e) => setCuentaCargo2Id(Number(e.target.value))}>
+                  <option value={0}>Sin elegir</option>
+                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block">Abono 2</label>
+                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaAbono2Id} onChange={(e) => setCuentaAbono2Id(Number(e.target.value))}>
+                  <option value={0}>Sin elegir</option>
+                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+                </select>
+              </div>
+              <div><label className="text-xs font-semibold text-gray-500 block">Porcent. 2</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={porcentajeDestino2} onChange={(e) => setPorcentajeDestino2(e.target.value)} /></div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block">Cargo 3</label>
+                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaCargo3Id} onChange={(e) => setCuentaCargo3Id(Number(e.target.value))}>
+                  <option value={0}>Sin elegir</option>
+                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block">Abono 3</label>
+                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaAbono3Id} onChange={(e) => setCuentaAbono3Id(Number(e.target.value))}>
+                  <option value={0}>Sin elegir</option>
+                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+                </select>
+              </div>
+              <div><label className="text-xs font-semibold text-gray-500 block">Porcent. 3</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={porcentajeDestino3} onChange={(e) => setPorcentajeDestino3(e.target.value)} /></div>
+            </div>
+
+            <div className="col-span-2">
+              <label className="text-xs font-semibold text-gray-500 block">Cta_cierre</label>
+              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaCierreId} onChange={(e) => setCuentaCierreId(Number(e.target.value))}>
+                <option value={0}>Sin elegir</option>
+                {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+              </select>
+            </div>
+          </div>
+        )}
 
         {cuenta.id && (
           <label className="flex items-center gap-2 mt-3 text-sm">

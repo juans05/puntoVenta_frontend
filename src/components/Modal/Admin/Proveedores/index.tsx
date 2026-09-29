@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { IExtensionesState } from "../../../../redux/reducers/extensiones/interfaces";
 import axiosInstance from "../../../../utils/axios";
 import { useFormErrors } from "../../../FormError";
+import { validateEmail } from "../../../../utils/validations";
 
 Modal.setAppElement("#root");
 
@@ -166,6 +167,20 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
       toast.error("La razón social/nombre es obligatorio");
       return;
     }
+    // Email/celular obligatorios solo al CREAR -- proveedores antiguos sin estos datos deben
+    // poder seguir editándose sin que esto bloquee el guardado.
+    if (!activeProviders?.proveedorId) {
+      if (!celular.trim()) {
+        setError("celular", "El celular es obligatorio");
+        toast.error("El celular es obligatorio");
+        return;
+      }
+      if (!email.trim() || !validateEmail(email.trim())) {
+        setError("email", email.trim() ? "El email no es válido" : "El email es obligatorio");
+        toast.error(email.trim() ? "El email no es válido" : "El email es obligatorio");
+        return;
+      }
+    }
 
     // El backend nombra el campo "Dirección" (con tilde); se traduce acá al enviarlo.
     const payload = {
@@ -275,7 +290,9 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
                     name="email"
                     isLabel
                     label="Email"
+                    required
                     value={email}
+                    error={errors.email}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -284,7 +301,9 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
                     name="celular"
                     isLabel
                     label="Celular"
+                    required
                     value={celular}
+                    error={errors.celular}
                     onChange={handleInputChange}
                   />
                 </div>
