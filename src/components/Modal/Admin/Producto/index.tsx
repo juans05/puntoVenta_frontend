@@ -103,6 +103,23 @@ const initialForm = {
   cuentaIngresoId: 0,
   cuentaInventarioId: 0,
   cuentaCostoId: 0,
+  cuentaIngresoDebeId: 0,
+  cuentaGastoHaberId: 0,
+  cuentasInventarioMovimiento: {} as Record<number, number>,
+};
+
+// Ids = TipoMovimientoInventario del backend.
+const MOVIMIENTOS_INVENTARIO = [
+  { id: 1, label: "Compra" },
+  { id: 2, label: "Venta" },
+  { id: 3, label: "Ajuste de entrada" },
+  { id: 4, label: "Ajuste de salida" },
+  { id: 5, label: "Devolución de compra" },
+  { id: 6, label: "Devolución de venta" },
+];
+
+const parseMovimientos = (json?: string): Record<number, number> => {
+  try { return json ? JSON.parse(json) : {}; } catch { return {}; }
 };
 
 type TabId = "general" | "lotes" | "presentaciones" | "multiprecio" | "contabilidad" | "imagenes";
@@ -162,11 +179,14 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     seCompra,
   } = formValues;
 
-  const cuentasOptions = cuentasContables.map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
-  const nombreCuenta = (id: number) => cuentasContables.find((c: any) => c.id === id)?.nombre ?? "";
-  const cuentaIngresoTexto = formValues.cuentaIngresoId ? `${cuentasContables.find((c: any) => c.id === formValues.cuentaIngresoId)?.codigo ?? ""} - ${nombreCuenta(formValues.cuentaIngresoId)}` : "";
-  const cuentaInventarioTexto = formValues.cuentaInventarioId ? `${cuentasContables.find((c: any) => c.id === formValues.cuentaInventarioId)?.codigo ?? ""} - ${nombreCuenta(formValues.cuentaInventarioId)}` : "";
-  const cuentaCostoTexto = formValues.cuentaCostoId ? `${cuentasContables.find((c: any) => c.id === formValues.cuentaCostoId)?.codigo ?? ""} - ${nombreCuenta(formValues.cuentaCostoId)}` : "";
+  // Solo ultimo nivel (Nivel 5 = 8 digitos): la unica hoja que admite asientos. El buscador del
+  // SelectPro filtra por el texto "codigo - nombre", asi que tambien busca por numero de cuenta.
+  const cuentasUltimoNivel = cuentasContables.filter((c: any) => c.nivel === 5);
+  const cuentasOptions = cuentasUltimoNivel.map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
+  const textoCuenta = (id?: number) => {
+    const c = id ? cuentasContables.find((x: any) => x.id === id) : null;
+    return c ? `${c.codigo} - ${c.nombre}` : "";
+  };
 
   const [isStock, setIsStock] = useState<boolean>(false);
   const [paises, setPaises] = useState<any[]>([]);
@@ -303,6 +323,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
         unidadMedidaId: activeProducto.unidadMedidaId || 0,
         unidadMedida: activeProducto.nombreUnidadMedida ?? "",
         destinoPreparacion: activeProducto.destinoPreparacion || "Ninguno",
+        cuentasInventarioMovimiento: parseMovimientos(activeProducto.cuentasInventarioMovimiento),
       });
       setPreciosAlternativos(activeProducto.preciosAlternativos ?? []);
       setPresentaciones(
@@ -404,6 +425,11 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     cuentaIngresoId: formValues.cuentaIngresoId || undefined,
     cuentaInventarioId: formValues.cuentaInventarioId || undefined,
     cuentaCostoId: formValues.cuentaCostoId || undefined,
+    cuentaIngresoDebeId: formValues.cuentaIngresoDebeId || undefined,
+    cuentaGastoHaberId: formValues.cuentaGastoHaberId || undefined,
+    cuentasInventarioMovimiento: JSON.stringify(
+      Object.fromEntries(Object.entries(formValues.cuentasInventarioMovimiento ?? {}).filter(([, v]) => v))
+    ),
     porcentajeDetraccion: porcentajeDetraccion || undefined,
     destinoPreparacion: destinoPreparacion === "Ninguno" ? undefined : destinoPreparacion,
     preciosAlternativos: preciosAlternativos.map((p) => ({ nombre: p.nombre, precioVenta: Number(p.precioVenta) })),
@@ -418,6 +444,15 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
   });
 
   const createProduct = async () => {
+    // Pares Debe/Haber de ingreso y de gasto: obligatorios.
+    const faltantes = [
+      ["cuenta de ingreso (Debe)", formValues.cuentaIngresoDebeId], ["cuenta de ingreso (Haber)", formValues.cuentaIngresoId],
+      ["cuenta de gasto (Debe)", formValues.cuentaCostoId], ["cuenta de gasto (Haber)", formValues.cuentaGastoHaberId],
+    ].filter(([, v]) => !v).map(([n]) => n);
+    if (faltantes.length) {
+      setTab("contabilidad");
+      return toast.error(`Falta elegir: ${faltantes.join(", ")} (pestaña Contabilidad)`);
+    }
     if (activeProducto) {
       dispatch(
         updateProducts({
@@ -1322,47 +1357,82 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                 <div className="mb-4">
                   <h4 className="text-lg font-bold text-gray-900">Cuentas contables</h4>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    Del Plan de Cuentas (PCGE). Opcional: si no eliges una, la venta usa la cuenta por defecto
-                    (70 Ventas, 20 Mercaderías, 69 Costos de Ventas) al generar su asiento.
+                    Solo cuentas de último nivel (8 dígitos) del Plan de Cuentas. Puedes buscar por número de cuenta.
+                    Los pares Debe/Haber de ingreso y de gasto son obligatorios.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
+                <h5 className="text-sm font-bold text-gray-800 mb-2">Cuenta de ingreso (venta)</h5>
+                <div className="grid grid-cols-2 gap-4 mb-4">
                   <SelectPro
                     isLabel
-                    label="Cuenta de ingresos (venta)"
+                    label="Debe *"
+                    isSearch
+                    id="cuentaIngresoDebeId"
+                    name="cuentaIngresoDebeIgnorar"
+                    defaultValue={textoCuenta(formValues.cuentaIngresoDebeId)}
+                    options={cuentasOptions}
+                    onChange={(idValue: any) => setFormValues({ ...formValues, cuentaIngresoDebeId: idValue })}
+                  />
+                  <SelectPro
+                    isLabel
+                    label="Haber *"
                     isSearch
                     id="cuentaIngresoId"
                     name="cuentaIngresoIgnorar"
-                    defaultValue={cuentaIngresoTexto}
+                    defaultValue={textoCuenta(formValues.cuentaIngresoId)}
                     options={cuentasOptions}
                     onChange={(idValue: any) => setFormValues({ ...formValues, cuentaIngresoId: idValue })}
                   />
+                </div>
 
-                  {!esServicio && (
-                    <SelectPro
-                      isLabel
-                      label="Cuenta de inventario"
-                      isSearch
-                      id="cuentaInventarioId"
-                      name="cuentaInventarioIgnorar"
-                      defaultValue={cuentaInventarioTexto}
-                      options={cuentasOptions}
-                      onChange={(idValue: any) => setFormValues({ ...formValues, cuentaInventarioId: idValue })}
-                    />
-                  )}
-
+                <h5 className="text-sm font-bold text-gray-800 mb-2">{esServicio ? "Cuenta de gasto" : "Cuenta de costo de venta / gasto"}</h5>
+                <div className="grid grid-cols-2 gap-4 mb-4">
                   <SelectPro
                     isLabel
-                    label={esServicio ? "Cuenta de gasto" : "Cuenta de costo de venta"}
+                    label="Debe *"
                     isSearch
                     id="cuentaCostoId"
                     name="cuentaCostoIgnorar"
-                    defaultValue={cuentaCostoTexto}
+                    defaultValue={textoCuenta(formValues.cuentaCostoId)}
                     options={cuentasOptions}
                     onChange={(idValue: any) => setFormValues({ ...formValues, cuentaCostoId: idValue })}
                   />
+                  <SelectPro
+                    isLabel
+                    label="Haber *"
+                    isSearch
+                    id="cuentaGastoHaberId"
+                    name="cuentaGastoHaberIgnorar"
+                    defaultValue={textoCuenta(formValues.cuentaGastoHaberId)}
+                    options={cuentasOptions}
+                    onChange={(idValue: any) => setFormValues({ ...formValues, cuentaGastoHaberId: idValue })}
+                  />
                 </div>
+
+                {!esServicio && (
+                  <>
+                    <h5 className="text-sm font-bold text-gray-800 mb-2">Cuenta de inventario por movimiento</h5>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      {MOVIMIENTOS_INVENTARIO.map((m) => (
+                        <SelectPro
+                          key={`${m.id}-${activeProducto?.productoId ?? 0}`}
+                          isLabel
+                          label={m.label}
+                          isSearch
+                          id={`cuentaInv${m.id}`}
+                          name={`cuentaInv${m.id}Ignorar`}
+                          defaultValue={textoCuenta(formValues.cuentasInventarioMovimiento?.[m.id])}
+                          options={cuentasOptions}
+                          onChange={(idValue: any) => setFormValues({
+                            ...formValues,
+                            cuentasInventarioMovimiento: { ...(formValues.cuentasInventarioMovimiento ?? {}), [m.id]: idValue },
+                          })}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

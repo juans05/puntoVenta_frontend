@@ -1,3 +1,4 @@
+import { CatalogoCrudTable } from "../CatalogosDocumentos";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { printTable } from "../../../../../../helpers/functions/printTitle";
@@ -73,7 +74,7 @@ const initialForm: IEmpresa = {
 
 const REGIMENES = ["Régimen General", "Régimen Especial (RER)", "Régimen MYPE Tributario (RMT)", "Nuevo RUS"];
 
-type Seccion = "datos" | "logotipos" | "redes" | "proximamente";
+type Seccion = "datos" | "logotipos" | "redes" | "impuestos" | "proximamente";
 
 const SECCIONES_PROXIMAMENTE: Record<string, string> = {
   "emision-sunat": "Emisión a SUNAT",
@@ -234,6 +235,9 @@ export const MyBusiness = () => {
             <button className={seccion === "redes" ? styles.itemActivo : styles.item} onClick={() => irA("redes")}>
               <span className={`${styles.dot} ${styles.dotOk}`} /> Redes sociales
             </button>
+            <button className={seccion === "impuestos" ? styles.itemActivo : styles.item} onClick={() => irA("impuestos")}>
+              <span className={`${styles.dot} ${styles.dotOk}`} /> Impuestos
+            </button>
           </div>
 
           <div className={styles.grupo}>
@@ -360,6 +364,21 @@ export const MyBusiness = () => {
 
           {seccion === "logotipos" && <Logotipos formValues={formValues} onGuardar={guardar} />}
           {seccion === "redes" && <RedesSociales formValues={formValues} onChange={handleOnChange} onGuardar={guardar} />}
+          {seccion === "impuestos" && (
+            <CatalogoCrudTable
+              titulo="Impuestos"
+              descripcion="Tipos de afectación del IGV (gravado, exonerado, inafecto, etc.) que se aplican a los productos y comprobantes. Los de SUNAT vienen de base; aquí puedes agregar los propios."
+              listUrl="/extensiones/tipos-igv/listar"
+              createUrl="/extensiones/tipos-igv/crear"
+              updateUrl={(id) => `/extensiones/tipos-igv/${id}`}
+              estadoUrl={(id) => `/extensiones/tipos-igv/${id}/estado`}
+              fields={[
+                { key: "codigo", label: "Código", type: "text" },
+                { key: "descripcion", label: "Descripción", type: "text" },
+                { key: "aplicaPorcentajeImpuesto", label: "Aplica IGV (18%)", type: "checkbox" },
+              ]}
+            />
+          )}
           {seccion === "proximamente" && <Proximamente titulo={SECCIONES_PROXIMAMENTE[itemProximamente] ?? "Próximamente"} />}
         </div>
       </div>

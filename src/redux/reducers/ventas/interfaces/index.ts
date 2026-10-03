@@ -56,6 +56,7 @@ export interface ISaleProduct {
     monedaId?: number
     tipoCambio?: number
     montoRetencion?: number
+    tipoDetraccionId?: number
     montoAnticipo?: number
     fechaVigencia?: string
     cotizacionOrigenId?: number

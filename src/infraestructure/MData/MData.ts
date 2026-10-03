@@ -39,20 +39,6 @@ export const menuSidebar = [
             icon: "healthicons:i-documents-accepted",
             url: "dashboard/documentos-facturados",
           },
-          {
-            code: "300",
-            id: 312,
-            value: "Factura",
-            icon: "mdi:file-document-plus-outline",
-            url: "dashboard/nueva-factura/factura",
-          },
-          {
-            code: "300",
-            id: 313,
-            value: "Boleta",
-            icon: "mdi:receipt-text-outline",
-            url: "dashboard/nueva-factura/boleta",
-          },
         ],
       },
       {

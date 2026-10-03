@@ -206,10 +206,12 @@ const EditarCuenta = ({ cuenta, cuentas, codigosEeffNiif, onCerrar, onGuardar }:
 
   const inp = "w-full border border-gray-200 rounded-md px-2 py-1 text-sm mt-0.5";
   const lbl = "text-[11px] font-semibold text-gray-500 block";
+  // Cuenta cierre y cargo/abono de destino: solo ultimo nivel (Nivel 5 = 8 digitos), la unica hoja que admite asientos.
+  const cuentasUltimoNivel = otrasCuentas.filter((c: any) => c.nivel === 5);
   const cuentaSelect = (value: number, set: (n: number) => void, disabled = false) => (
     <select className={inp} value={value} disabled={disabled} onChange={(e) => set(Number(e.target.value))}>
       <option value={0}>Sin elegir</option>
-      {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+      {cuentasUltimoNivel.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
     </select>
   );
   const lineasDestino = [

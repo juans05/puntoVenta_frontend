@@ -56,7 +56,7 @@ interface ICatalogoCrudProps {
 
 const valorPorDefecto = (field: ICampoConfig) => (field.type === "checkbox" ? false : field.type === "select" ? field.options?.[0]?.value ?? 0 : "");
 
-const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, updateUrl, estadoUrl, fields }: ICatalogoCrudProps) => {
+export const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, updateUrl, estadoUrl, fields }: ICatalogoCrudProps) => {
   const [items, setItems] = useState<ICatalogoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);

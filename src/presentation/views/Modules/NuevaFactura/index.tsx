@@ -76,12 +76,12 @@ const CAMPOS_AVANZADOS: { key: string; label: string; columna: 1 | 2 | 3 }[] = [
   { key: "numeroOrden", label: "N° de Orden", columna: 2 },
   { key: "colaborador", label: "Lista de Colaboradores", columna: 2 },
   { key: "numeroCelular", label: "Número de Celular", columna: 2 },
-  { key: "igvSunat", label: "IGV - SUNAT", columna: 2 },
   { key: "tipoMoneda", label: "Tipo de Moneda", columna: 3 },
   { key: "tipoCambio", label: "Tipo de Cambio (SUNAT)", columna: 3 },
   { key: "guiaRemisionElectronica", label: "N° Guía Remisión Electrónica", columna: 3 },
   { key: "direccionCliente", label: "Dirección del Cliente", columna: 3 },
   { key: "retencion", label: "Retención", columna: 3 },
+  { key: "detraccion", label: "Detracción", columna: 3 },
   { key: "anticipo", label: "Anticipo", columna: 3 },
 ];
 
@@ -90,7 +90,7 @@ const CAMPOS_VISIBLES_POR_DEFECTO = new Set([
   "ubigeo",
   "numeroCelular",
   "direccionCliente",
-  "igvSunat",
+  "detraccion",
 ]);
 
 const NuevaFactura = () => {
@@ -145,8 +145,6 @@ const NuevaFactura = () => {
   const [buscando, setBuscando] = useState(false);
   const [clientesEncontrados, setClientesEncontrados] = useState<any[]>([]);
 
-  const [multipagos, setMultipagos] = useState(false);
-  const [pagos, setPagos] = useState<{ metodoPagoId: number; monto: string }[]>([]);
   const [esCredito, setEsCredito] = useState(false);
   const [descuentoActivo, setDescuentoActivo] = useState(false);
   const [porcentajeDescuento, setPorcentajeDescuento] = useState("0");
@@ -176,11 +174,17 @@ const NuevaFactura = () => {
   const [monedaId, setMonedaId] = useState<number>(0);
   const [tipoCambio, setTipoCambio] = useState("");
   const [montoRetencion, setMontoRetencion] = useState("");
+  const [tipoDetraccionId, setTipoDetraccionId] = useState(0);
+  const [tiposDetraccion, setTiposDetraccion] = useState<any[]>([]);
   const [montoAnticipo, setMontoAnticipo] = useState("");
 
   // Solo Cotizacion: hasta cuando es valida. Se guarda como yyyy-MM-dd (input type=date nativo).
   const [fechaVigencia, setFechaVigencia] = useState<string>("");
   const [seriesDocumento, setSeriesDocumento] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    axiosInstance.get("/extensiones/tipos-detraccion").then((r: any) => setTiposDetraccion(r.data?.data ?? [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!getToken()) {
@@ -364,7 +368,6 @@ const NuevaFactura = () => {
   const igv = igvBruto * factorDescuento;
 
   const vuelto = montoRecibido !== "" ? Number(montoRecibido) - total : 0;
-  const totalPagos = pagos.reduce((acc, p) => acc + Number(p.monto || 0), 0);
 
   const agregarProductos = (seleccionados: any[]) => {
     seleccionados.forEach((p) =>
@@ -460,23 +463,15 @@ const NuevaFactura = () => {
   const sumar = (item: any) => dispatch(getProductsBySale(item) as any);
   const eliminar = (productoId: number) => dispatch(deleteProductInSale(productoId) as any);
 
-  // Costo real de esta venta puntual (ej. lo que realmente costo el delivery esta vez), distinto
-  // del costo de catalogo del producto -- si se deja vacio, los reportes usan el costo de catalogo.
-  const cambiarCosto = (productoId: number, valor: string) => {
-    const costoReal = valor === "" ? undefined : parseFloat(valor);
-    if (valor !== "" && (costoReal === undefined || isNaN(costoReal) || costoReal < 0)) {
-      toast.error("Costo inválido");
+  // Solo para productos con "cambio de precio permitido" (ver columna P. Unit.).
+  const cambiarPrecio = (productoId: number, valor: string) => {
+    const precio = parseFloat(valor);
+    if (isNaN(precio) || precio < 0) {
+      toast.error("Precio inválido");
       return;
     }
     const actualizados = productsBySale.map((p: any) =>
-      p.productoId === productoId ? { ...p, costoReal } : p
-    );
-    dispatch(updateProductByPrice(actualizados) as any);
-  };
-
-  const cambiarTipoIgv = (productoId: number, tipoIgvId: number) => {
-    const actualizados = productsBySale.map((p: any) =>
-      p.productoId === productoId ? { ...p, tipoIgvId } : p
+      p.productoId === productoId ? { ...p, precio, totalFicha: precio * p.cantidad } : p
     );
     dispatch(updateProductByPrice(actualizados) as any);
   };
@@ -494,21 +489,11 @@ const NuevaFactura = () => {
   const toggleCredito = (activo: boolean) => {
     setEsCredito(activo);
     if (activo) {
-      setMultipagos(false);
-      setPagos([]);
       setMetodoPagoId(0);
       setDescuentoActivo(false);
       setPorcentajeDescuento("0");
       setMontoRecibido("");
     }
-  };
-
-  const agregarLineaPago = () => setPagos([...pagos, { metodoPagoId: 0, monto: "" }]);
-  const quitarLineaPago = (index: number) => setPagos(pagos.filter((_, i) => i !== index));
-  const cambiarLineaPago = (index: number, campo: "metodoPagoId" | "monto", valor: string) => {
-    setPagos(
-      pagos.map((p, i) => (i === index ? { ...p, [campo]: campo === "metodoPagoId" ? Number(valor) : valor } : p))
-    );
   };
 
   // Mismo formato "DEP/PROV/DIST" que muestra SelectUbigeo al elegir una opcion.
@@ -724,20 +709,6 @@ const NuevaFactura = () => {
       // El backend ignora DetallePago cuando EsCredito=true (ver ComprobanteRepository.
       // CrearComprobante): no se cobra nada ahora, queda pendiente en Cuentas por Cobrar.
       detallePago = [];
-    } else if (multipagos) {
-      if (pagos.length === 0) {
-        return toast.error("Agrega al menos un método de pago");
-      }
-      if (pagos.some((p) => !esDecimalValido(p.monto || ""))) {
-        return toast.error("Ingresa montos válidos en los pagos (máx. 2 decimales)");
-      }
-      if (pagos.some((p) => p.metodoPagoId === 0 || Number(p.monto || 0) <= 0)) {
-        return toast.error("Completa el método y monto de cada pago");
-      }
-      if (Math.abs(totalPagos - total) > 0.01) {
-        return toast.error("La suma de los pagos debe ser igual al Total (S/. " + total.toFixed(2) + ")");
-      }
-      detallePago = pagos.map((p) => ({ metodoPagoId: p.metodoPagoId, monto: Number(p.monto), referenciaOperacion: "" }));
     } else {
       if (metodoPagoId === 0) {
         return toast.error("Elige un método de pago");
@@ -753,7 +724,6 @@ const NuevaFactura = () => {
         productoId: item.productoId,
         cantidad: item.cantidad,
         valorUnitario: valorUnitarioAjustado,
-        costoReal: item.costoReal,
         tipoIgvId: item.tipoIgvId,
         unidadMedidaId: item.unidadMedidaId,
       };
@@ -777,7 +747,7 @@ const NuevaFactura = () => {
       ubigeoId: ubigeoId || undefined,
       celular: celular.trim() || undefined,
       email: email.trim() || undefined,
-      efectivo: multipagos ? "MULTIPLE" : metodoPagoSeleccionado?.value?.toUpperCase() || "",
+      efectivo: metodoPagoSeleccionado?.value?.toUpperCase() || "",
       tipoVenta: tipoDocumentoInicial,
       total,
       fechaVenta,
@@ -803,6 +773,7 @@ const NuevaFactura = () => {
       monedaId: campos.tipoMoneda && monedaId !== 0 ? monedaId : undefined,
       tipoCambio: campos.tipoCambio && tipoCambio !== "" ? Number(tipoCambio) : undefined,
       montoRetencion: campos.retencion && montoRetencion !== "" ? Number(montoRetencion) : undefined,
+      tipoDetraccionId: campos.detraccion && tipoDetraccionId !== 0 ? tipoDetraccionId : undefined,
       fechaVigencia: tipoDocumentoInicial === "cotizacion" && fechaVigencia ? fechaVigencia : undefined,
       cotizacionOrigenId: cotizacionOrigenId ? Number(cotizacionOrigenId) : undefined,
       pedidoVentaId: pedidoVentaId ? Number(pedidoVentaId) : undefined,
@@ -832,8 +803,6 @@ const NuevaFactura = () => {
     setEmail("");
     setMetodoPagoId(0);
     setClientesEncontrados([]);
-    setMultipagos(false);
-    setPagos([]);
     setEsCredito(false);
     setDescuentoActivo(false);
     setPorcentajeDescuento("0");
@@ -1172,6 +1141,7 @@ const NuevaFactura = () => {
             campos.tipoMoneda ||
             campos.tipoCambio ||
             campos.retencion ||
+            campos.detraccion ||
             campos.anticipo) && (
             <>
               <h4 className={styles.sectionTitleDivider}>DATOS ADICIONALES:</h4>
@@ -1283,6 +1253,24 @@ const NuevaFactura = () => {
                     <input placeholder="Separadas por coma" value={etiquetas} maxLength={200} onChange={(e) => setEtiquetas(e.target.value)} />
                   </div>
                 )}
+                {campos.detraccion && (
+                  <div>
+                    <label>Detracción</label>
+                    <select className={styles.select} value={tipoDetraccionId} onChange={(e) => setTipoDetraccionId(Number(e.target.value))}>
+                      <option value={0}>Sin detracción</option>
+                      {tiposDetraccion.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {Number(t.porcentaje)}%{t.descripcion ? ` - ${t.descripcion}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {tipoDetraccionId !== 0 && (
+                      <small>
+                        Monto: S/ {((total * Number(tiposDetraccion.find((t) => t.id === tipoDetraccionId)?.porcentaje ?? 0)) / 100).toFixed(2)}
+                      </small>
+                    )}
+                  </div>
+                )}
                 {campos.retencion && (
                   <div>
                     <label>Retención S/.</label>
@@ -1335,11 +1323,9 @@ const NuevaFactura = () => {
                 <thead>
                   <tr>
                     <th>Producto</th>
-                    {campos.igvSunat && <th>Tipo IGV</th>}
                     <th>Und. Medida</th>
                     <th>Cantidad</th>
                     <th>P. Unit.</th>
-                    <th>Costo real</th>
                     <th>Subtotal</th>
                     <th></th>
                   </tr>
@@ -1348,21 +1334,6 @@ const NuevaFactura = () => {
                   {productsBySale.map((item: any) => (
                     <tr key={item.productoId}>
                       <td data-label="Producto">{item.nombre}</td>
-                      {campos.igvSunat && (
-                        <td data-label="Tipo IGV">
-                          <select
-                            className={styles.select}
-                            value={item.tipoIgvId ?? ""}
-                            onChange={(e) => cambiarTipoIgv(item.productoId, Number(e.target.value))}
-                          >
-                            {(tiposIgv as any[])?.map((t) => (
-                              <option key={t.id} value={t.id}>
-                                {t.codigo} - {t.value}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                      )}
                       <td data-label="Und. Medida">
                         <select
                           className={styles.select}
@@ -1383,15 +1354,17 @@ const NuevaFactura = () => {
                           <button type="button" onClick={() => sumar(item)}>+</button>
                         </div>
                       </td>
-                      <td data-label="P. Unit.">S/ {Number(item.precio).toFixed(2)}</td>
-                      <td data-label="Costo real">
-                        <input
-                          type="text"
-                          className={styles.costoInput}
-                          placeholder="Costo de catálogo"
-                          defaultValue={item.costoReal !== undefined ? String(item.costoReal) : ""}
-                          onBlur={(e) => cambiarCosto(item.productoId, e.target.value)}
-                        />
+                      <td data-label="P. Unit.">
+                        {item.cambioPrecioPermitido ? (
+                          <input
+                            type="text"
+                            className={styles.costoInput}
+                            defaultValue={Number(item.precio).toFixed(2)}
+                            onBlur={(e) => cambiarPrecio(item.productoId, e.target.value)}
+                          />
+                        ) : (
+                          <>S/ {Number(item.precio).toFixed(2)}</>
+                        )}
                       </td>
                       <td data-label="Subtotal">S/ {Number(item.precio * item.cantidad).toFixed(2)}</td>
                       <td>
@@ -1413,13 +1386,6 @@ const NuevaFactura = () => {
 
         <div className={styles.section}>
           <div className={styles.multipagosHeader}>
-            <label className={styles.toggleLabel}>
-              <span className={`${styles.switch} ${styles.switchPurple}`}>
-                <input type="checkbox" checked={multipagos} disabled={esCredito} onChange={(e) => setMultipagos(e.target.checked)} />
-                <span className={styles.switchSlider}></span>
-              </span>
-              Multipagos
-            </label>
             <button
               type="button"
               className={styles.resumenPagoLink}
@@ -1428,59 +1394,6 @@ const NuevaFactura = () => {
               RESUMEN DE PAGO
             </button>
           </div>
-
-          {multipagos && (
-            <div className={styles.multipagosBlock}>
-              {pagos.length === 0 ? (
-                <div className={styles.multipagosEmpty}>
-                  <div className={styles.multipagosEmptyIcon}>
-                    <Icon icon="mdi:credit-card-outline" />
-                  </div>
-                  <div>
-                    <p className={styles.multipagosEmptyTitle}>Pagos múltiples no configurados</p>
-                    <button type="button" className={styles.multipagosEmptyLink} onClick={agregarLineaPago}>
-                      <Icon icon="mdi:plus" /> Agregar métodos de pago
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {pagos.map((p, index) => (
-                    <div key={index} className={styles.lineaPago}>
-                      <select
-                        className={styles.select}
-                        value={p.metodoPagoId}
-                        onChange={(e) => cambiarLineaPago(index, "metodoPagoId", e.target.value)}
-                      >
-                        <option value={0}>Método de pago</option>
-                        {(payMethods as any[])?.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.value}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="text"
-                        placeholder="Monto S/."
-                        value={p.monto}
-                        onChange={(e) => cambiarLineaPago(index, "monto", sanitizeDecimal(e.target.value))}
-                      />
-                      <button type="button" className={styles.removeBtn} onClick={() => quitarLineaPago(index)}>
-                        <Icon icon="mdi:trash-can-outline" />
-                      </button>
-                    </div>
-                  ))}
-                  <button type="button" className={styles.addLineBtn} onClick={agregarLineaPago}>
-                    <Icon icon="mdi:plus" /> Agregar pago
-                  </button>
-                  <div className={styles.totalesRow}>
-                    <span>Suma de pagos</span>
-                    <span>S/ {totalPagos.toFixed(2)}</span>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
         </div>
 
         <div className={styles.ventaResumenGrid}>
@@ -1496,24 +1409,22 @@ const NuevaFactura = () => {
                   <span>{esCredito ? "Sí" : "No"}</span>
                 </div>
               </div>
-              {!multipagos && (
-                <div>
-                  <label>Forma de Pago</label>
-                  <select
-                    className={styles.select}
-                    value={metodoPagoId}
-                    disabled={esCredito}
-                    onChange={(e) => setMetodoPagoId(Number(e.target.value))}
-                  >
-                    <option value={0}>Selecciona un método de pago</option>
-                    {(payMethods as any[])?.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.value}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div>
+                <label>Forma de Pago</label>
+                <select
+                  className={styles.select}
+                  value={metodoPagoId}
+                  disabled={esCredito}
+                  onChange={(e) => setMetodoPagoId(Number(e.target.value))}
+                >
+                  <option value={0}>Selecciona un método de pago</option>
+                  {(payMethods as any[])?.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.value}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className={styles.formGrid3}>
