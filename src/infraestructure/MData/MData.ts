@@ -142,6 +142,13 @@ export const menuSidebar = [
         url: "dashboard/contabilidad/plan-de-cuentas",
       },
       {
+        code: "1600",
+        id: 255,
+        value: "Cierre de año fiscal",
+        icon: "mdi:calendar-check-outline",
+        url: "dashboard/contabilidad/cierre-anual",
+      },
+      {
         code: "400",
         id: 253,
         value: "Clientes",

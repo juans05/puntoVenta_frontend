@@ -166,7 +166,6 @@ const EditarCuenta = ({ cuenta, cuentas, codigosEeffNiif, onCerrar, onGuardar }:
   const [cuentaAbono3Id, setCuentaAbono3Id] = useState(cuenta.cuentaAbono3Id ?? 0);
   const [porcentajeDestino3, setPorcentajeDestino3] = useState(cuenta.porcentajeDestino3 ?? "");
   const [cuentaCierreId, setCuentaCierreId] = useState(cuenta.cuentaCierreId ?? 0);
-  const [avanzadoAbierto, setAvanzadoAbierto] = useState(false);
 
   const { errors, setError, clearError } = useFormErrors();
 
@@ -205,156 +204,124 @@ const EditarCuenta = ({ cuenta, cuentas, codigosEeffNiif, onCerrar, onGuardar }:
     });
   };
 
+  const inp = "w-full border border-gray-200 rounded-md px-2 py-1 text-sm mt-0.5";
+  const lbl = "text-[11px] font-semibold text-gray-500 block";
+  const cuentaSelect = (value: number, set: (n: number) => void, disabled = false) => (
+    <select className={inp} value={value} disabled={disabled} onChange={(e) => set(Number(e.target.value))}>
+      <option value={0}>Sin elegir</option>
+      {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+    </select>
+  );
+  const lineasDestino = [
+    { n: 1, cargo: cuentaCargo1Id, setCargo: setCuentaCargo1Id, abono: cuentaAbono1Id, setAbono: setCuentaAbono1Id, pct: porcentajeDestino1, setPct: setPorcentajeDestino1 },
+    { n: 2, cargo: cuentaCargo2Id, setCargo: setCuentaCargo2Id, abono: cuentaAbono2Id, setAbono: setCuentaAbono2Id, pct: porcentajeDestino2, setPct: setPorcentajeDestino2 },
+    { n: 3, cargo: cuentaCargo3Id, setCargo: setCuentaCargo3Id, abono: cuentaAbono3Id, setAbono: setCuentaAbono3Id, pct: porcentajeDestino3, setPct: setPorcentajeDestino3 },
+  ];
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={onCerrar}>
-      <div className="bg-white rounded-xl p-5 w-full max-w-xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-xl p-5 w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-bold text-lg">{cuenta.id ? "Editar cuenta" : "Nueva cuenta"}</h3>
           <button onClick={onCerrar} aria-label="Cerrar">✕</button>
         </div>
 
-        <label className="text-xs font-semibold text-gray-500">Código</label>
-        <input className={`w-full border rounded-lg px-3 py-2 text-sm mt-1 ${errors.codigo ? "border-red-400" : "border-gray-200"}`}
-          value={codigo} onChange={(e) => { setCodigo(e.target.value); clearError("codigo"); }} />
-        <CampoError mensaje={errors.codigo} />
+        <div className="grid grid-cols-4 gap-x-3 gap-y-2">
+          <div>
+            <label className={lbl}>Código</label>
+            <input className={`${inp} ${errors.codigo ? "border-red-400" : ""}`} value={codigo}
+              onChange={(e) => { setCodigo(e.target.value); clearError("codigo"); }} />
+            <CampoError mensaje={errors.codigo} />
+          </div>
+          <div className="col-span-2">
+            <label className={lbl}>Nombre</label>
+            <input className={`${inp} ${errors.nombre ? "border-red-400" : ""}`} value={nombre}
+              onChange={(e) => { setNombre(e.target.value); clearError("nombre"); }} />
+            <CampoError mensaje={errors.nombre} />
+          </div>
+          <div>
+            <label className={lbl}>Tipo</label>
+            <select className={inp} value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              {TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
 
-        <label className="text-xs font-semibold text-gray-500 mt-3 block">Nombre</label>
-        <input className={`w-full border rounded-lg px-3 py-2 text-sm mt-1 ${errors.nombre ? "border-red-400" : "border-gray-200"}`}
-          value={nombre} onChange={(e) => { setNombre(e.target.value); clearError("nombre"); }} />
-        <CampoError mensaje={errors.nombre} />
+          <div className="col-span-2">
+            <label className={lbl}>Cuenta padre (opcional)</label>
+            <select className={inp} value={cuentaPadreId} onChange={(e) => setCuentaPadreId(Number(e.target.value))}>
+              <option value={0}>Sin cuenta padre</option>
+              {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} — {c.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={lbl}>Nivel</label>
+            <input disabled className={`${inp} bg-gray-100 text-gray-500`} value={nivelCalculado ? `0${nivelCalculado} (${codigoLimpio.length} dígitos)` : "—"} />
+          </div>
+          <div>
+            <label className={lbl}>Clase Cuenta</label>
+            <input disabled className={`${inp} bg-gray-100 text-gray-500`} value={claseCuentaCalculada || "—"} />
+          </div>
 
-        <label className="text-xs font-semibold text-gray-500 mt-3 block">Tipo</label>
-        <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={tipo} onChange={(e) => setTipo(e.target.value)}>
-          {TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
+          <div><label className={lbl}>Cód. EEFF</label><input className={inp} value={codigoEeff} onChange={(e) => setCodigoEeff(e.target.value)} /></div>
+          <div><label className={lbl}>Cód. EEFF Trib.</label><input className={inp} value={codigoEeffTributario} onChange={(e) => setCodigoEeffTributario(e.target.value)} /></div>
+          <div className="col-span-2">
+            <label className={lbl}>Cód. EEFF NIIF</label>
+            <select className={inp} value={codigoEeffNiifId} onChange={(e) => setCodigoEeffNiifId(Number(e.target.value))}>
+              <option value={0}>Sin elegir</option>
+              {(codigosEeffNiif ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+            </select>
+          </div>
 
-        <label className="text-xs font-semibold text-gray-500 mt-3 block">Cuenta padre (opcional)</label>
-        <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaPadreId}
-          onChange={(e) => setCuentaPadreId(Number(e.target.value))}>
-          <option value={0}>Sin cuenta padre</option>
-          {cuentas.filter((c: any) => c.id !== cuenta.id).map((c: any) => (
-            <option key={c.id} value={c.id}>{c.codigo} — {c.nombre}</option>
-          ))}
-        </select>
-
-        <button type="button" className="text-xs font-semibold text-indigo-600 mt-4"
-          onClick={() => setAvanzadoAbierto(!avanzadoAbierto)}>
-          {avanzadoAbierto ? "▾" : "▸"} Campos avanzados (EEFF)
-        </button>
-
-        {avanzadoAbierto && (
-          <div className="grid grid-cols-2 gap-x-3 gap-y-3 mt-3 p-3 bg-gray-50 rounded-lg text-sm">
-            <div>
-              <label className="text-xs font-semibold text-gray-500 block">Nivel</label>
-              <input disabled className="w-full border border-gray-200 bg-gray-100 rounded-lg px-3 py-2 text-sm mt-1 text-gray-500"
-                value={nivelCalculado ? `0${nivelCalculado} (${codigoLimpio.length} dígitos)` : "—"} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-500 block">Clase Cuenta</label>
-              <input disabled className="w-full border border-gray-200 bg-gray-100 rounded-lg px-3 py-2 text-sm mt-1 text-gray-500" value={claseCuentaCalculada || "—"} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-500 block">Cód. EEFF</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={codigoEeff} onChange={(e) => setCodigoEeff(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-500 block">Cód. EEFF Trib.</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={codigoEeffTributario} onChange={(e) => setCodigoEeffTributario(e.target.value)} />
-            </div>
-            <div className="col-span-2">
-              <label className="text-xs font-semibold text-gray-500 block">Cód. EEFF NIIF</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={codigoEeffNiifId} onChange={(e) => setCodigoEeffNiifId(Number(e.target.value))}>
-                <option value={0}>Sin elegir</option>
-                {(codigosEeffNiif ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-500 block">Clas. Bien o Servicio</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={clasificacionBienServicio} onChange={(e) => setClasificacionBienServicio(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-500 block">Centros de Costos</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={modoCentroCosto} onChange={(e) => setModoCentroCosto(e.target.value)}>
-                {MODOS_CENTRO_COSTO.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2"><input type="checkbox" checked={tipoAnexo} onChange={(e) => setTipoAnexo(e.target.checked)} /> Tipo de Anexo</label>
-              {tipoAnexo && (
-                <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" placeholder="Clientes, Proveedores, Empleados..."
-                  value={tipoAnexoClase} onChange={(e) => setTipoAnexoClase(e.target.value)} />
-              )}
-            </div>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={cuentaMonetaria} onChange={(e) => setCuentaMonetaria(e.target.checked)} /> Cuenta Monetaria</label>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={ajusteDifCambio} onChange={(e) => setAjusteDifCambio(e.target.checked)} /> Ajuste Dif. Cambio</label>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={destino} onChange={(e) => setDestino(e.target.checked)} /> Destino</label>
-
-            <div className="col-span-2 border-t border-gray-200 pt-3 grid grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block">Cargo 1</label>
-                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaCargo1Id} onChange={(e) => setCuentaCargo1Id(Number(e.target.value))}>
-                  <option value={0}>Sin elegir</option>
-                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block">Abono 1</label>
-                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaAbono1Id} onChange={(e) => setCuentaAbono1Id(Number(e.target.value))}>
-                  <option value={0}>Sin elegir</option>
-                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
-                </select>
-              </div>
-              <div><label className="text-xs font-semibold text-gray-500 block">Porcent. 1</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={porcentajeDestino1} onChange={(e) => setPorcentajeDestino1(e.target.value)} /></div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block">Cargo 2</label>
-                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaCargo2Id} onChange={(e) => setCuentaCargo2Id(Number(e.target.value))}>
-                  <option value={0}>Sin elegir</option>
-                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block">Abono 2</label>
-                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaAbono2Id} onChange={(e) => setCuentaAbono2Id(Number(e.target.value))}>
-                  <option value={0}>Sin elegir</option>
-                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
-                </select>
-              </div>
-              <div><label className="text-xs font-semibold text-gray-500 block">Porcent. 2</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={porcentajeDestino2} onChange={(e) => setPorcentajeDestino2(e.target.value)} /></div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block">Cargo 3</label>
-                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaCargo3Id} onChange={(e) => setCuentaCargo3Id(Number(e.target.value))}>
-                  <option value={0}>Sin elegir</option>
-                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block">Abono 3</label>
-                <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaAbono3Id} onChange={(e) => setCuentaAbono3Id(Number(e.target.value))}>
-                  <option value={0}>Sin elegir</option>
-                  {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
-                </select>
-              </div>
-              <div><label className="text-xs font-semibold text-gray-500 block">Porcent. 3</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={porcentajeDestino3} onChange={(e) => setPorcentajeDestino3(e.target.value)} /></div>
-            </div>
-
-            <div className="col-span-2">
-              <label className="text-xs font-semibold text-gray-500 block">Cta_cierre</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaCierreId} onChange={(e) => setCuentaCierreId(Number(e.target.value))}>
-                <option value={0}>Sin elegir</option>
-                {otrasCuentas.map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
-              </select>
+          <div>
+            <label className={lbl}>Clas. Bien o Servicio</label>
+            <select className={inp} value={clasificacionBienServicio} onChange={(e) => setClasificacionBienServicio(e.target.value)}>
+              <option value="">Sin elegir</option>
+              <option value="BIEN">BIEN - Bien (Tangible)</option>
+              <option value="SERV">SERV - Servicio (Intangible)</option>
+              <option value="NO_APL">NO_APL - No aplica</option>
+            </select>
+          </div>
+          <div>
+            <label className={lbl}>Centros de Costos</label>
+            <select className={inp} value={modoCentroCosto} onChange={(e) => setModoCentroCosto(e.target.value)}>
+              {MODOS_CENTRO_COSTO.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={lbl}>Tipo de Anexo</label>
+            <div className="flex items-center gap-2 mt-0.5">
+              <input type="checkbox" checked={tipoAnexo} onChange={(e) => setTipoAnexo(e.target.checked)} />
+              <input className={`${inp} mt-0`} disabled={!tipoAnexo} placeholder="Clientes, Proveedores..."
+                value={tipoAnexoClase} onChange={(e) => setTipoAnexoClase(e.target.value)} />
             </div>
           </div>
-        )}
+          <div>
+            <label className={lbl}>Cta_cierre</label>
+            {cuentaSelect(cuentaCierreId, setCuentaCierreId)}
+          </div>
 
-        {cuenta.id && (
-          <label className="flex items-center gap-2 mt-3 text-sm">
-            <input type="checkbox" checked={estado} onChange={(e) => setEstado(e.target.checked)} /> Activa
-          </label>
-        )}
+          <div className="col-span-4 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+            <label className="flex items-center gap-2"><input type="checkbox" checked={cuentaMonetaria} onChange={(e) => setCuentaMonetaria(e.target.checked)} /> Cuenta Monetaria</label>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={ajusteDifCambio} onChange={(e) => setAjusteDifCambio(e.target.checked)} /> Ajuste Dif. Cambio</label>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={destino} onChange={(e) => { setDestino(e.target.checked); if (e.target.checked && porcentajeDestino1 === "") setPorcentajeDestino1(100); }} /> Destino</label>
+            {cuenta.id && (
+              <label className="flex items-center gap-2"><input type="checkbox" checked={estado} onChange={(e) => setEstado(e.target.checked)} /> Activa</label>
+            )}
+          </div>
 
-        <div className="flex justify-end mt-4">
+          {lineasDestino.map((l) => (
+            <div key={l.n} className="col-span-4 grid grid-cols-4 gap-x-3">
+              <div className="col-span-2 grid grid-cols-2 gap-x-3">
+                <div><label className={lbl}>Cargo {l.n}</label>{cuentaSelect(l.cargo, l.setCargo, !destino)}</div>
+                <div><label className={lbl}>Abono {l.n}</label>{cuentaSelect(l.abono, l.setAbono, !destino)}</div>
+              </div>
+              <div><label className={lbl}>Porcent. {l.n}</label>
+                <input type="number" disabled={!destino} className={inp} value={l.pct} onChange={(e) => l.setPct(e.target.value)} /></div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-end mt-3">
           <button className="bg-indigo-600 text-white text-sm font-semibold rounded-lg px-4 py-2" onClick={guardar}>Guardar</button>
         </div>
       </div>
