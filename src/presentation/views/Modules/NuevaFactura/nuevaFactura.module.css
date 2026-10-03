@@ -334,6 +334,15 @@
   background-color: #6941C6;
 }
 
+.switch input:disabled {
+  cursor: not-allowed;
+}
+
+.switch input:disabled + .switchSlider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .multipagosHeader {
   display: flex;
   justify-content: space-between;

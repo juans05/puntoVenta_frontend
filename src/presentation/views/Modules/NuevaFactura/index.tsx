@@ -488,6 +488,21 @@ const NuevaFactura = () => {
     dispatch(updateProductByPrice(actualizados) as any);
   };
 
+  // Al vender a credito el backend ignora DetallePago por completo (no se cobra nada ahora, queda
+  // en Cuentas por Cobrar) -- se limpian los campos de pago para que no quede una forma de pago o
+  // un descuento "por cobrar ahora" puesto pero inaplicable.
+  const toggleCredito = (activo: boolean) => {
+    setEsCredito(activo);
+    if (activo) {
+      setMultipagos(false);
+      setPagos([]);
+      setMetodoPagoId(0);
+      setDescuentoActivo(false);
+      setPorcentajeDescuento("0");
+      setMontoRecibido("");
+    }
+  };
+
   const agregarLineaPago = () => setPagos([...pagos, { metodoPagoId: 0, monto: "" }]);
   const quitarLineaPago = (index: number) => setPagos(pagos.filter((_, i) => i !== index));
   const cambiarLineaPago = (index: number, campo: "metodoPagoId" | "monto", valor: string) => {
@@ -705,7 +720,11 @@ const NuevaFactura = () => {
 
     let detallePago: { metodoPagoId: number; monto: number; referenciaOperacion: string }[];
 
-    if (multipagos) {
+    if (esCredito) {
+      // El backend ignora DetallePago cuando EsCredito=true (ver ComprobanteRepository.
+      // CrearComprobante): no se cobra nada ahora, queda pendiente en Cuentas por Cobrar.
+      detallePago = [];
+    } else if (multipagos) {
       if (pagos.length === 0) {
         return toast.error("Agrega al menos un método de pago");
       }
@@ -1396,7 +1415,7 @@ const NuevaFactura = () => {
           <div className={styles.multipagosHeader}>
             <label className={styles.toggleLabel}>
               <span className={`${styles.switch} ${styles.switchPurple}`}>
-                <input type="checkbox" checked={multipagos} onChange={(e) => setMultipagos(e.target.checked)} />
+                <input type="checkbox" checked={multipagos} disabled={esCredito} onChange={(e) => setMultipagos(e.target.checked)} />
                 <span className={styles.switchSlider}></span>
               </span>
               Multipagos
@@ -1471,7 +1490,7 @@ const NuevaFactura = () => {
                 <label className={styles.fieldLabel}>¿Es al Crédito?</label>
                 <div className={styles.switchRow}>
                   <span className={styles.switch}>
-                    <input type="checkbox" checked={esCredito} onChange={(e) => setEsCredito(e.target.checked)} />
+                    <input type="checkbox" checked={esCredito} onChange={(e) => toggleCredito(e.target.checked)} />
                     <span className={styles.switchSlider}></span>
                   </span>
                   <span>{esCredito ? "Sí" : "No"}</span>
@@ -1483,6 +1502,7 @@ const NuevaFactura = () => {
                   <select
                     className={styles.select}
                     value={metodoPagoId}
+                    disabled={esCredito}
                     onChange={(e) => setMetodoPagoId(Number(e.target.value))}
                   >
                     <option value={0}>Selecciona un método de pago</option>
@@ -1503,6 +1523,7 @@ const NuevaFactura = () => {
                     <input
                       type="checkbox"
                       checked={descuentoActivo}
+                      disabled={esCredito}
                       onChange={(e) => setDescuentoActivo(e.target.checked)}
                     />
                     <span className={styles.switchSlider}></span>
@@ -1513,6 +1534,7 @@ const NuevaFactura = () => {
                   <input
                     type="text"
                     value={porcentajeDescuento}
+                    disabled={esCredito}
                     style={estiloError(!!errors.porcentajeDescuento)}
                     onChange={(e) => {
                       const limpio = sanitizeDecimal(e.target.value);
@@ -1528,6 +1550,7 @@ const NuevaFactura = () => {
                 <input
                   type="text"
                   value={montoRecibido}
+                  disabled={esCredito}
                   style={estiloError(!!errors.montoRecibido)}
                   onChange={(e) => {
                     setMontoRecibido(sanitizeDecimal(e.target.value));
@@ -1538,7 +1561,7 @@ const NuevaFactura = () => {
               </div>
               <div>
                 <label>Vuelto S/.</label>
-                <input type="text" readOnly value={montoRecibido !== "" ? Math.max(vuelto, 0).toFixed(2) : ""} />
+                <input type="text" readOnly disabled={esCredito} value={montoRecibido !== "" ? Math.max(vuelto, 0).toFixed(2) : ""} />
               </div>
             </div>
 

@@ -22,6 +22,7 @@ import { IExtensionesState } from "../../../../redux/reducers/extensiones/interf
 import SelectUbigeo from "../../../SelectPro/SelectUbigeo";
 import { TIPO_DOCUMENTO_RULES, getNumeroDocumentoError, validateEmail } from "../../../../utils/validations";
 import { useFormErrors } from "../../../FormError";
+import axiosInstance from "../../../../utils/axios";
 
 const customStyles = {};
 Modal.setAppElement("#root");
@@ -38,6 +39,7 @@ const initialForm = {
   idSexo: 0,
   ubigeo: "",
   ubigeoId: "",
+  cuentaPorCobrarId: 0,
 };
 interface IClientesModalProps {
   onGuardado?: (cliente: any) => void;
@@ -54,6 +56,12 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
   );
   console.log(nacionality);
   const [formValues, setFormValues] = useState(initialForm);
+  const [cuentasContables, setCuentasContables] = useState<any[]>([]);
+  useEffect(() => {
+    axiosInstance.get("/cuentas-contables/listar").then((r: any) => setCuentasContables(r.data?.data ?? [])).catch(() => {});
+  }, []);
+  const cuentasOptions = cuentasContables.map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
+  const cuentaPorCobrarTexto = cuentasOptions.find((c: any) => c.id === formValues.cuentaPorCobrarId)?.value ?? "";
   const {
     nombre,
     numeroDocumento,
@@ -336,9 +344,19 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
                     onChange={handleInputChange}
                   />
                 </div>
-               
+                <div>
+                  <SelectPro
+                    isLabel
+                    label="Cuenta por Cobrar (opcional)"
+                    isSearch
+                    id="cuentaPorCobrarId"
+                    name="cuentaPorCobrarIgnorar"
+                    defaultValue={cuentaPorCobrarTexto}
+                    options={cuentasOptions}
+                    onChange={(idValue: any) => setFormValues({ ...formValues, cuentaPorCobrarId: idValue })}
+                  />
+                </div>
 
-              
               </div>
             </div>
             <div className={styles["main-content-buttons"]}>

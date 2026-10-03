@@ -5,6 +5,15 @@ import { TableSkeleton } from "../../../../../../components/Skeleton";
 import { useFormErrors, CampoError } from "../../../../../../components/FormError";
 
 const TIPOS = ["Activo", "Pasivo", "Patrimonio", "Ingreso", "Gasto"];
+const MODOS_CENTRO_COSTO = [
+  { value: "NINGUNO", label: "No aplica" },
+  { value: "OPCIONAL", label: "Opcional" },
+  { value: "OBLIGATORIO", label: "Obligatorio" },
+];
+// Jerarquia PCGE de 5 niveles (ver "configuracion plan de cuentas ERPdocx.docx"): el nivel y la
+// clase se calculan del Codigo, igual que en el backend (CuentaContableRepository.AplicarCampos)
+// -- no se editan a mano.
+const NIVEL_POR_LARGO_CODIGO: Record<number, number> = { 2: 1, 3: 2, 4: 3, 5: 4, 8: 5 };
 
 const mensajeError = (e: any, def: string) => e?.response?.data?.message ?? def;
 
@@ -13,13 +22,13 @@ const mensajeError = (e: any, def: string) => e?.response?.data?.message ?? def;
 // cuentas propias, renombrar o desactivar las que no se usan.
 export const PlanDeCuentas = () => {
   const [cuentas, setCuentas] = useState<any[]>([]);
-  const [centrosCosto, setCentrosCosto] = useState<any[]>([]);
+  const [codigosEeffNiif, setCodigosEeffNiif] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [editando, setEditando] = useState<any>(null); // null = cerrado; {} = nueva; {id,...} = editar
 
   useEffect(() => {
-    axiosInstance.get("/extensiones/centros-costo").then((r: any) => setCentrosCosto(r.data?.data ?? [])).catch(() => {});
+    axiosInstance.get("/cuentas-contables/codigos-eeff-niif").then((r: any) => setCodigosEeffNiif(r.data?.data ?? [])).catch(() => {});
   }, []);
 
   const cargar = async () => {
@@ -117,30 +126,34 @@ export const PlanDeCuentas = () => {
       </div>
 
       {editando && (
-        <EditarCuenta cuenta={editando} cuentas={cuentas} centrosCosto={centrosCosto} onCerrar={() => setEditando(null)}
+        <EditarCuenta cuenta={editando} cuentas={cuentas} codigosEeffNiif={codigosEeffNiif} onCerrar={() => setEditando(null)}
           onGuardar={(payload: any) => guardar(payload, editando.id)} />
       )}
     </div>
   );
 };
 
-const EditarCuenta = ({ cuenta, cuentas, centrosCosto, onCerrar, onGuardar }: any) => {
+const EditarCuenta = ({ cuenta, cuentas, codigosEeffNiif, onCerrar, onGuardar }: any) => {
   const [codigo, setCodigo] = useState(cuenta.codigo ?? "");
   const [nombre, setNombre] = useState(cuenta.nombre ?? "");
   const [tipo, setTipo] = useState(cuenta.tipo ?? "Activo");
   const [cuentaPadreId, setCuentaPadreId] = useState(cuenta.cuentaPadreId ?? 0);
   const [estado, setEstado] = useState(cuenta.estado ?? true);
 
+  // Nivel y Clase Cuenta se calculan del Codigo (mismo criterio que el backend), no se editan.
+  const codigoLimpio = codigo.trim();
+  const nivelCalculado = NIVEL_POR_LARGO_CODIGO[codigoLimpio.length] ?? 0;
+  const claseCuentaCalculada = codigoLimpio.slice(0, 2);
+
   // Metadata adicional (formato EEFF Peru) -- opcional, no la usa ningun asiento automatico todavia.
-  const [nivel, setNivel] = useState(cuenta.nivel ?? "");
-  const [claseCuenta, setClaseCuenta] = useState(cuenta.claseCuenta ?? "");
   const [tipoAnexo, setTipoAnexo] = useState(!!cuenta.tipoAnexo);
+  const [tipoAnexoClase, setTipoAnexoClase] = useState(cuenta.tipoAnexoClase ?? "");
   const [cuentaMonetaria, setCuentaMonetaria] = useState(!!cuenta.cuentaMonetaria);
   const [ajusteDifCambio, setAjusteDifCambio] = useState(!!cuenta.ajusteDifCambio);
-  const [centroCostoId, setCentroCostoId] = useState(cuenta.centroCostoId ?? 0);
+  const [modoCentroCosto, setModoCentroCosto] = useState(cuenta.modoCentroCosto ?? "NINGUNO");
   const [codigoEeff, setCodigoEeff] = useState(cuenta.codigoEeff ?? "");
   const [codigoEeffTributario, setCodigoEeffTributario] = useState(cuenta.codigoEeffTributario ?? "");
-  const [codigoEeffNiif, setCodigoEeffNiif] = useState(cuenta.codigoEeffNiif ?? "");
+  const [codigoEeffNiifId, setCodigoEeffNiifId] = useState(cuenta.codigoEeffNiifId ?? 0);
   const [clasificacionBienServicio, setClasificacionBienServicio] = useState(cuenta.clasificacionBienServicio ?? "");
   const [destino, setDestino] = useState(!!cuenta.destino);
   const [cuentaCargo1Id, setCuentaCargo1Id] = useState(cuenta.cuentaCargo1Id ?? 0);
@@ -162,16 +175,21 @@ const EditarCuenta = ({ cuenta, cuentas, centrosCosto, onCerrar, onGuardar }: an
 
   const guardar = () => {
     if (!codigo.trim()) { setError("codigo", "El código es obligatorio"); return toast.error("El código es obligatorio"); }
+    if (!/^\d+$/.test(codigoLimpio)) { setError("codigo", "El código solo puede contener dígitos"); return toast.error("El código solo puede contener dígitos"); }
+    if (!nivelCalculado) {
+      const msg = "El código debe tener 2, 3, 4, 5 u 8 dígitos (Niveles 01 a 05 del plan de cuentas)";
+      setError("codigo", msg);
+      return toast.error(msg);
+    }
     if (!nombre.trim()) { setError("nombre", "El nombre es obligatorio"); return toast.error("El nombre es obligatorio"); }
     onGuardar({
-      codigo: codigo.trim(), nombre: nombre.trim(), tipo, cuentaPadreId: cuentaPadreId || undefined, estado,
-      nivel: nivel !== "" ? Number(nivel) : undefined,
-      claseCuenta: claseCuenta.trim() || undefined,
-      tipoAnexo, cuentaMonetaria, ajusteDifCambio,
-      centroCostoId: centroCostoId || undefined,
+      codigo: codigoLimpio, nombre: nombre.trim(), tipo, cuentaPadreId: cuentaPadreId || undefined, estado,
+      tipoAnexo, tipoAnexoClase: tipoAnexo ? tipoAnexoClase.trim() || undefined : undefined,
+      cuentaMonetaria, ajusteDifCambio,
+      modoCentroCosto,
       codigoEeff: codigoEeff.trim() || undefined,
       codigoEeffTributario: codigoEeffTributario.trim() || undefined,
-      codigoEeffNiif: codigoEeffNiif.trim() || undefined,
+      codigoEeffNiifId: codigoEeffNiifId || undefined,
       clasificacionBienServicio: clasificacionBienServicio.trim() || undefined,
       destino,
       cuentaCargo1Id: cuentaCargo1Id || undefined,
@@ -228,11 +246,12 @@ const EditarCuenta = ({ cuenta, cuentas, centrosCosto, onCerrar, onGuardar }: an
           <div className="grid grid-cols-2 gap-x-3 gap-y-3 mt-3 p-3 bg-gray-50 rounded-lg text-sm">
             <div>
               <label className="text-xs font-semibold text-gray-500 block">Nivel</label>
-              <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={nivel} onChange={(e) => setNivel(e.target.value)} />
+              <input disabled className="w-full border border-gray-200 bg-gray-100 rounded-lg px-3 py-2 text-sm mt-1 text-gray-500"
+                value={nivelCalculado ? `0${nivelCalculado} (${codigoLimpio.length} dígitos)` : "—"} />
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 block">Clase Cuenta</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={claseCuenta} onChange={(e) => setClaseCuenta(e.target.value)} />
+              <input disabled className="w-full border border-gray-200 bg-gray-100 rounded-lg px-3 py-2 text-sm mt-1 text-gray-500" value={claseCuentaCalculada || "—"} />
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 block">Cód. EEFF</label>
@@ -242,9 +261,12 @@ const EditarCuenta = ({ cuenta, cuentas, centrosCosto, onCerrar, onGuardar }: an
               <label className="text-xs font-semibold text-gray-500 block">Cód. EEFF Trib.</label>
               <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={codigoEeffTributario} onChange={(e) => setCodigoEeffTributario(e.target.value)} />
             </div>
-            <div>
+            <div className="col-span-2">
               <label className="text-xs font-semibold text-gray-500 block">Cód. EEFF NIIF</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={codigoEeffNiif} onChange={(e) => setCodigoEeffNiif(e.target.value)} />
+              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={codigoEeffNiifId} onChange={(e) => setCodigoEeffNiifId(Number(e.target.value))}>
+                <option value={0}>Sin elegir</option>
+                {(codigosEeffNiif ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+              </select>
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 block">Clas. Bien o Servicio</label>
@@ -252,13 +274,18 @@ const EditarCuenta = ({ cuenta, cuentas, centrosCosto, onCerrar, onGuardar }: an
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 block">Centros de Costos</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={centroCostoId} onChange={(e) => setCentroCostoId(Number(e.target.value))}>
-                <option value={0}>Sin centro de costo</option>
-                {(centrosCosto ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.value}</option>)}
+              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" value={modoCentroCosto} onChange={(e) => setModoCentroCosto(e.target.value)}>
+                {MODOS_CENTRO_COSTO.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
 
-            <label className="flex items-center gap-2"><input type="checkbox" checked={tipoAnexo} onChange={(e) => setTipoAnexo(e.target.checked)} /> Tipo de Anexo</label>
+            <div>
+              <label className="flex items-center gap-2"><input type="checkbox" checked={tipoAnexo} onChange={(e) => setTipoAnexo(e.target.checked)} /> Tipo de Anexo</label>
+              {tipoAnexo && (
+                <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" placeholder="Clientes, Proveedores, Empleados..."
+                  value={tipoAnexoClase} onChange={(e) => setTipoAnexoClase(e.target.value)} />
+              )}
+            </div>
             <label className="flex items-center gap-2"><input type="checkbox" checked={cuentaMonetaria} onChange={(e) => setCuentaMonetaria(e.target.checked)} /> Cuenta Monetaria</label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={ajusteDifCambio} onChange={(e) => setAjusteDifCambio(e.target.checked)} /> Ajuste Dif. Cambio</label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={destino} onChange={(e) => setDestino(e.target.checked)} /> Destino</label>

@@ -44,6 +44,7 @@ const initialForm = {
   ubigeo: "",
   ubigeoId: "",
   detalleAdicional: "",
+  cuentaPorPagarId: 0,
 };
 
 interface IProveedorModalProps {
@@ -61,6 +62,12 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
 
   const [formValues, setFormValues] = useState(initialForm);
   const [buscandoRuc, setBuscandoRuc] = useState(false);
+  const [cuentasContables, setCuentasContables] = useState<any[]>([]);
+  useEffect(() => {
+    axiosInstance.get("/cuentas-contables/listar").then((r: any) => setCuentasContables(r.data?.data ?? [])).catch(() => {});
+  }, []);
+  const cuentasOptions = cuentasContables.map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
+  const cuentaPorPagarTexto = cuentasOptions.find((c: any) => c.id === formValues.cuentaPorPagarId)?.value ?? "";
   const {
     codigo,
     tipoDocumentoId,
@@ -193,6 +200,7 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
       email,
       ubigeoId: formValues.ubigeoId || undefined,
       detalleAdicional,
+      cuentaPorPagarId: formValues.cuentaPorPagarId || undefined,
     };
 
     if (activeProviders?.proveedorId) {
@@ -336,6 +344,18 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
                     type="textarea"
                     defaultValue={detalleAdicional}
                     onChange={handleInputChange}
+                  />
+                </div>
+                <div>
+                  <SelectPro
+                    isLabel
+                    label="Cuenta por Pagar (opcional)"
+                    isSearch
+                    id="cuentaPorPagarId"
+                    name="cuentaPorPagarIgnorar"
+                    defaultValue={cuentaPorPagarTexto}
+                    options={cuentasOptions}
+                    onChange={(idValue: any) => setFormValues({ ...formValues, cuentaPorPagarId: idValue })}
                   />
                 </div>
               </div>
