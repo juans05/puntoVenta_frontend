@@ -26,6 +26,8 @@ import { Compras } from "../presentation/views/Modules/Admin/Views/Compras";
 import { NotasCreditoDebito } from "../presentation/views/Modules/Admin/Views/NotasCreditoDebito";
 import { Gastos } from "../presentation/views/Modules/Admin/Views/Gastos";
 import { GastoPublicidad } from "../presentation/views/Modules/Admin/Views/GastoPublicidad";
+import TiendaPublica from "../presentation/views/Public/Tienda/TiendaPublica";
+import { Tienda } from "../presentation/views/Modules/Admin/Views/Tienda";
 import { CatalogosGasto } from "../presentation/views/Modules/Admin/Views/CatalogosGasto";
 import { CatalogosDocumentos } from "../presentation/views/Modules/Admin/Views/CatalogosDocumentos";
 import { RolesPermisos } from "../presentation/views/Modules/Admin/Views/RolesPermisos";
@@ -70,6 +72,7 @@ const DashboardRoutes = () => {
       <Route path="/pago-exitoso" element={<PagoExitoso />} />
 
       {/* Rutas públicas */}
+      <Route path="/tienda/:tenant" element={<TiendaPublica />} />
       <Route path="/pedido/:token" element={<PedidoPublico />} />
       <Route path="/mi-cuenta/login" element={<ClienteLogin />} />
       <Route path="/mi-cuenta/pedidos" element={<ClientePortal />} />
@@ -77,6 +80,7 @@ const DashboardRoutes = () => {
       <Route path="/dashboard" element={<LayoutView />}>
         <Route index element={<DashboardMain />} />
         <Route path="productos" element={<Productos />} />
+        <Route path="tienda" element={<Tienda />} />
         <Route path="inventario" element={<Inventario />} />
         <Route path="ventas-realizadas" element={<VentasRealizadas />}/>
         <Route path="documentos-facturados" element={<DocumentosFacturados />}/>

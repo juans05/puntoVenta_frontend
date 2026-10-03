@@ -119,6 +119,24 @@ export const menuSidebar = [
     ],
   },
 
+  // === E-COMMERCE ===
+  {
+    code: "1700",
+    id: 26,
+    value: "E-commerce",
+    icon: "mdi:storefront-outline",
+    url: "",
+    children: [
+      {
+        code: "1700",
+        id: 256,
+        value: "Mi tienda web",
+        icon: "mdi:palette-outline",
+        url: "dashboard/tienda",
+      },
+    ],
+  },
+
   // === CONTABILIDAD ===
   {
     code: "1600",
