@@ -28,7 +28,6 @@ const dimensiones = (archivo: File) => new Promise<{ w: number; h: number }>((ok
 const MUESTRA = [
   { id: 1, nombre: "Producto de ejemplo", precio: 25, categoria: "General", agotado: false },
   { id: 2, nombre: "Otro producto", precio: 40.5, categoria: "General", agotado: false },
-  { id: 3, nombre: "Producto agotado", precio: 10, categoria: "Ofertas", agotado: true },
 ];
 
 export const Tienda = () => {

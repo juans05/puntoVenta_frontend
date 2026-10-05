@@ -62,6 +62,11 @@ const CODIGO_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const generarCodigo = (len = 6) =>
   Array.from({ length: len }, () => CODIGO_CHARS[Math.floor(Math.random() * CODIGO_CHARS.length)]).join("");
 
+const VIDEO_TIPOS = ["video/mp4", "video/webm"];
+const VIDEO_MAX_MB = 30;
+const GALERIA_MAX = 5;
+const GALERIA_MAX_MB = 3;
+
 const initialForm = {
   nombreCategoria: "",
   categoriaId: 0,
@@ -70,7 +75,10 @@ const initialForm = {
   nombre: "",
   rutaImagen: "",
   cloudinaryPublicId: "",
+  videoUrl: "",
+  galeria: "[]",
   comentario: "",
+  descripcion: "",
   codigoBarra: "",
   stock: 0,
   precioVentaSinInpuesto: 0,
@@ -640,6 +648,41 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
 
   const imagenActual = imagenPreview ?? (rutaImagen ? rutaImagen : null);
 
+  // ---- Video y galeria para la tienda web: se suben directo a Cloudinary (preset sin firma) ----
+  const [subiendoMedia, setSubiendoMedia] = useState<"" | "video" | "galeria">("");
+  const galeria: string[] = (() => { try { return JSON.parse(formValues.galeria || "[]"); } catch { return []; } })();
+  const subirACloudinary = async (archivo: File, recurso: "image" | "video") => {
+    const form = new FormData();
+    form.append("file", archivo);
+    form.append("upload_preset", "4devs-images");
+    const r = await fetch(`https://api.cloudinary.com/v1_1/devs4/${recurso}/upload`, { method: "POST", body: form });
+    if (!r.ok) throw new Error();
+    return (await r.json()).secure_url as string;
+  };
+  const subirVideo = async (archivo?: File) => {
+    if (!archivo) return;
+    if (!VIDEO_TIPOS.includes(archivo.type)) return void toast.error("El video debe ser MP4 o WebM");
+    if (archivo.size > VIDEO_MAX_MB * 1024 * 1024) return void toast.error(`El video no puede superar ${VIDEO_MAX_MB} MB (pesa ${(archivo.size / 1048576).toFixed(1)} MB)`);
+    setSubiendoMedia("video");
+    try {
+      setFormValues((p: any) => ({ ...p, videoUrl: "" }));
+      const url = await subirACloudinary(archivo, "video");
+      setFormValues((p: any) => ({ ...p, videoUrl: url }));
+    } catch { toast.error("No se pudo subir el video"); } finally { setSubiendoMedia(""); }
+  };
+  const subirGaleria = async (archivos: File[]) => {
+    if (!archivos.length) return;
+    if (galeria.length + archivos.length > GALERIA_MAX) return void toast.error(`La galería admite hasta ${GALERIA_MAX} imágenes (ya hay ${galeria.length})`);
+    const invalida = archivos.find((a) => !IMAGEN_TIPOS.includes(a.type) || a.size > GALERIA_MAX_MB * 1024 * 1024);
+    if (invalida) return void toast.error(`"${invalida.name}": solo JPG, PNG o WebP de hasta ${GALERIA_MAX_MB} MB`);
+    setSubiendoMedia("galeria");
+    try {
+      const urls = await Promise.all(archivos.map((a) => subirACloudinary(a, "image")));
+      setFormValues((p: any) => ({ ...p, galeria: JSON.stringify([...galeria, ...urls]) }));
+    } catch { toast.error("No se pudo subir alguna imagen"); } finally { setSubiendoMedia(""); }
+  };
+  const quitarDeGaleria = (i: number) => setFormValues((p: any) => ({ ...p, galeria: JSON.stringify(galeria.filter((_, k) => k !== i)) }));
+
   // ---- Multi-precio (tab) ----
   const [formPrecioAlt, setFormPrecioAlt] = useState<{ nombre: string; precioVenta: string } | null>(null);
 
@@ -1087,6 +1130,11 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                 )}
 
                 <div className={styles["main-content-fourth"]}>
+                  <label>Descripción (la ve el cliente en la tienda web)</label>
+                  <textarea onChange={handleInputChange} name="descripcion" value={formValues.descripcion ?? ""} maxLength={2000}></textarea>
+                </div>
+
+                <div className={styles["main-content-fourth"]}>
                   <label>Detalle (para uso interno del negocio)</label>
                   <textarea onChange={handleInputChange} name="comentario" value={comentario}></textarea>
                 </div>
@@ -1480,6 +1528,40 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                     </button>
                   )}
                 </div>
+
+                <div className="mt-5 border-t border-gray-100 pt-4">
+                  <p className="text-sm font-bold text-gray-900">Galería para la tienda web</p>
+                  <p className="text-xs text-gray-400 mb-2">Hasta {GALERIA_MAX} imágenes adicionales · JPG, PNG o WebP · máx. {GALERIA_MAX_MB} MB c/u</p>
+                  <div className="flex flex-wrap gap-2">
+                    {galeria.map((u, i) => (
+                      <div key={u} className="relative w-20 h-20">
+                        <img src={u} alt="" className="w-20 h-20 object-cover rounded-lg border" />
+                        <button type="button" onClick={() => quitarDeGaleria(i)} className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 text-xs leading-5">×</button>
+                      </div>
+                    ))}
+                    {galeria.length < GALERIA_MAX && (
+                      <label className="w-20 h-20 border border-dashed rounded-lg flex items-center justify-center text-xs text-indigo-600 cursor-pointer text-center">
+                        {subiendoMedia === "galeria" ? "Subiendo..." : "+ Agregar"}
+                        <input type="file" multiple hidden accept={IMAGEN_TIPOS.join(",")} disabled={!!subiendoMedia}
+                          onChange={(e) => { subirGaleria(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-5 border-t border-gray-100 pt-4">
+                  <p className="text-sm font-bold text-gray-900">Video del producto</p>
+                  <p className="text-xs text-gray-400 mb-2">MP4 o WebM · máx. {VIDEO_MAX_MB} MB. Se muestra en la tienda web.</p>
+                  {formValues.videoUrl && <video src={formValues.videoUrl} controls className="w-64 rounded-lg border mb-2" />}
+                  <label className="text-xs text-indigo-600 cursor-pointer">
+                    {subiendoMedia === "video" ? "Subiendo video..." : formValues.videoUrl ? "Cambiar video" : "Subir video"}
+                    <input type="file" hidden accept={VIDEO_TIPOS.join(",")} disabled={!!subiendoMedia}
+                      onChange={(e) => { subirVideo(e.target.files?.[0]); e.target.value = ""; }} />
+                  </label>
+                  {formValues.videoUrl && !subiendoMedia && (
+                    <button type="button" className="ml-3 text-xs text-gray-500" onClick={() => setFormValues((p: any) => ({ ...p, videoUrl: "" }))}>Quitar</button>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1509,6 +1591,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                 type="button"
                 onClick={createProduct}
                 disabled={
+                  !!subiendoMedia ||
                   subiendoImagen ||
                   eliminandoImagen ||
                   nombre === "" ||
