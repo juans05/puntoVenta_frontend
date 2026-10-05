@@ -38,6 +38,7 @@ import { LibroVentas } from "../presentation/views/Modules/Admin/Views/Contabili
 import { LibroCompras } from "../presentation/views/Modules/Admin/Views/Contabilidad/LibroCompras";
 import { ReporteDetalladoVentas } from "../presentation/views/Modules/Admin/Views/Contabilidad/ReporteDetalladoVentas";
 import { ReporteDetalladoCompras } from "../presentation/views/Modules/Admin/Views/Contabilidad/ReporteDetalladoCompras";
+import ProductoLanding from "../presentation/views/Public/Tienda/ProductoLanding";
 import { PlanDeCuentas } from "../presentation/views/Modules/Admin/Views/Contabilidad/PlanDeCuentas";
 import { AsientosContables } from "../presentation/views/Modules/Admin/Views/Contabilidad/AsientosContables";
 import { EstadoResultados } from "../presentation/views/Modules/Admin/Views/Contabilidad/EstadoResultados";
@@ -73,6 +74,7 @@ const DashboardRoutes = () => {
 
       {/* Rutas públicas */}
       <Route path="/tienda/:tenant" element={<TiendaPublica />} />
+      <Route path="/tienda/:tenant/producto/:id" element={<ProductoLanding />} />
       <Route path="/pedido/:token" element={<PedidoPublico />} />
       <Route path="/mi-cuenta/login" element={<ClienteLogin />} />
       <Route path="/mi-cuenta/pedidos" element={<ClientePortal />} />

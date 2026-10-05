@@ -648,6 +648,13 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
 
   const imagenActual = imagenPreview ?? (rutaImagen ? rutaImagen : null);
 
+  // Enlace publico de la landing del producto (solo existe si se vende, esta activo y hay stock).
+  const { me }: any = useAppSelector((state: RootState) => state.auth);
+  const enlaceLanding = activeProducto?.productoId && me?.empresa
+    ? `${window.location.origin}/tienda/${me.empresa}/producto/${activeProducto.productoId}` : "";
+  const copiarEnlaceLanding = () => navigator.clipboard.writeText(enlaceLanding)
+    .then(() => toast.success("Enlace de la landing copiado"), () => toast.error("No se pudo copiar el enlace"));
+
   // ---- Video y galeria para la tienda web: se suben directo a Cloudinary (preset sin firma) ----
   const [subiendoMedia, setSubiendoMedia] = useState<"" | "video" | "galeria">("");
   const galeria: string[] = (() => { try { return JSON.parse(formValues.galeria || "[]"); } catch { return []; } })();
@@ -1528,6 +1535,15 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                     </button>
                   )}
                 </div>
+
+                {enlaceLanding && (
+                  <div className="mt-5 border-t border-gray-100 pt-4">
+                    <p className="text-sm font-bold text-gray-900">Landing del producto</p>
+                    <p className="text-xs text-gray-400 mb-1">Se muestra cuando el producto se vende, está activo y tiene stock.</p>
+                    <a href={enlaceLanding} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 underline break-all">{enlaceLanding}</a>
+                    <button type="button" onClick={copiarEnlaceLanding} className="ml-3 text-xs text-gray-600 border rounded px-2 py-0.5">Copiar enlace</button>
+                  </div>
+                )}
 
                 <div className="mt-5 border-t border-gray-100 pt-4">
                   <p className="text-sm font-bold text-gray-900">Galería para la tienda web</p>
