@@ -795,6 +795,29 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
           </div>
           <div className={styles.encabezado}>
             <h2>{activeProducto ? "Editar producto" : "Nuevo producto"}</h2>
+            {/* Configuracion rapida: Servicio / Venta / Compra junto al titulo (Kardex.docx). */}
+            <div className="flex flex-wrap items-center gap-2 ml-auto">
+              {[
+                { id: "switchEsServicio", label: "Servicio", icon: "mdi:account-hard-hat-outline", isOn: esServicio, campo: "esServicio", one: "#7c3aed", two: "#ede9fe",
+                  ayuda: "Un servicio no maneja stock ni kardex: se ocultan Stock, Peso, ICBPER, Lotes, Presentaciones y Destino de preparación." },
+                { id: "switchSeVende", label: "Venta", icon: "mdi:cart-arrow-up", isOn: seVende, campo: "seVende", one: "#3b82f6", two: "#dbeafe",
+                  ayuda: "Permite agregar este producto o servicio a las Facturas." },
+                { id: "switchSeCompra", label: "Compra", icon: "mdi:cart-arrow-down", isOn: seCompra, campo: "seCompra", one: "#f59e0b", two: "#fef3c7",
+                  ayuda: "Permite agregar este producto o servicio a las Compras." },
+              ].map((s) => (
+                <div key={s.id} title={s.ayuda} className="flex items-center gap-1.5 border border-gray-100 rounded-full pl-2.5 pr-1 py-1">
+                  <Icon icon={s.icon} width={16} className="text-gray-500" />
+                  <span className="text-xs font-semibold text-gray-700">{s.label}</span>
+                  <Toggle
+                    isOn={s.isOn}
+                    handleToggle={() => setFormValues({ ...formValues, [s.campo]: !s.isOn })}
+                    colorOne={s.one}
+                    colorTwo={s.two}
+                    id={s.id}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex gap-6 border-b border-gray-100 px-6">
@@ -832,63 +855,6 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
           <div className={styles.content} style={{ maxHeight: "60vh", overflowY: "auto" }}>
             {tab === "general" && (
               <>
-                <div className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3 mx-1 mt-3">
-                  <div className="w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center text-violet-500 shrink-0">
-                    <Icon icon={esServicio ? "mdi:account-hard-hat-outline" : "mdi:package-variant-closed"} width={20} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-gray-900">¿Es un servicio?</p>
-                    <p className="text-xs text-gray-400">
-                      Un servicio no maneja stock: se ocultan Stock, Peso, ICBPER, Lotes, Presentaciones y Destino de preparación.
-                    </p>
-                  </div>
-                  <Toggle
-                    isOn={esServicio}
-                    handleToggle={() => setFormValues({ ...formValues, esServicio: !esServicio })}
-                    colorOne="#7c3aed"
-                    colorTwo="#ede9fe"
-                    id="switchEsServicio"
-                  />
-                </div>
-
-                <div className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3 mx-1 mt-3">
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
-                    <Icon icon="mdi:cart-arrow-up" width={20} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-gray-900">Vender esto</p>
-                    <p className="text-xs text-gray-400">
-                      Permite agregar este producto o servicio a las Facturas.
-                    </p>
-                  </div>
-                  <Toggle
-                    isOn={seVende}
-                    handleToggle={() => setFormValues({ ...formValues, seVende: !seVende })}
-                    colorOne="#3b82f6"
-                    colorTwo="#dbeafe"
-                    id="switchSeVende"
-                  />
-                </div>
-
-                <div className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3 mx-1 mt-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
-                    <Icon icon="mdi:cart-arrow-down" width={20} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-gray-900">Comprar esto</p>
-                    <p className="text-xs text-gray-400">
-                      Permite agregar este producto o servicio a las Compras.
-                    </p>
-                  </div>
-                  <Toggle
-                    isOn={seCompra}
-                    handleToggle={() => setFormValues({ ...formValues, seCompra: !seCompra })}
-                    colorOne="#f59e0b"
-                    colorTwo="#fef3c7"
-                    id="switchSeCompra"
-                  />
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4 px-1 py-3">
                   <button type="button" className={styles["general-photo-drop"]} onClick={abrirDialogoImagen}>
                     {imagenActual ? (
