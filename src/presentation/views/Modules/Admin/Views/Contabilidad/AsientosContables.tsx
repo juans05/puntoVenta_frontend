@@ -2,19 +2,28 @@ import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 import axiosInstance from "../../../../../../utils/axios";
 import { TableSkeleton } from "../../../../../../components/Skeleton";
+import { AsientoManualForm } from "./AsientoManualForm";
 
 const ORIGENES = [
   { value: "", label: "Todos los orígenes" },
-  { value: "MovimientoInventario", label: "Movimiento de inventario" },
-  { value: "Factura", label: "Factura" },
+  { value: "MovimientoInventario", label: "Recepción de orden" },
+  { value: "Factura", label: "Factura de compra" },
+  { value: "EntradaCompra", label: "Entrada de mercadería" },
+  { value: "NotaCompra", label: "Nota de compra" },
+  { value: "NotaCompraEntrada", label: "Devolución de mercadería" },
   { value: "Pago", label: "Pago" },
+  { value: "Venta", label: "Venta" },
+  { value: "SalidaVenta", label: "Salida de mercadería" },
+  { value: "SalidaEntrega", label: "Entrega de pedido" },
+  { value: "AjusteInventario", label: "Ajuste de inventario" },
+  { value: "Cobro", label: "Cobro" },
+  { value: "Manual", label: "Asiento manual" },
 ];
 
 const formatSoles = (n: number) => `S/ ${(n ?? 0).toFixed(2)}`;
 
-// Libro diario de solo lectura: los asientos los genera el codigo interno al recibir mercaderia,
-// facturar y pagar a proveedores (ver plan de cuentas / OrdenCompraRepository, CompraRepository,
-// CuentasRepository). Aca solo se consulta lo ya generado.
+// Libro diario: los asientos los genera el codigo interno (compras, ventas, inventario, pagos) y
+// ademas se pueden registrar asientos manuales (AsientoManualForm). Anular un manual = reverso.
 export const AsientosContables = () => {
   const [asientos, setAsientos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -22,6 +31,18 @@ export const AsientosContables = () => {
   const [hasta, setHasta] = useState("");
   const [origenTipo, setOrigenTipo] = useState("");
   const [expandido, setExpandido] = useState<number | null>(null);
+  const [nuevo, setNuevo] = useState(false);
+
+  const anularManual = async (id: number) => {
+    if (!window.confirm("¿Anular este asiento? Se generará su reverso.")) return;
+    try {
+      await axiosInstance.post(`/asientos-contables/${id}/anular`);
+      toast.success("Asiento anulado");
+      cargar();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "No se pudo anular el asiento");
+    }
+  };
 
   const cargar = async () => {
     setLoading(true);
@@ -44,11 +65,22 @@ export const AsientosContables = () => {
 
   return (
     <div className="w-full">
-      <h3 className="text-xl font-bold text-gray-900">Asientos Contables</h3>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-xl font-bold text-gray-900">Asientos Contables</h3>
+        {!nuevo && (
+          <button type="button" className="bg-indigo-600 text-white text-sm font-semibold rounded-lg px-4 py-2" onClick={() => setNuevo(true)}>
+            Nuevo asiento
+          </button>
+        )}
+      </div>
       <p className="text-sm text-gray-500 mt-1 max-w-2xl">
-        Libro diario de partida doble: cada recepción de mercadería, factura de compra y pago a
-        proveedores genera aquí su propio asiento.
+        Libro diario de partida doble: compras, ventas, movimientos de inventario y pagos generan aquí
+        su propio asiento. También puedes registrar asientos manuales.
       </p>
+
+      {nuevo && (
+        <AsientoManualForm onCancelar={() => setNuevo(false)} onGuardado={() => { setNuevo(false); cargar(); }} />
+      )}
 
       <div className="flex flex-wrap items-end gap-3 mt-5 bg-white border border-gray-100 rounded-xl p-4">
         <div>
@@ -109,14 +141,40 @@ export const AsientosContables = () => {
                     {expandido === a.id && (
                       <tr className="bg-gray-50">
                         <td colSpan={5} className="px-4 py-3">
+                          {a.origenTipo === "Manual" && a.origenId === a.id && a.estadoAsiento === "EMITIDO" && (
+                            <button type="button" className="float-right text-xs font-semibold text-red-600 hover:underline"
+                              onClick={() => anularManual(a.id)}>
+                              Anular asiento
+                            </button>
+                          )}
+                          {(a.fechaDocumento || a.fechaVencimiento) && (
+                            <p className="text-xs text-gray-500 mb-2">
+                              {a.fechaDocumento && <>Fecha documento: {new Date(a.fechaDocumento).toLocaleDateString()} </>}
+                              {a.fechaVencimiento && <>· Vencimiento: {new Date(a.fechaVencimiento).toLocaleDateString()}</>}
+                            </p>
+                          )}
                           <table className="w-full text-xs">
                             <thead className="text-gray-500">
-                              <tr><th className="text-left py-1">Cuenta</th><th className="text-right py-1">Debe</th><th className="text-right py-1">Haber</th></tr>
+                              <tr>
+                                <th className="text-left py-1">Cuenta</th>
+                                <th className="text-left py-1">Cuenta asociada</th>
+                                <th className="text-left py-1">C. costos 1</th>
+                                <th className="text-left py-1">C. costos 2</th>
+                                <th className="text-left py-1">Destino</th>
+                                <th className="text-left py-1">Descripción</th>
+                                <th className="text-right py-1">Debe</th>
+                                <th className="text-right py-1">Haber</th>
+                              </tr>
                             </thead>
                             <tbody>
                               {a.detalle.map((d: any, i: number) => (
                                 <tr key={i}>
                                   <td className="py-1">{d.cuentaCodigo} — {d.cuentaNombre}</td>
+                                  <td className="py-1">{d.cuentaAsociada ?? ""}</td>
+                                  <td className="py-1">{d.centroCosto1 ?? ""}</td>
+                                  <td className="py-1">{d.centroCosto2 ?? ""}</td>
+                                  <td className="py-1">{d.cuentaDestino ?? ""}</td>
+                                  <td className="py-1">{d.descripcion ?? ""}</td>
                                   <td className="py-1 text-right">{d.debe > 0 ? formatSoles(d.debe) : ""}</td>
                                   <td className="py-1 text-right">{d.haber > 0 ? formatSoles(d.haber) : ""}</td>
                                 </tr>
