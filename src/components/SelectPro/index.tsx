@@ -154,11 +154,12 @@ const SelectPro = ({
                         <Input isLabel label={label} required={required} readOnly={searching ? false : true} autocomplete="off" placeholder={placeholder} onChange={searchOptions} name="option" type="text"
                         />
                     </div>
-                    {isSearch && (search || valueOptions) && (
-                        <span title="Limpiar" aria-label="Limpiar" onClick={limpiar}
-                            style={{ cursor: "pointer", padding: "0 6px", color: "#6b7280", fontSize: 18, lineHeight: 1 }}>×</span>
-                    )}
                     <div className={styles.select__arrow}>
+                        {/* button (no span): los span del selector heredan estilos de etiqueta (10px, mayusculas) */}
+                        {isSearch && (search || valueOptions) && (
+                            <button type="button" title="Limpiar" aria-label="Limpiar" onClick={limpiar}
+                                style={{ position: "absolute", top: 17, right: 28, width: 20, height: 20, lineHeight: "18px", fontSize: 18, color: "#6b7280", background: "transparent", border: 0, cursor: "pointer", padding: 0 }}>×</button>
+                        )}
                         <Svg icon={Icons.arrowSelect} onClick={() => setIsOpen(!isOpen)} />
                     </div>
                 </div>

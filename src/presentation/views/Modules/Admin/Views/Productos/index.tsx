@@ -290,8 +290,9 @@ export const Productos = () => {
 
         <div className="flex items-center gap-2 ml-auto">
           <span className="text-xs font-semibold text-gray-400 uppercase">Categoría</span>
+          <div className="relative">
           <select
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm"
+            className="border border-gray-200 rounded-lg pl-3 pr-14 py-1.5 text-sm"
             value={categoriaId}
             onChange={(e) => setCategoriaId(Number(e.target.value))}
           >
@@ -304,6 +305,11 @@ export const Productos = () => {
                 </option>
               ))}
           </select>
+          {categoriaId !== 0 && (
+            <button type="button" title="Limpiar" aria-label="Limpiar" onClick={() => setCategoriaId(0)}
+              className="absolute right-7 top-1/2 -translate-y-1/2 text-gray-500 text-lg leading-none">×</button>
+          )}
+          </div>
         </div>
       </div>
 

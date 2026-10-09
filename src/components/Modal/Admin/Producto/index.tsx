@@ -449,11 +449,16 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
   });
 
   const createProduct = async () => {
-    // Pares Debe/Haber de ingreso y de gasto: obligatorios.
+    // Obligatoriedad: ingreso siempre; costo/gasto (Debe y Haber) si Venta=Si; en un bien con Compra=Si,
+    // las cuentas de inventario de los movimientos Compra y Venta.
     const faltantes = [
-      ["cuenta de ingreso (Debe)", formValues.cuentaIngresoDebeId], ["cuenta de ingreso (Haber)", formValues.cuentaIngresoId],
-      ["cuenta de gasto (Debe)", formValues.cuentaCostoId], ["cuenta de gasto (Haber)", formValues.cuentaGastoHaberId],
-    ].filter(([, v]) => !v).map(([n]) => n);
+      ["cuenta de ingreso (Debe)", formValues.cuentaIngresoDebeId],
+      ["cuenta de ingreso (Haber)", formValues.cuentaIngresoId],
+      seVende && ["cuenta de costo/gasto (Debe)", formValues.cuentaCostoId],
+      seVende && ["cuenta de costo/gasto (Haber)", formValues.cuentaGastoHaberId],
+      !esServicio && seCompra && ["cuenta de inventario (Compra)", formValues.cuentasInventarioMovimiento?.[1]],
+      !esServicio && seCompra && ["cuenta de inventario (Venta)", formValues.cuentasInventarioMovimiento?.[2]],
+    ].filter((x): x is [string, any] => !!x && !x[1]).map(([n]) => n);
     if (faltantes.length) {
       setTab("contabilidad");
       return toast.error(`Falta elegir: ${faltantes.join(", ")} (pestaña Contabilidad)`);
@@ -1084,17 +1089,24 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
 
                     <div className="px-1">
                       <label className="text-xs font-semibold text-gray-500">Destino de preparación (Restaurante)</label>
-                      <select
-                        className="w-full md:w-64 border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"
-                        value={destinoPreparacion}
-                        onChange={(e) => setFormValues({ ...formValues, destinoPreparacion: e.target.value })}
-                      >
-                        {DESTINO_PREPARACION_OPCIONES.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative w-full md:w-64">
+                        <select
+                          className="w-full border border-gray-200 rounded-lg pl-3 pr-14 py-2 text-sm mt-1"
+                          value={destinoPreparacion}
+                          onChange={(e) => setFormValues({ ...formValues, destinoPreparacion: e.target.value })}
+                        >
+                          {DESTINO_PREPARACION_OPCIONES.map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                        {destinoPreparacion && destinoPreparacion !== "Ninguno" && (
+                          <button type="button" title="Limpiar" aria-label="Limpiar" className="absolute right-7 top-1/2 text-gray-500 text-lg leading-none"
+                            style={{ transform: "translateY(-30%)" }}
+                            onClick={() => setFormValues({ ...formValues, destinoPreparacion: "Ninguno" })}>×</button>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
@@ -1376,7 +1388,8 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                   <h4 className="text-lg font-bold text-gray-900">Cuentas contables</h4>
                   <p className="text-sm text-gray-500 mt-0.5">
                     Solo cuentas de último nivel (8 dígitos) del Plan de Cuentas. Puedes buscar por número de cuenta.
-                    Los pares Debe/Haber de ingreso y de gasto son obligatorios.
+                    Siempre es obligatorio el par Debe/Haber de ingreso. Con Venta activada también el de costo de venta/gasto, y en
+                    un bien con Compra activada, las cuentas de inventario de los movimientos Compra y Venta.
                   </p>
                 </div>
 
@@ -1408,7 +1421,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <SelectPro
                     isLabel
-                    label="Debe *"
+                    label={seVende ? "Debe *" : "Debe"}
                     isSearch
                     id="cuentaCostoId"
                     name="cuentaCostoIgnorar"
@@ -1418,7 +1431,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                   />
                   <SelectPro
                     isLabel
-                    label="Haber *"
+                    label={seVende ? "Haber *" : "Haber"}
                     isSearch
                     id="cuentaGastoHaberId"
                     name="cuentaGastoHaberIgnorar"
@@ -1436,7 +1449,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                         <SelectPro
                           key={`${m.id}-${activeProducto?.productoId ?? 0}`}
                           isLabel
-                          label={m.label}
+                          label={(m.id === 1 || m.id === 2) && seCompra ? `${m.label} *` : m.label}
                           isSearch
                           id={`cuentaInv${m.id}`}
                           name={`cuentaInv${m.id}Ignorar`}
