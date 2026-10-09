@@ -187,14 +187,11 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     seCompra,
   } = formValues;
 
-  // Solo ultimo nivel (Nivel 5 = 8 digitos): la unica hoja que admite asientos. El buscador del
-  // SelectPro filtra por el texto "codigo - nombre", asi que tambien busca por numero de cuenta.
+  // Solo ultimo nivel (Nivel 5 = 8 digitos): la unica hoja que admite asientos. Se muestra solo el
+  // nombre; el codigo queda como texto de busqueda (`search`) para poder encontrar la cuenta por numero.
   const cuentasUltimoNivel = cuentasContables.filter((c: any) => c.nivel === 5);
-  const cuentasOptions = cuentasUltimoNivel.map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
-  const textoCuenta = (id?: number) => {
-    const c = id ? cuentasContables.find((x: any) => x.id === id) : null;
-    return c ? `${c.codigo} - ${c.nombre}` : "";
-  };
+  const cuentasOptions = cuentasUltimoNivel.map((c: any) => ({ id: c.id, value: c.nombre, search: c.codigo }));
+  const textoCuenta = (id?: number) => (id ? cuentasContables.find((x: any) => x.id === id)?.nombre ?? "" : "");
 
   const [isStock, setIsStock] = useState<boolean>(false);
   const [paises, setPaises] = useState<any[]>([]);

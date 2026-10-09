@@ -36,7 +36,7 @@ const campo: React.CSSProperties = { display: "flex", flexDirection: "column" };
 const formatSoles = (n: number) => `S/ ${Number(n).toFixed(2)}`;
 const mensajeError = (e: any, def: string) => e?.response?.data?.message ?? def;
 
-type Linea = { productoId: number; descripcion: string; cantidad: number; costoUnitario: number; centroCostoId: number; cuentaContableId: number };
+type Linea = { productoId: number; descripcion: string; cantidad: number; costoUnitario: number };
 type Dialogo = null | { tipo: "nueva" } | { tipo: "recibir" | "facturar" | "ver" | "cerrar"; orden: any };
 
 export const Ordenes = ({ config }: { config: any }) => {
@@ -46,8 +46,6 @@ export const Ordenes = ({ config }: { config: any }) => {
 
   const [ordenes, setOrdenes] = useState<any[]>([]);
   const [departamentos, setDepartamentos] = useState<any[]>([]);
-  const [centrosCosto, setCentrosCosto] = useState<any[]>([]);
-  const [cuentasContables, setCuentasContables] = useState<any[]>([]);
   const [tiposDetraccion, setTiposDetraccion] = useState<any[]>([]);
   const [estadoFiltro, setEstadoFiltro] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -75,8 +73,6 @@ export const Ordenes = ({ config }: { config: any }) => {
     dispatch(getTiposIgv() as any);
     dispatch(getPayMethods() as any);
     axiosInstance.get("/departamentos/listar").then((r: any) => setDepartamentos(r.data?.data ?? [])).catch(() => {});
-    axiosInstance.get("/extensiones/centros-costo").then((r: any) => setCentrosCosto(r.data?.data ?? [])).catch(() => {});
-    axiosInstance.get("/cuentas-contables/listar").then((r: any) => setCuentasContables(r.data?.data ?? [])).catch(() => {});
     axiosInstance.get("/extensiones/tipos-detraccion").then((r: any) => setTiposDetraccion(r.data?.data ?? [])).catch(() => {});
   }, []);
   useEffect(() => {
@@ -187,7 +183,7 @@ export const Ordenes = ({ config }: { config: any }) => {
 
       {dialogo?.tipo === "nueva" && (
         <NuevaOrden proveedores={proveedores ?? []} productos={productosCompra ?? []} sucursales={sucursales ?? []}
-          departamentos={departamentos} centrosCosto={centrosCosto} cuentasContables={cuentasContables}
+          departamentos={departamentos}
           aprobacion={config?.montoAprobacionOc}
           onCerrar={() => setDialogo(null)}
           onGuardar={(payload: any) => accion(() => axiosInstance.post(`/ordenes-compra/crear`, payload), "Orden creada")} />
@@ -261,9 +257,9 @@ const Modal = ({ titulo, onCerrar, children }: any) => (
   </div>
 );
 
-const lineaOrdenVacia: Linea = { productoId: 0, descripcion: "", cantidad: 1, costoUnitario: 0, centroCostoId: 0, cuentaContableId: 0 };
+const lineaOrdenVacia: Linea = { productoId: 0, descripcion: "", cantidad: 1, costoUnitario: 0 };
 
-const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, centrosCosto, cuentasContables, aprobacion, onCerrar, onGuardar }: any) => {
+const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobacion, onCerrar, onGuardar }: any) => {
   const [tipoOrden, setTipoOrden] = useState<"BIEN" | "SERVICIO">("BIEN");
   const [proveedorId, setProveedorId] = useState(0);
   const [sucursalId, setSucursalId] = useState(0);
@@ -310,7 +306,6 @@ const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, centros
       detalle: validas.map((l) => ({
         ...(esServicio ? { descripcion: l.descripcion.trim() } : { productoId: l.productoId }),
         cantidad: l.cantidad, costoUnitario: l.costoUnitario,
-        centroCostoId: l.centroCostoId || undefined, cuentaContableId: l.cuentaContableId || undefined,
       })),
     });
   };
@@ -365,16 +360,6 @@ const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, centros
           <input style={input} type="number" min={1} value={l.cantidad} onChange={(e) => setLinea(i, { cantidad: Math.max(1, Math.floor(Number(e.target.value))) })} />
           <input style={input} type="number" min={0} step="0.01" value={l.costoUnitario} onChange={(e) => setLinea(i, { costoUnitario: Math.max(0, Number(e.target.value)) })} />
           <button onClick={() => setLineas(lineas.filter((_, j) => j !== i))} disabled={lineas.length === 1}>✕</button>
-          <div style={{ display: "grid", gap: 6, gridTemplateColumns: "1fr 1fr", gridColumn: "1 / -1" }}>
-            <select style={input} value={l.centroCostoId} onChange={(e) => setLinea(i, { centroCostoId: Number(e.target.value) })}>
-              <option value={0}>Centro de costo (opcional)</option>
-              {(centrosCosto ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.value}</option>)}
-            </select>
-            <select style={input} value={l.cuentaContableId} onChange={(e) => setLinea(i, { cuentaContableId: Number(e.target.value) })}>
-              <option value={0}>Cuenta contable (opcional)</option>
-              {(cuentasContables ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
-            </select>
-          </div>
         </div>
       ))}
       <button onClick={() => setLineas([...lineas, { ...lineaOrdenVacia }])}>

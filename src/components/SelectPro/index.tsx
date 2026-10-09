@@ -38,6 +38,8 @@ interface IProps {
 interface IOption {
     id: number
     value: string
+    // Texto extra que el buscador tambien compara (ej. el codigo de una cuenta) sin mostrarse.
+    search?: string
 }
 
 const SelectPro = ({
@@ -112,7 +114,8 @@ const SelectPro = ({
         if (options?.length > 0) {
             const results = options?.map((item: any) => ({
                 id: item?.id?.toString(),
-                value: item?.value
+                value: item?.value,
+                search: item?.search
             }))
             setOptionsSearch(results)
         } else {
@@ -120,7 +123,18 @@ const SelectPro = ({
         }
     }, [options])
 
-    const resultsOptions: any = !search ? optionSearch : optionSearch?.filter((option: any) => (typeof option.id === "string" || typeof option.value === "string") && option?.id?.toLowerCase().includes(search.toLocaleLowerCase()) || option?.value?.toLowerCase().includes(search.toLocaleLowerCase()))
+    const resultsOptions: any = !search ? optionSearch : optionSearch?.filter((option: any) => (typeof option.id === "string" || typeof option.value === "string") && option?.id?.toLowerCase().includes(search.toLocaleLowerCase()) || option?.value?.toLowerCase().includes(search.toLocaleLowerCase()) || option?.search?.toLowerCase().includes(search.toLocaleLowerCase()))
+
+    const limpiar = (e: any) => {
+        e.stopPropagation();
+        const inputHtml: any = (ref.current as any)?.querySelector('input');
+        if (inputHtml) inputHtml.value = "";
+        setSearch("");
+        setValueOptions("");
+        setIsOpen(false);
+        // "Sin seleccion": mismo contrato que las pantallas ya usan para "nada elegido" (id 0, texto vacio).
+        onChange(0, "", name, id);
+    }
 
     const optionsHeigth: CSSProperties = {
         height: resultsOptions && resultsOptions.length > 5 ? "215px" : "auto",
@@ -140,6 +154,10 @@ const SelectPro = ({
                         <Input isLabel label={label} required={required} readOnly={searching ? false : true} autocomplete="off" placeholder={placeholder} onChange={searchOptions} name="option" type="text"
                         />
                     </div>
+                    {isSearch && (search || valueOptions) && (
+                        <span title="Limpiar" aria-label="Limpiar" onClick={limpiar}
+                            style={{ cursor: "pointer", padding: "0 6px", color: "#6b7280", fontSize: 18, lineHeight: 1 }}>×</span>
+                    )}
                     <div className={styles.select__arrow}>
                         <Svg icon={Icons.arrowSelect} onClick={() => setIsOpen(!isOpen)} />
                     </div>
