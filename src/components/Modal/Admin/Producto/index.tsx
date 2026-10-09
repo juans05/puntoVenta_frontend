@@ -449,15 +449,13 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
   });
 
   const createProduct = async () => {
-    // Obligatoriedad: ingreso siempre; costo/gasto (Debe y Haber) si Venta=Si; en un bien con Compra=Si,
-    // las cuentas de inventario de los movimientos Compra y Venta.
+    // Obligatoriedad segun los interruptores: Venta=Si exige ingreso (Debe y Haber); Compra=Si exige
+    // costo de venta/gasto (Debe y Haber). Inventario por movimiento: siempre opcional.
     const faltantes = [
-      ["cuenta de ingreso (Debe)", formValues.cuentaIngresoDebeId],
-      ["cuenta de ingreso (Haber)", formValues.cuentaIngresoId],
-      seVende && ["cuenta de costo/gasto (Debe)", formValues.cuentaCostoId],
-      seVende && ["cuenta de costo/gasto (Haber)", formValues.cuentaGastoHaberId],
-      !esServicio && seCompra && ["cuenta de inventario (Compra)", formValues.cuentasInventarioMovimiento?.[1]],
-      !esServicio && seCompra && ["cuenta de inventario (Venta)", formValues.cuentasInventarioMovimiento?.[2]],
+      seVende && ["cuenta de ingreso (Debe)", formValues.cuentaIngresoDebeId],
+      seVende && ["cuenta de ingreso (Haber)", formValues.cuentaIngresoId],
+      seCompra && ["cuenta de costo/gasto (Debe)", formValues.cuentaCostoId],
+      seCompra && ["cuenta de costo/gasto (Haber)", formValues.cuentaGastoHaberId],
     ].filter((x): x is [string, any] => !!x && !x[1]).map(([n]) => n);
     if (faltantes.length) {
       setTab("contabilidad");
@@ -1388,8 +1386,8 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                   <h4 className="text-lg font-bold text-gray-900">Cuentas contables</h4>
                   <p className="text-sm text-gray-500 mt-0.5">
                     Solo cuentas de último nivel (8 dígitos) del Plan de Cuentas. Puedes buscar por número de cuenta.
-                    Siempre es obligatorio el par Debe/Haber de ingreso. Con Venta activada también el de costo de venta/gasto, y en
-                    un bien con Compra activada, las cuentas de inventario de los movimientos Compra y Venta.
+                    Con Venta activada es obligatorio el par Debe/Haber de ingreso (venta). Con Compra activada, el de costo de
+                    venta / gasto.
                   </p>
                 </div>
 
@@ -1397,7 +1395,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <SelectPro
                     isLabel
-                    label="Debe *"
+                    label={seVende ? "Debe *" : "Debe"}
                     isSearch
                     id="cuentaIngresoDebeId"
                     name="cuentaIngresoDebeIgnorar"
@@ -1407,7 +1405,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                   />
                   <SelectPro
                     isLabel
-                    label="Haber *"
+                    label={seVende ? "Haber *" : "Haber"}
                     isSearch
                     id="cuentaIngresoId"
                     name="cuentaIngresoIgnorar"
@@ -1421,7 +1419,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <SelectPro
                     isLabel
-                    label={seVende ? "Debe *" : "Debe"}
+                    label={seCompra ? "Debe *" : "Debe"}
                     isSearch
                     id="cuentaCostoId"
                     name="cuentaCostoIgnorar"
@@ -1431,7 +1429,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                   />
                   <SelectPro
                     isLabel
-                    label={seVende ? "Haber *" : "Haber"}
+                    label={seCompra ? "Haber *" : "Haber"}
                     isSearch
                     id="cuentaGastoHaberId"
                     name="cuentaGastoHaberIgnorar"
@@ -1449,7 +1447,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                         <SelectPro
                           key={`${m.id}-${activeProducto?.productoId ?? 0}`}
                           isLabel
-                          label={(m.id === 1 || m.id === 2) && seCompra ? `${m.label} *` : m.label}
+                          label={m.label}
                           isSearch
                           id={`cuentaInv${m.id}`}
                           name={`cuentaInv${m.id}Ignorar`}
