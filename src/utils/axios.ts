@@ -55,9 +55,13 @@ export function initAxiosInterceptors() {
     )
 
     axiosInstance.interceptors.request.use(function (config) {
-        const token = getToken();
+        // El portal del cliente de la tienda (/cliente/...) usa su propio token: el backend separa
+        // los tokens de cliente y de staff por audiencia y rechaza uno en la API del otro.
+        const token = config.url?.startsWith('/cliente/') ? localStorage.getItem('clienteToken') : getToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+        } else if (config.url?.startsWith('/cliente/')) {
+            delete config.headers.Authorization;
         }
 
         // Sede elegida en el header: el backend da prioridad a X-Sucursal sobre la del token.
