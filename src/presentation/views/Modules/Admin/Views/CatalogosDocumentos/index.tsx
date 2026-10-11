@@ -9,6 +9,7 @@ import { useFormErrors, estiloError, CampoError } from "../../../../../../compon
 import Input from "../../../../../../components/Input";
 import { Button } from "@tremor/react";
 import { TableSkeleton } from "../../../../../../components/Skeleton";
+import SelectPro from "../../../../../../components/SelectPro";
 
 Modal.setAppElement("#root");
 
@@ -27,13 +28,16 @@ const modalStyle = {
 // deshabilitar lo que cada negocio agrega (esPersonalizado=true). Este componente generico
 // sirve para los 5, cambiando solo el esquema de "fields".
 
-type TipoCampo = "text" | "checkbox" | "select";
+// "cuenta": droplist con buscador del plan de cuentas (ultimo nivel), opcional.
+type TipoCampo = "text" | "checkbox" | "select" | "cuenta";
 
 interface ICampoConfig {
   key: string;
   label: string;
   type: TipoCampo;
   options?: { value: number; label: string }[];
+  // Se puede editar tambien en las filas base de SUNAT (ej. la cuenta del IGV, que es por negocio).
+  editableEnBase?: boolean;
 }
 
 interface ICatalogoItem {
@@ -54,7 +58,7 @@ interface ICatalogoCrudProps {
   fields: ICampoConfig[];
 }
 
-const valorPorDefecto = (field: ICampoConfig) => (field.type === "checkbox" ? false : field.type === "select" ? field.options?.[0]?.value ?? 0 : "");
+const valorPorDefecto = (field: ICampoConfig) => (field.type === "checkbox" ? false : field.type === "select" ? field.options?.[0]?.value ?? 0 : field.type === "cuenta" ? null : "");
 
 export const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, updateUrl, estadoUrl, fields }: ICatalogoCrudProps) => {
   const [items, setItems] = useState<ICatalogoItem[]>([]);
@@ -63,6 +67,16 @@ export const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, upd
   const [editando, setEditando] = useState<ICatalogoItem | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const [guardando, setGuardando] = useState(false);
+  const [cuentas, setCuentas] = useState<any[]>([]);
+  const usaCuentas = fields.some((f) => f.type === "cuenta");
+  const editableEnBase = fields.some((f) => f.editableEnBase);
+  const etiquetaCuenta = (id?: number | null) => {
+    const c = id ? cuentas.find((x) => x.id === id) : null;
+    return c ? `${c.codigo} - ${c.nombre}` : "";
+  };
+  const cuentasOptions = cuentas.filter((c) => c.nivel === 5).map((c) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}`, search: c.codigo }));
+  // Editando una fila base: solo los campos marcados editableEnBase.
+  const bloqueado = (f: ICampoConfig) => !!editando && !editando.esPersonalizado && !f.editableEnBase;
 
   const loadData = async () => {
     setLoading(true);
@@ -78,6 +92,7 @@ export const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, upd
 
   useEffect(() => {
     loadData();
+    if (usaCuentas) axiosInstance.get("/cuentas-contables/listar").then((r: any) => setCuentas(r.data?.data ?? [])).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -103,7 +118,7 @@ export const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, upd
     limpiarErrores();
     let faltante = false;
     for (const f of fields) {
-      if (f.type === "text" && !String(form[f.key] ?? "").trim()) {
+      if (f.type === "text" && !bloqueado(f) && !String(form[f.key] ?? "").trim()) {
         setError(f.key, `${f.label} es obligatorio`);
         faltante = true;
       }
@@ -177,6 +192,8 @@ export const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, upd
                         ? (item[f.key] ? "Sí" : "No")
                         : f.type === "select"
                         ? f.options?.find((o) => o.value === item[f.key])?.label ?? item[f.key]
+                        : f.type === "cuenta"
+                        ? etiquetaCuenta(item[f.key]) || <span className="text-gray-400">Por defecto</span>
                         : item[f.key]}
                     </td>
                   ))}
@@ -200,6 +217,10 @@ export const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, upd
                           {item.estado ? "Deshabilitar" : "Habilitar"}
                         </Button>
                       </div>
+                    ) : editableEnBase ? (
+                      <Button size="xs" variant="secondary" onClick={() => abrirEditar(item)}>
+                        Editar cuenta
+                      </Button>
                     ) : (
                       <span className="text-xs text-gray-400">Catálogo base, no editable</span>
                     )}
@@ -216,6 +237,31 @@ export const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, upd
           <h3 className="text-lg font-semibold text-gray-900 mb-4">{editando ? `Editar ${titulo}` : `Nuevo: ${titulo}`}</h3>
           <div className="flex flex-col gap-3">
             {fields.map((f) => {
+              if (f.type === "cuenta") {
+                return (
+                  <div key={f.key}>
+                    <SelectPro
+                      isLabel
+                      isSearch
+                      label={f.label}
+                      id={`catalogo-${f.key}`}
+                      name={f.key}
+                      options={cuentasOptions}
+                      defaultValue={etiquetaCuenta(form[f.key])}
+                      onChange={(idValue: any) => setForm((prev) => ({ ...prev, [f.key]: Number(idValue) || null }))}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Opcional. Sin elegir, el asiento usa 40111 IGV - Cuenta propia.</p>
+                  </div>
+                );
+              }
+              if (bloqueado(f)) {
+                return (
+                  <div key={f.key} className="text-sm text-gray-700">
+                    <span className="font-medium">{f.label}:</span>{" "}
+                    {f.type === "checkbox" ? (form[f.key] ? "Sí" : "No") : String(form[f.key] ?? "")}
+                  </div>
+                );
+              }
               if (f.type === "checkbox") {
                 return (
                   <label key={f.key} className="flex items-center gap-2 text-sm text-gray-700">
@@ -295,6 +341,7 @@ export const CatalogosDocumentos = () => {
           { key: "codigo", label: "Código", type: "text" },
           { key: "descripcion", label: "Descripción", type: "text" },
           { key: "aplicaPorcentajeImpuesto", label: "Aplica IGV (18%)", type: "checkbox" },
+          { key: "cuentaContableId", label: "Cuenta contable del IGV", type: "cuenta", editableEnBase: true },
         ]}
       />
 

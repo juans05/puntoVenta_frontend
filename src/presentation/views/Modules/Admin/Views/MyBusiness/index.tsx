@@ -376,6 +376,7 @@ export const MyBusiness = () => {
                 { key: "codigo", label: "Código", type: "text" },
                 { key: "descripcion", label: "Descripción", type: "text" },
                 { key: "aplicaPorcentajeImpuesto", label: "Aplica IGV (18%)", type: "checkbox" },
+                { key: "cuentaContableId", label: "Cuenta contable del IGV", type: "cuenta", editableEnBase: true },
               ]}
             />
           )}
