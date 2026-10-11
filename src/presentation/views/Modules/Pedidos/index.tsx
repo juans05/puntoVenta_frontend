@@ -369,7 +369,7 @@ const Pedidos = () => {
 
       {/* Modal Detalle Pedido */}
       {pedidoSeleccionado && (
-        <div className={styles.modalOverlay} onClick={() => setPedidoSeleccionado(null)}>
+        <div className={styles.modalOverlay}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Detalle del Pedido #{pedidoSeleccionado.id}</h2>
@@ -522,7 +522,7 @@ const Pedidos = () => {
 
       {/* Modal Etiqueta de Envío */}
       {showEtiqueta && etiquetaData && (
-        <div className={styles.modalOverlay} onClick={() => setShowEtiqueta(false)}>
+        <div className={styles.modalOverlay}>
           <div className={`${styles.modal} ${styles.etiquetaModal}`} onClick={(e) => e.stopPropagation()}>
             <div className={styles.etiquetaHeader}>
               <h2>Etiqueta de Envío</h2>

@@ -119,7 +119,7 @@ const EditarDepartamento = ({ departamento, usuarios, onCerrar, onGuardar }: any
   };
 
   return (
-    <div style={overlay} onClick={onCerrar}>
+    <div style={overlay}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
           <h3 style={{ margin: 0 }}>{departamento.id ? "Editar departamento" : "Nuevo departamento"}</h3>

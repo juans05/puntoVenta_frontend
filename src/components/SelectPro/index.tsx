@@ -123,7 +123,17 @@ const SelectPro = ({
         }
     }, [options])
 
-    const resultsOptions: any = !search ? optionSearch : optionSearch?.filter((option: any) => (typeof option.id === "string" || typeof option.value === "string") && option?.id?.toLowerCase().includes(search.toLocaleLowerCase()) || option?.value?.toLowerCase().includes(search.toLocaleLowerCase()) || option?.search?.toLowerCase().includes(search.toLocaleLowerCase()))
+    // Busqueda por codigo (cuentas contables "70111101 - Mercaderias", o `search` = codigo): si se
+    // escribe solo numeros, filtra por los codigos que EMPIEZAN con ese numero ("70" -> 70, 701...,
+    // nunca 1070). El resto de opciones sigue buscando por texto contenido.
+    const codigoDe = (option: any): string | undefined => option?.search ?? option?.value?.match(/^(\d+)\s*-/)?.[1];
+    const resultsOptions: any = !search ? optionSearch : optionSearch?.filter((option: any) => {
+        const q = search.trim().toLowerCase();
+        const codigo = codigoDe(option);
+        if (/^\d+$/.test(q) && codigo) return String(codigo).startsWith(q);
+        return option?.value?.toLowerCase().includes(q) || option?.search?.toLowerCase().includes(q)
+            || (!/^\d+$/.test(q) && option?.id?.toLowerCase().includes(q));
+    })
 
     const limpiar = (e: any) => {
         e.stopPropagation();

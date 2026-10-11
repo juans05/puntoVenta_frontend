@@ -4,6 +4,7 @@ import styles from "./compras.module.css";
 import axiosInstance from "../../../../../../utils/axios";
 import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 import { Ayuda } from "../../../../../../components/Ayuda";
+import { AsientoPreview, lineasAsientoCompra, separarIgv, PlazoCredito } from "../../../../../../components/AsientoPreview";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { RootState } from "../../../../../../redux/rootState";
 import { getProveedores, getProductosCompra } from "../../../../../../redux/reducers/Admin/compras/compra.reducer";
@@ -246,8 +247,8 @@ const facturarConCruce = async (ordenId: number, payload: any, alTerminar: (comp
 };
 
 const Modal = ({ titulo, onCerrar, children }: any) => (
-  <div style={overlay} onClick={onCerrar}>
-    <div style={modal} onClick={(e) => e.stopPropagation()}>
+  <div style={overlay}>
+    <div style={modal}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
         <h3 style={{ margin: 0 }}>{titulo}</h3>
         <button onClick={onCerrar} aria-label="Cerrar">✕</button>
@@ -342,7 +343,7 @@ const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobac
           ? "Obligatorio: describe el servicio que te va a facturar el proveedor."
           : "Obligatorio: elige un producto del catálogo. No se puede repetir el mismo producto en dos líneas -- si necesitas más cantidad, edita esa misma línea."} /></label>
         <label style={label}>Cantidad<Ayuda texto="Obligatorio: cantidad a pedir, número entero mayor a 0." /></label>
-        <label style={label}>Costo unitario<Ayuda texto="Costo pactado con el proveedor por unidad, sin IGV. No puede ser negativo; déjalo en 0 si aún no lo conoces." /></label>
+        <label style={label}>Costo unitario<Ayuda texto="Costo pactado con el proveedor por unidad, con IGV incluido. No puede ser negativo; déjalo en 0 si aún no lo conoces." /></label>
         <span />
       </div>
       {lineas.map((l, i) => (
@@ -485,6 +486,8 @@ const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCer
   const [fechaDetraccion, setFechaDetraccion] = useState("");
   const [observacion, setObservacion] = useState("");
   const [pagos, setPagos] = useState<{ metodoPagoId: number; monto: string }[]>([]);
+  const [diasCredito, setDiasCredito] = useState("");
+  const [guardando, setGuardando] = useState(false);
   const { errors, setError, clearError } = useFormErrors();
 
   // Sugiere serie/numero al abrir (mismo endpoint y criterio que el registro manual de compras en
@@ -507,8 +510,22 @@ const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCer
   const [lineas, setLineas] = useState<Record<number, { cantidad: number; costo: number }>>(
     Object.fromEntries(pendientes.map((d: any) => [d.id, { cantidad: d.cantidadRecibida - d.cantidadFacturada, costo: d.costoUnitario }]))
   );
+  // Mismo calculo que el backend: los precios de la factura incluyen IGV.
+  const totalFactura = pendientes.reduce((a: number, d: any) => a + (lineas[d.id]?.cantidad ?? 0) * (lineas[d.id]?.costo ?? 0), 0);
+  const tipoIgvSel = tiposIgv.find((t: any) => t.id === tipoIgvId);
+  const { gravada, igv } = separarIgv(totalFactura, tipoIgvSel ? tipoIgvSel.aplicaPorcentajeImpuesto : true);
+  const detraccionSel = (tiposDetraccion ?? []).find((t: any) => t.id === tipoDetraccionId);
+  const montoDetraccion = detraccionSel?.porcentaje ? Math.round(totalFactura * detraccionSel.porcentaje) / 100 : 0;
+  const monedaSel = monedas.find((m: any) => m.id === monedaId);
+  const esMonedaBase = !monedaSel || monedaSel.codigo === "PEN";
+
   return (
     <Modal titulo={`Factura del proveedor · ${orden.numero}`} onCerrar={onCerrar}>
+      <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 10px", marginBottom: 10, fontSize: 13 }}>
+        <strong>Proveedor:</strong> {orden.proveedor ?? "Sin proveedor"}
+        {orden.proveedorRuc && <> · <strong>RUC:</strong> {orden.proveedorRuc}</>}
+        {orden.proveedorDireccion && <> · {orden.proveedorDireccion}</>}
+      </div>
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr" }}>
         <div style={campo}>
           <label style={label}>Serie<Ayuda texto="Obligatorio: serie de la factura o boleta que te dio el proveedor (ej. F001). Se sugiere un valor automáticamente, pero puedes corregirlo por el real del proveedor." /></label>
@@ -543,10 +560,12 @@ const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCer
         </div>
       </div>
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr", marginTop: 8 }}>
-        <div style={campo}>
-          <label style={label}>T. Cambio<Ayuda texto="Opcional. Tipo de cambio del dia si la Divisa no es la moneda base del negocio." /></label>
-          <input style={input} type="number" value={tipoCambio} onChange={(e) => setTipoCambio(e.target.value)} />
-        </div>
+        {!esMonedaBase && (
+          <div style={campo}>
+            <label style={label}>T. Cambio<Ayuda texto="Tipo de cambio del día: la Divisa elegida no es la moneda base del negocio." /></label>
+            <input style={input} type="number" min={0} step="0.001" value={tipoCambio} onChange={(e) => setTipoCambio(e.target.value)} />
+          </div>
+        )}
         <div style={campo}>
           <label style={label}>Detracción<Ayuda texto="Opcional. Porcentaje de detracción SUNAT que aplica a este documento." /></label>
           <select style={input} value={tipoDetraccionId} onChange={(e) => setTipoDetraccionId(Number(e.target.value))}>
@@ -572,10 +591,10 @@ const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCer
         <Ayuda texto="Marca esta opción si el pago al proveedor queda pendiente (no se paga al contado). Necesita que la orden tenga un proveedor asignado." />
       </div>
       {esCredito && (
-        <div style={{ ...campo, marginTop: 8, maxWidth: 220 }}>
-          <label style={label}>Fecha de vencimiento<Ayuda texto="Obligatorio en compra a crédito: fecha límite para pagarle al proveedor." /></label>
-          <input style={{ ...input, ...estiloError(!!errors.fechaVencimiento) }} type="date" value={fechaVencimiento}
-            onChange={(e) => { setFechaVencimiento(e.target.value); clearError("fechaVencimiento"); }} />
+        <div style={{ marginTop: 8 }}>
+          <PlazoCredito dias={diasCredito} onDias={setDiasCredito} fechaEmision={fechaEmision}
+            fechaVencimiento={fechaVencimiento} error={!!errors.fechaVencimiento}
+            onFechaVencimiento={(v) => { setFechaVencimiento(v); clearError("fechaVencimiento"); }} />
           <CampoError mensaje={errors.fechaVencimiento} />
         </div>
       )}
@@ -618,14 +637,29 @@ const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCer
           })}
         </tbody>
       </table>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+        <table style={{ fontSize: 13, minWidth: 260 }}>
+          <tbody>
+            <tr><td>Subtotal (sin IGV)</td><td style={{ textAlign: "right" }}>{formatSoles(gravada)}</td></tr>
+            <tr><td>IGV</td><td style={{ textAlign: "right" }}>{formatSoles(igv)}</td></tr>
+            <tr style={{ fontWeight: 700 }}><td>Total</td><td style={{ textAlign: "right" }}>{formatSoles(totalFactura)}</td></tr>
+            <tr><td>Detracción</td><td style={{ textAlign: "right" }}>{detraccionSel?.porcentaje ? `${detraccionSel.porcentaje}% · ${formatSoles(montoDetraccion)}` : "No afecta"}</td></tr>
+            {montoDetraccion > 0 && <tr><td>Neto a pagar al proveedor</td><td style={{ textAlign: "right" }}>{formatSoles(totalFactura - montoDetraccion)}</td></tr>}
+            <tr><td>Condición</td><td style={{ textAlign: "right" }}>{esCredito ? (diasCredito ? `Crédito a ${diasCredito} días` : "Crédito") : "Contado"}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <AsientoPreview lineas={lineasAsientoCompra(gravada, igv, totalFactura, orden.tipoOrden === "SERVICIO")}
+        nota="Si el producto o el proveedor tienen cuentas propias configuradas, el asiento usará esas cuentas." />
       <div style={{ ...campo, marginTop: 8 }}>
         <label style={label}>Observación<Ayuda texto="Opcional. Notas internas sobre esta factura -- no se envían al proveedor." /></label>
         <textarea style={input} placeholder="Observación (opcional)" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
       </div>
       <p style={{ color: "#6b7280", fontSize: 12 }}>Si algo no coincide con lo recibido o con el precio de la orden, se te mostrarán las diferencias antes de guardar. La factura no modifica el stock.</p>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button className={styles.registrarBtn} disabled={!!errors.serie || !!errors.fechaVencimiento}
-          onClick={() => {
+        <button className={styles.registrarBtn} disabled={guardando || !!errors.serie || !!errors.fechaVencimiento}
+          onClick={async () => {
+            if (guardando) return;
             if (!serie.trim() || !numero.trim()) {
               setError("serie", "Indica serie y número de la factura");
               return toast.error("Indica serie y número de la factura");
@@ -642,18 +676,25 @@ const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCer
               return toast.error("Indica la fecha de vencimiento del pago a crédito");
             }
             const pagosValidos = pagos.filter((p) => p.metodoPagoId > 0 && Number(p.monto) > 0);
-            onGuardar({
-              serie: serie.trim(), numero: numero.trim(), fechaEmision: fechaEmision || undefined, esCredito,
+            const condicion = esCredito && diasCredito ? `Crédito a ${diasCredito} días` : "";
+            setGuardando(true);
+            try {
+            await onGuardar({
+              serie: serie.trim().toUpperCase(), numero: numero.trim(), fechaEmision: fechaEmision || undefined, esCredito,
               fechaVencimiento: esCredito ? fechaVencimiento : undefined,
-              monedaId: monedaId || undefined, tipoIgvId: tipoIgvId || undefined, observacion: observacion || undefined,
-              tipoCambio: Number(tipoCambio) || undefined,
+              monedaId: monedaId || undefined, tipoIgvId: tipoIgvId || undefined,
+              observacion: [condicion, observacion.trim()].filter(Boolean).join(" · ") || undefined,
+              tipoCambio: esMonedaBase ? undefined : Number(tipoCambio) || undefined,
               tipoDetraccionId: tipoDetraccionId || undefined,
               numeroDetraccion: tipoDetraccionId ? numeroDetraccion || undefined : undefined,
               fechaDetraccion: tipoDetraccionId && fechaDetraccion ? fechaDetraccion : undefined,
               detalle: pendientes.map((d: any) => ({ ordenCompraDetalleId: d.id, productoId: d.productoId, cantidad: lineas[d.id].cantidad, costoUnitario: lineas[d.id].costo })),
             }, esCredito ? pagosValidos : []);
+            } finally {
+              setGuardando(false);
+            }
           }}>
-          Registrar factura
+          {guardando ? "Registrando..." : "Registrar factura"}
         </button>
       </div>
     </Modal>

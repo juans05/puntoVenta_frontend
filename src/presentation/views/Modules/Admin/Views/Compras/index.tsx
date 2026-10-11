@@ -529,6 +529,7 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
               <thead>
                 <tr>
                   <th>N° Compra</th>
+                  <th>Comprobante</th>
                   <th>Sucursal</th>
                   <th>Fecha</th>
                   <th>Proveedor</th>
@@ -543,10 +544,11 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
                 {compras.map((c: any) => (
                   <tr key={c.id}>
                     <td data-label="N° Compra">{c.numeroCompra}</td>
+                    <td data-label="Comprobante">{c.serie && c.numero ? `${c.serie}-${c.numero}` : "-"}</td>
                     <td data-label="Sucursal">{c.sucursal ?? "-"}</td>
                     <td data-label="Fecha">{c.fechaCompra}</td>
                     <td data-label="Proveedor">{c.proveedor ?? "Sin proveedor"}</td>
-                    <td data-label="Método de pago">{c.metodoPago ?? "-"}</td>
+                    <td data-label="Método de pago">{c.esCredito ? "Crédito" : c.metodoPago ?? "-"}</td>
                     <td data-label="Total">S/ {Number(c.total).toFixed(2)}</td>
                     <td data-label="Estado">
                       <span className={`${styles.estado} ${c.estado === "ANULADO" ? styles.anulado : styles.confirmado}`}>
@@ -560,9 +562,12 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
                       </button>
                       {c.estado !== "ANULADO" && (
                         <>
-                          <button className={styles.editarBtn} onClick={() => abrirEditar(c.id)}>
-                            Editar
-                          </button>
+                          {/* La factura de una orden no se edita (el backend lo rechaza): se anula y se registra de nuevo. */}
+                          {!c.ordenCompraId && (
+                            <button className={styles.editarBtn} onClick={() => abrirEditar(c.id)}>
+                              Editar
+                            </button>
+                          )}
                           <button className={styles.editarBtn} onClick={() => setNotaCompraDe(c)}>
                             Nota
                           </button>
@@ -635,7 +640,7 @@ const NotaCompraModal = ({ compra, onCerrar, onCreada }: any) => {
   };
 
   return (
-    <div style={overlayNota} onClick={onCerrar}>
+    <div style={overlayNota}>
       <div style={modalNota} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
           <h3 style={{ margin: 0 }}>Nota sobre {compra.numeroCompra}</h3>

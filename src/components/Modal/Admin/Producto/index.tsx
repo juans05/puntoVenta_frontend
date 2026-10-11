@@ -10,12 +10,9 @@ import {
   ajustarStock,
   clearActiveProducto,
   closeModalProducto,
-  createCategory,
   createProducto,
-  deleteCategory,
   deleteProducts,
   eliminarImagenProducto,
-  getCategorias,
   getProducts,
   subirImagenProducto,
   updateProducts,
@@ -117,16 +114,18 @@ const initialForm = {
 };
 
 // Ids = TipoMovimientoInventario del backend.
+// Cada movimiento guarda dos cuentas en el JSON: "<id>" = inventario (20x) y "<id>_C" = contrapartida
+// (61, 69...). Entradas: Debe=inventario / Haber=contrapartida; salidas al reves (ver Producto.cs).
 const MOVIMIENTOS_INVENTARIO = [
-  { id: 1, label: "Compra" },
-  { id: 2, label: "Venta" },
-  { id: 3, label: "Ajuste de entrada" },
-  { id: 4, label: "Ajuste de salida" },
-  { id: 5, label: "Devolución de compra" },
-  { id: 6, label: "Devolución de venta" },
+  { id: 1, label: "Compra", entrada: true },
+  { id: 2, label: "Venta", entrada: false },
+  { id: 3, label: "Ajuste de entrada", entrada: true },
+  { id: 4, label: "Ajuste de salida", entrada: false },
+  { id: 5, label: "Devolución de compra", entrada: false },
+  { id: 6, label: "Devolución de venta", entrada: true },
 ];
 
-const parseMovimientos = (json?: string): Record<number, number> => {
+const parseMovimientos = (json?: string): Record<string, number> => {
   try { return json ? JSON.parse(json) : {}; } catch { return {}; }
 };
 
@@ -142,7 +141,7 @@ interface IProductoModalProps {
   onGuardado?: (producto: any) => void;
 }
 export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
-  const { modalProducts, activeProducto, categorias }: any =
+  const { modalProducts, activeProducto }: any =
     useAppSelector((state: RootState) => state.adminProducts);
   const { sucursales, monedas, tiposIgv, unidadesMedida }: IExtensionesState = useAppSelector(
     (state: RootState) => state.extentions
@@ -167,7 +166,6 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     stock,
     precioVentaSinInpuesto,
     precioVentaConInpuesto,
-    nombreCategoria,
     codigo,
     marca,
     sucursal,
@@ -187,11 +185,15 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     seCompra,
   } = formValues;
 
-  // Solo ultimo nivel (Nivel 5 = 8 digitos): la unica hoja que admite asientos. Se muestra solo el
-  // nombre; el codigo queda como texto de busqueda (`search`) para poder encontrar la cuenta por numero.
+  // Solo ultimo nivel (Nivel 5 = 8 digitos): la unica hoja que admite asientos. Se muestra
+  // "codigo - nombre"; `search` = codigo para que buscar "70" traiga solo las que empiezan con 70.
   const cuentasUltimoNivel = cuentasContables.filter((c: any) => c.nivel === 5);
-  const cuentasOptions = cuentasUltimoNivel.map((c: any) => ({ id: c.id, value: c.nombre, search: c.codigo }));
-  const textoCuenta = (id?: number) => (id ? cuentasContables.find((x: any) => x.id === id)?.nombre ?? "" : "");
+  const etiquetaCuenta = (c: any) => `${c.codigo} - ${c.nombre}`;
+  const cuentasOptions = cuentasUltimoNivel.map((c: any) => ({ id: c.id, value: etiquetaCuenta(c), search: c.codigo }));
+  const textoCuenta = (id?: number) => {
+    const c = id ? cuentasContables.find((x: any) => x.id === id) : null;
+    return c ? etiquetaCuenta(c) : "";
+  };
 
   const [isStock, setIsStock] = useState<boolean>(false);
   const [paises, setPaises] = useState<any[]>([]);
@@ -359,29 +361,6 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     });
   };
 
-  const filterAvoidAllCategorias = categorias?.filter((value: any) => value?.categoriaId !== 0);
-  const newCategorias = filterAvoidAllCategorias?.map((value: any) => ({
-    id: value?.categoriaId,
-    value: value?.nombre,
-  }));
-
-  // "+ Agregar categoria" del droplist: alta rapida (solo nombre, sin abrir otro modal) ya que
-  // Categoria no tiene mas campos obligatorios -- ver CategoriaModal para el mismo alta.
-  const crearCategoriaRapida = async (busqueda: string) => {
-    if (!busqueda.trim()) return toast.error("Escribe un nombre para la categoría");
-    const creada: any = await dispatch(createCategory({ nombre: busqueda.trim(), usuarioCreacion: "admin" }) as any);
-    if (creada?.categoriaId) {
-      setFormValues((prev: any) => ({ ...prev, categoriaId: creada.categoriaId, nombreCategoria: creada.nombre }));
-      toast.success("Categoría creada");
-    }
-    dispatch(getCategorias() as any);
-  };
-  const eliminarCategoriaRapida = (id: number) => {
-    dispatch(deleteCategory(id) as any);
-    dispatch(getCategorias() as any);
-    toast.success("Categoría eliminada");
-  };
-
   const sucursalesOptions = (sucursales as any[])?.map((s: any) => ({ id: s.id, value: s.value })) ?? [];
   const monedasOptions = (monedas as any[])?.map((m: any) => ({ id: m.id, value: m.value })) ?? [];
   const tiposIgvOptions = (tiposIgv as any[])?.map((t: any) => ({ id: t.id, value: `${t.codigo} - ${t.value}` })) ?? [];
@@ -449,13 +428,17 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
   });
 
   const createProduct = async () => {
-    // Obligatoriedad segun los interruptores: Venta=Si exige ingreso (Debe y Haber); Compra=Si exige
-    // costo de venta/gasto (Debe y Haber). Inventario por movimiento: siempre opcional.
+    // Obligatoriedad segun los interruptores: Venta=Si exige la cuenta de venta (Debe y Haber); Compra=Si
+    // exige costo de venta/gasto (Debe y Haber). Inventario por movimiento: opcional, pero si se elige
+    // un lado del par se exige el otro (todo movimiento lleva Debe y Haber).
+    const mov = formValues.cuentasInventarioMovimiento ?? {};
     const faltantes = [
-      seVende && ["cuenta de ingreso (Debe)", formValues.cuentaIngresoDebeId],
-      seVende && ["cuenta de ingreso (Haber)", formValues.cuentaIngresoId],
+      seVende && ["cuenta de venta (Debe)", formValues.cuentaIngresoDebeId],
+      seVende && ["cuenta de venta (Haber)", formValues.cuentaIngresoId],
       seCompra && ["cuenta de costo/gasto (Debe)", formValues.cuentaCostoId],
       seCompra && ["cuenta de costo/gasto (Haber)", formValues.cuentaGastoHaberId],
+      ...(esServicio ? [] : MOVIMIENTOS_INVENTARIO.filter((m) => !!mov[m.id] !== !!mov[`${m.id}_C`])
+        .map((m) => [`${m.label} (${mov[m.id] ? "contrapartida" : "inventario"})`, 0])),
     ].filter((x): x is [string, any] => !!x && !x[1]).map(([n]) => n);
     if (faltantes.length) {
       setTab("contabilidad");
@@ -901,20 +884,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-1 py-3">
-                  <Input name="marca" value={marca} label="Marca" isLabel type="text" onChange={handleInputChange} />
-                  <SelectPro
-                    isLabel
-                    label="Categoría"
-                    isSearch
-                    id="categoriaId"
-                    name="nombreCategoria"
-                    defaultValue={nombreCategoria}
-                    options={newCategorias}
-                    onChange={handleChangeSelect}
-                    onAgregarNuevo={crearCategoriaRapida}
-                    agregarNuevoLabel="categoría"
-                    onEliminarOpcion={eliminarCategoriaRapida}
-                  />
+                  {/* Marca y Categoria ocultas en el formulario (se conservan en el modelo por compatibilidad). */}
                   <SelectPro
                     isLabel
                     label="Sucursal"
@@ -1385,13 +1355,13 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                 <div className="mb-4">
                   <h4 className="text-lg font-bold text-gray-900">Cuentas contables</h4>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    Solo cuentas de último nivel (8 dígitos) del Plan de Cuentas. Puedes buscar por número de cuenta.
-                    Con Venta activada es obligatorio el par Debe/Haber de ingreso (venta). Con Compra activada, el de costo de
-                    venta / gasto.
+                    Solo cuentas de último nivel (8 dígitos) del Plan de Cuentas. Busca por número: "70" muestra solo las
+                    cuentas que empiezan con 70. Con Venta activada es obligatorio el par Debe/Haber de venta. Con Compra
+                    activada, el de costo de venta / gasto.
                   </p>
                 </div>
 
-                <h5 className="text-sm font-bold text-gray-800 mb-2">Cuenta de ingreso (venta)</h5>
+                <h5 className="text-sm font-bold text-gray-800 mb-2">Cuenta de venta</h5>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <SelectPro
                     isLabel
@@ -1441,24 +1411,44 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
 
                 {!esServicio && (
                   <>
-                    <h5 className="text-sm font-bold text-gray-800 mb-2">Cuenta de inventario por movimiento</h5>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                      {MOVIMIENTOS_INVENTARIO.map((m) => (
-                        <SelectPro
-                          key={`${m.id}-${activeProducto?.productoId ?? 0}`}
-                          isLabel
-                          label={m.label}
-                          isSearch
-                          id={`cuentaInv${m.id}`}
-                          name={`cuentaInv${m.id}Ignorar`}
-                          defaultValue={textoCuenta(formValues.cuentasInventarioMovimiento?.[m.id])}
-                          options={cuentasOptions}
-                          onChange={(idValue: any) => setFormValues({
-                            ...formValues,
-                            cuentasInventarioMovimiento: { ...(formValues.cuentasInventarioMovimiento ?? {}), [m.id]: idValue },
-                          })}
-                        />
-                      ))}
+                    <h5 className="text-sm font-bold text-gray-800 mb-1">Cuentas por movimiento de inventario</h5>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Opcional. Si eliges una, completa su par Debe/Haber. Sin configurar se usan 20 Mercaderías con 61 (compras y ajustes) o 69 (ventas).
+                    </p>
+                    <div className="grid grid-cols-1 gap-y-2">
+                      {MOVIMIENTOS_INVENTARIO.map((m) => {
+                        const claveDebe = m.entrada ? `${m.id}` : `${m.id}_C`;
+                        const claveHaber = m.entrada ? `${m.id}_C` : `${m.id}`;
+                        const setCuenta = (clave: string, idValue: any) => setFormValues((prev: any) => ({
+                          ...prev,
+                          cuentasInventarioMovimiento: { ...(prev.cuentasInventarioMovimiento ?? {}), [clave]: idValue },
+                        }));
+                        return (
+                          <div key={`${m.id}-${activeProducto?.productoId ?? 0}`} className="grid grid-cols-[140px_1fr_1fr] gap-x-3 items-end">
+                            <span className="text-sm font-medium text-gray-700 pb-2">{m.label}</span>
+                            <SelectPro
+                              isLabel
+                              label={`Debe${m.entrada ? " (inventario)" : " (contrapartida)"}`}
+                              isSearch
+                              id={`cuentaInv${claveDebe}`}
+                              name={`cuentaInv${claveDebe}Ignorar`}
+                              defaultValue={textoCuenta(formValues.cuentasInventarioMovimiento?.[claveDebe])}
+                              options={cuentasOptions}
+                              onChange={(idValue: any) => setCuenta(claveDebe, idValue)}
+                            />
+                            <SelectPro
+                              isLabel
+                              label={`Haber${m.entrada ? " (contrapartida)" : " (inventario)"}`}
+                              isSearch
+                              id={`cuentaInv${claveHaber}`}
+                              name={`cuentaInv${claveHaber}Ignorar`}
+                              defaultValue={textoCuenta(formValues.cuentasInventarioMovimiento?.[claveHaber])}
+                              options={cuentasOptions}
+                              onChange={(idValue: any) => setCuenta(claveHaber, idValue)}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 )}
@@ -1672,7 +1662,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     </Modal>
 
     {monedaNueva && (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setMonedaNueva(null)}>
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
         <div style={{ background: "#fff", borderRadius: 12, padding: 20, width: "min(420px, 100%)" }} onClick={(e) => e.stopPropagation()}>
           <h4 style={{ margin: "0 0 12px" }}>Nueva moneda</h4>
           <div style={{ display: "grid", gap: 10 }}>
@@ -1698,7 +1688,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     )}
 
     {detraccionNueva && (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setDetraccionNueva(null)}>
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
         <div style={{ background: "#fff", borderRadius: 12, padding: 20, width: "min(420px, 100%)" }} onClick={(e) => e.stopPropagation()}>
           <h4 style={{ margin: "0 0 4px" }}>Nuevo porcentaje de detracción</h4>
           <p style={{ fontSize: 12, color: "#9c6f00", background: "#fff8e1", padding: 8, borderRadius: 6, margin: "0 0 12px" }}>
@@ -1719,7 +1709,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     )}
 
     {tipoIgvNuevo && (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setTipoIgvNuevo(null)}>
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 100000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
         <div style={{ background: "#fff", borderRadius: 12, padding: 20, width: "min(420px, 100%)" }} onClick={(e) => e.stopPropagation()}>
           <h4 style={{ margin: "0 0 4px" }}>Nuevo código de Afectación IGV</h4>
           <p style={{ fontSize: 12, color: "#9c6f00", background: "#fff8e1", padding: 8, borderRadius: 6, margin: "0 0 12px" }}>

@@ -34,6 +34,7 @@ import {
   clearActiveClientes,
 } from "../../../../redux/reducers/Admin/clientes-proveedores/clientesProveedoresAnfitrionas.reducer";
 import { ClientesModal } from "../../../../components/Modal/Admin/Clientes";
+import { AsientoPreview } from "../../../../components/AsientoPreview";
 
 type TipoDocumento = "boleta" | "factura" | "nota-venta" | "cotizacion";
 
@@ -1505,6 +1506,15 @@ const NuevaFactura = () => {
               <span>Total:</span>
               <span>S/. {total.toFixed(2)}</span>
             </div>
+            {/* Mismas cuentas por defecto que ComprobanteRepository.GenerarAsientoVenta. */}
+            <AsientoPreview
+              lineas={[
+                { cuenta: esCredito ? "12" : "10", descripcion: esCredito ? "Cuentas por cobrar (total)" : "Caja (total)", debe: Math.round(total * 100) / 100, haber: 0 },
+                { cuenta: "40111", descripcion: "IGV por pagar", debe: 0, haber: Math.round(igv * 100) / 100 },
+                { cuenta: "70", descripcion: "Ventas (subtotal)", debe: 0, haber: Math.round((total - Math.round(igv * 100) / 100) * 100) / 100 },
+              ]}
+              nota="Además, la salida de mercadería: 69 Costo de ventas (Debe) / 20 Mercaderías (Haber) al costo. Las cuentas propias del producto o del cliente reemplazan a estas."
+            />
           </div>
         </div>
 

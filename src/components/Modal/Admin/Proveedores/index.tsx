@@ -66,7 +66,10 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
   useEffect(() => {
     axiosInstance.get("/cuentas-contables/listar").then((r: any) => setCuentasContables(r.data?.data ?? [])).catch(() => {});
   }, []);
-  const cuentasOptions = cuentasContables.map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
+  // Cuenta por pagar: solo cuentas 42/43 (por pagar comerciales) de ultimo nivel.
+  const cuentasOptions = cuentasContables
+    .filter((c: any) => /^4[23]/.test(String(c.codigo)) && (c.nivel == null || c.nivel === 5))
+    .map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}`, search: c.codigo }));
   const cuentaPorPagarTexto = cuentasOptions.find((c: any) => c.id === formValues.cuentaPorPagarId)?.value ?? "";
   const {
     codigo,

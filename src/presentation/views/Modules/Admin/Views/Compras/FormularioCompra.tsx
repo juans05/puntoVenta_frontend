@@ -32,6 +32,7 @@ import Input from "../../../../../../components/Input";
 import SelectPro from "../../../../../../components/SelectPro";
 import SelectUbigeo from "../../../../../../components/SelectPro/SelectUbigeo";
 import { toast } from "sonner";
+import { AsientoPreview, lineasAsientoCompra, PlazoCredito } from "../../../../../../components/AsientoPreview";
 
 interface IDetalleLinea {
   productoId: number;
@@ -112,6 +113,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const [otrosCargos, setOtrosCargos] = useState<string>("0");
   const [esCredito, setEsCredito] = useState(false);
   const [fechaVencimiento, setFechaVencimiento] = useState("");
+  const [diasCredito, setDiasCredito] = useState("");
   const [metodoPagoId, setMetodoPagoId] = useState<number>(0);
   const [observacion, setObservacion] = useState("");
   const [pagos, setPagos] = useState<IPagoInicial[]>([]);
@@ -164,6 +166,12 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
           setSucursalId(c?.sucursalId ?? 0);
           setProveedorId(c?.proveedorId ?? 0);
           setProveedorNombre(c?.proveedor ?? "");
+          setNumeroDocumento(c?.proveedorRuc ?? "");
+          setTipoDocProveedor((c?.proveedorRuc ?? "").length === 8 ? "DNI" : "RUC");
+          setProveedorDireccion(c?.proveedorDireccion ?? "");
+          setProveedorEmail(c?.proveedorEmail ?? "");
+          setProveedorUbigeoId(c?.proveedorUbigeoId ?? "");
+          setProveedorUbigeoLabel(c?.proveedorUbigeo ?? "");
           setMetodoPagoId(c?.metodoPagoId ?? 0);
           setObservacion(c?.observacion ?? "");
           setFechaKardex(c?.fechaCompra ? toIso(c.fechaCompra.split(" ")[0].split("/").reverse().join("-")) || hoyIso() : hoyIso());
@@ -388,7 +396,8 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
       proveedorDireccion: proveedorDireccion || undefined,
       proveedorUbigeoId: proveedorUbigeoId || undefined,
       proveedorEmail: proveedorEmail || undefined,
-      metodoPagoId: metodoPagoId > 0 ? metodoPagoId : null,
+      // A credito no hay forma de pago: se elige al pagar en Cuentas por pagar.
+      metodoPagoId: !esCredito && metodoPagoId > 0 ? metodoPagoId : null,
       observacion,
       fechaCompra: fechaKardex || undefined,
       serie: docSerie || undefined,
@@ -700,11 +709,11 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
             <div className={styles.grid}>
               {esCredito && (
                 <div className={styles.full}>
-                  <label>Fecha de vencimiento del crédito</label>
-                  <input type="date" value={fechaVencimiento} onChange={(e) => setFechaVencimiento(e.target.value)} />
+                  <PlazoCredito dias={diasCredito} onDias={setDiasCredito} fechaEmision={fechaEmision}
+                    fechaVencimiento={fechaVencimiento} onFechaVencimiento={setFechaVencimiento} />
                 </div>
               )}
-              {esCredito && !esEdicion ? (
+              {esCredito ? (!esEdicion && (
                 <div className={styles.full}>
                   <label>Pagos iniciales (opcional)</label>
                   {pagos.map((p, i) => (
@@ -733,7 +742,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
                   {pagos.length > 0 && <p style={{ fontSize: 12, color: "#667085", marginTop: 6 }}>Pagado ahora: S/ {totalPagos.toFixed(2)} — el resto queda en Cuentas por pagar.</p>}
                   <CampoError mensaje={errors.pagos} />
                 </div>
-              ) : (
+              )) : (
                 <div className={styles.full}>
                   <label>Forma de pago</label>
                   <SelectPro
@@ -795,6 +804,9 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
               <span>Total a pagar</span>
               <span>S/ {total.toFixed(2)}</span>
             </div>
+
+            <AsientoPreview lineas={lineasAsientoCompra(gravada, igv, total)}
+              nota="Además, la mercadería entra a almacén: 20 Mercaderías (Debe) / 61 Variación de existencias (Haber). Las cuentas propias del producto o proveedor reemplazan a estas." />
 
             <button type="button" className={styles.guardarBtn} onClick={guardar} disabled={loading || cargandoCompra || Object.keys(errors).length > 0}>
               {loading ? "Guardando..." : "Guardar compra"}

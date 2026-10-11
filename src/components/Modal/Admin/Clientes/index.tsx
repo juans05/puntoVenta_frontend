@@ -60,7 +60,10 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
   useEffect(() => {
     axiosInstance.get("/cuentas-contables/listar").then((r: any) => setCuentasContables(r.data?.data ?? [])).catch(() => {});
   }, []);
-  const cuentasOptions = cuentasContables.map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
+  // Cuenta por cobrar: solo cuentas 12 (Cuentas por cobrar comerciales - terceros) de ultimo nivel.
+  const cuentasOptions = cuentasContables
+    .filter((c: any) => String(c.codigo).startsWith("12") && (c.nivel == null || c.nivel === 5))
+    .map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}`, search: c.codigo }));
   const cuentaPorCobrarTexto = cuentasOptions.find((c: any) => c.id === formValues.cuentaPorCobrarId)?.value ?? "";
   const {
     nombre,
@@ -172,6 +175,11 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
     if (numeroDocumentoError) {
       setError("numeroDocumento", numeroDocumentoError);
       toast.error(numeroDocumentoError);
+      return;
+    }
+    if (!formValues.cuentaPorCobrarId) {
+      setError("cuentaPorCobrarId", "La cuenta por cobrar es obligatoria");
+      toast.error("Elige la cuenta por cobrar del cliente (cuentas 12)");
       return;
     }
     // Email/teléfono obligatorios solo al CREAR -- clientes antiguos sin estos datos deben poder
@@ -347,14 +355,16 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
                 <div>
                   <SelectPro
                     isLabel
-                    label="Cuenta por Cobrar (opcional)"
+                    label="Cuenta por Cobrar"
+                    required
                     isSearch
                     id="cuentaPorCobrarId"
                     name="cuentaPorCobrarIgnorar"
                     defaultValue={cuentaPorCobrarTexto}
                     options={cuentasOptions}
-                    onChange={(idValue: any) => setFormValues({ ...formValues, cuentaPorCobrarId: idValue })}
+                    onChange={(idValue: any) => { setFormValues({ ...formValues, cuentaPorCobrarId: idValue }); clearError("cuentaPorCobrarId"); }}
                   />
+                  {errors.cuentaPorCobrarId && <span style={{ color: "#f04438", fontSize: 12 }}>{errors.cuentaPorCobrarId}</span>}
                 </div>
 
               </div>

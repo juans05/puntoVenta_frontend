@@ -221,7 +221,7 @@ const EditarCuenta = ({ cuenta, cuentas, codigosEeffNiif, onCerrar, onGuardar }:
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={onCerrar}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl p-5 w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-bold text-lg">{cuenta.id ? "Editar cuenta" : "Nueva cuenta"}</h3>

@@ -139,7 +139,7 @@ const EditarGuia = ({ guia, onCerrar, onGuardado }: any) => {
   };
 
   return (
-    <div style={overlay} onClick={onCerrar}>
+    <div style={overlay}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
           <h3 style={{ margin: 0 }}>Guía {guia.numero}</h3>

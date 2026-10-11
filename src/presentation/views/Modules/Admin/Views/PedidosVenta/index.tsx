@@ -236,7 +236,7 @@ export const PedidosVenta = () => {
 };
 
 const Modal = ({ titulo, onCerrar, children }: any) => (
-  <div style={overlay} onClick={onCerrar}>
+  <div style={overlay}>
     <div style={modal} onClick={(e) => e.stopPropagation()}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
         <h3 style={{ margin: 0 }}>{titulo}</h3>
