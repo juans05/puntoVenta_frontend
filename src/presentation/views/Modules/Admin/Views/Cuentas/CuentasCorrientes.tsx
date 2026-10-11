@@ -34,6 +34,33 @@ const input: React.CSSProperties = { border: "1px solid #d1d5db", borderRadius: 
 
 type Tab = "abiertos" | "pagos" | "antiguedad";
 
+// Documentos con el mismo numero (ej. una factura registrada en dos compras) se muestran como una
+// sola fila con total y saldo sumados; `partes` guarda los documentos reales para repartir el pago.
+const agruparPorNumero = (lista: any[]) => {
+  const grupos: Record<string, any> = {};
+  for (const d of lista) {
+    const g = grupos[d.numero];
+    if (!g) grupos[d.numero] = { ...d, partes: [{ id: d.id, saldo: d.saldo }] };
+    else {
+      g.total += d.total;
+      g.saldo = Math.round((g.saldo + d.saldo) * 100) / 100;
+      g.diasVencido = Math.max(g.diasVencido, d.diasVencido);
+      g.partes.push({ id: d.id, saldo: d.saldo });
+    }
+  }
+  return Object.values(grupos);
+};
+
+// Reparte el monto de una fila agrupada entre sus documentos reales, en orden de vencimiento.
+const repartir = (partes: { id: number; saldo: number }[], monto: number) => {
+  let resto = monto;
+  return partes.map((p) => {
+    const m = Math.round(Math.min(p.saldo, resto) * 100) / 100;
+    resto = Math.round((resto - m) * 100) / 100;
+    return { documentoId: p.id, monto: m };
+  }).filter((x) => x.monto > 0);
+};
+
 // Que datos pide cada medio de pago (se detecta por el nombre del metodo configurado).
 const tipoMedio = (nombre = "") => {
   const n = nombre.toLowerCase();
@@ -79,7 +106,7 @@ export const CuentasCorrientes = ({ lado }: { lado: Lado }) => {
   const cargarDocs = async (socio: any) => {
     try {
       const r: any = await axiosInstance.get(`${c.base}/${c.ruta}/${socio.id}/documentos`);
-      setDocs(r.data?.data ?? []);
+      setDocs(agruparPorNumero(r.data?.data ?? []));
       setAPagar({});
     } catch (e) {
       toast.error(mensajeError(e, "No se pudieron cargar los documentos"));
@@ -144,7 +171,7 @@ export const CuentasCorrientes = ({ lado }: { lado: Lado }) => {
 
   const registrar = async () => {
     limpiarErrores();
-    const detalle = Object.entries(aPagar).filter(([, v]) => Number(v) > 0).map(([id, v]) => ({ documentoId: Number(id), monto: Number(v) }));
+    const detalle = docs.filter((d) => Number(aPagar[d.id]) > 0).flatMap((d) => repartir(d.partes, Number(aPagar[d.id])));
     if (detalle.length === 0) {
       setError("monto", "Indica el monto a pagar en al menos un documento");
       return toast.error("Indica el monto a pagar en al menos un documento");
@@ -183,7 +210,7 @@ export const CuentasCorrientes = ({ lado }: { lado: Lado }) => {
       setReferencia(""); setBanco(""); setNroCuenta(""); setNroOperacion(""); setMontoEntregado("");
       await cargarSocios();
       const restantes = (await axiosInstance.get(`${c.base}/${c.ruta}/${socioSel.id}/documentos`) as any).data?.data ?? [];
-      setDocs(restantes);
+      setDocs(agruparPorNumero(restantes));
       setAPagar({});
       if (restantes.length === 0) setSocioSel(null);
     } catch (e) {
