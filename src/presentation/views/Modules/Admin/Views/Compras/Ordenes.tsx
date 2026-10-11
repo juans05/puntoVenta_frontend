@@ -28,7 +28,7 @@ const overlay: React.CSSProperties = {
   display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
 };
 const modal: React.CSSProperties = {
-  background: "#fff", borderRadius: 12, padding: 20, width: "min(760px, 100%)", maxHeight: "90vh", overflow: "auto",
+  background: "#fff", borderRadius: 12, padding: 20, width: "min(920px, 100%)", maxHeight: "94vh", overflow: "auto",
 };
 const input: React.CSSProperties = { border: "1px solid #d1d5db", borderRadius: 8, padding: "6px 8px", width: "100%" };
 const label: React.CSSProperties = { display: "flex", alignItems: "center", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 };

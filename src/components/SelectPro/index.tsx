@@ -1,4 +1,5 @@
-import {  useEffect, useState } from "react";
+import {  useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Input from "../Input";
 import Svg from "../Svg";
 import { Icons } from '../Svg/iconsPack'
@@ -65,7 +66,22 @@ const SelectPro = ({
     const [, setShowOptions] = useState(false);
     const [valueOptions, setValueOptions] = useState<string>(defaultValue);
     const [optionSearch, setOptionsSearch] = useState<any>([]);
-    const [isOpen, setIsOpen, ref] = useOutsideClick(false);
+    const listRef = useRef<HTMLDivElement>(null);
+    const [isOpen, setIsOpen, ref] = useOutsideClick(false, listRef);
+    // La lista va en un portal con position fixed: dentro de un contenedor con scroll (ej. modal)
+    // un absolute agrandaba el area scrolleable y movia la pantalla al abrir.
+    const [rect, setRect] = useState<DOMRect | null>(null);
+    useLayoutEffect(() => {
+        if (!isOpen) return setRect(null);
+        const update = () => ref.current && setRect(ref.current.getBoundingClientRect());
+        update();
+        window.addEventListener("scroll", update, true);
+        window.addEventListener("resize", update);
+        return () => {
+            window.removeEventListener("scroll", update, true);
+            window.removeEventListener("resize", update);
+        };
+    }, [isOpen]);
 
     useEffect(() => {
         if (defaultValue === "") {
@@ -174,10 +190,10 @@ const SelectPro = ({
                     </div>
                 </div>
 
-                {isOpen && (
-                    <motion.div
+                {isOpen && rect && createPortal(
+                    <motion.div ref={listRef}
                         animate={position === "center" ? { x: 0, y: -45 } : position === "top" ? { x: 0, y: -290 } : position === "right" ? { x: 250, y: -80 } : { x: 0, y: 10 }}
-                        initial={position === "center" ? { x: 0, y: -25 } : position === "top" ? { y: -300, x: 0 } : position === "right" ? { x: 250, y: -100 } : { y: 40 }} style={optionsHeigth} className={styles.content__listOptions}>
+                        initial={position === "center" ? { x: 0, y: -25 } : position === "top" ? { y: -300, x: 0 } : position === "right" ? { x: 250, y: -100 } : { y: 40 }} style={{ ...optionsHeigth, position: "fixed", top: rect.bottom, left: rect.left, width: rect.width }} className={styles.content__listOptions}>
                         {
                             resultsOptions && resultsOptions?.length > 0 ? resultsOptions?.map((item: IOption, index: number) => (
                                 <motion.div key={index}>
@@ -220,7 +236,8 @@ const SelectPro = ({
                                 </li>
                             </motion.div>
                         )}
-                    </motion.div>
+                    </motion.div>,
+                    document.body
                 )}
             </div>
         </>

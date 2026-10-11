@@ -12,8 +12,10 @@ export const AsientoPreview = ({ titulo = "Asiento contable a generar", lineas, 
   const debe = visibles.reduce((a, l) => a + l.debe, 0);
   const haber = visibles.reduce((a, l) => a + l.haber, 0);
   return (
-    <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 10, marginTop: 10, background: "#fafafa" }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 6 }}>📒 {titulo} (vista previa)</div>
+    // <details> nativo: cerrado por defecto para no alargar el formulario; se abre al hacer clic.
+    <details style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 10, marginTop: 10, background: "#fafafa" }}>
+      <summary style={{ fontSize: 12, fontWeight: 700, color: "#374151", cursor: "pointer" }}>📒 Ver {titulo.charAt(0).toLowerCase() + titulo.slice(1)} (vista previa)</summary>
+      <div style={{ marginTop: 6 }}>
       {visibles.length === 0 ? (
         <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>Completa los montos para ver el asiento.</p>
       ) : (
@@ -44,7 +46,8 @@ export const AsientoPreview = ({ titulo = "Asiento contable a generar", lineas, 
         </table>
       )}
       {nota && <p style={{ fontSize: 11, color: "#6b7280", margin: "6px 0 0" }}>{nota}</p>}
-    </div>
+      </div>
+    </details>
   );
 };
 

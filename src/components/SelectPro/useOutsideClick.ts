@@ -2,14 +2,15 @@ import { useState, useEffect, useRef } from "react";
 
 type UseDropdownReturnType = [boolean, React.Dispatch<React.SetStateAction<boolean>>, React.RefObject<HTMLDivElement>];
 
-function useOutsideClick(initialIsOpen: boolean): UseDropdownReturnType {
+// extraRef: contenido renderizado fuera del wrapper (portal), que tampoco cuenta como "afuera".
+function useOutsideClick(initialIsOpen: boolean, extraRef?: React.RefObject<HTMLElement>): UseDropdownReturnType {
 
   const [isOpen, setIsOpen] = useState(initialIsOpen);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
+      if (ref.current && !ref.current.contains(event.target as Node) && !extraRef?.current?.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
@@ -17,7 +18,7 @@ function useOutsideClick(initialIsOpen: boolean): UseDropdownReturnType {
     return () => {
       document.removeEventListener("click", handleClickOutside, true);
     };
-  }, [ref]);
+  }, [ref, extraRef]);
   return [isOpen, setIsOpen, ref];
 }
 
