@@ -31,14 +31,32 @@ const formatSoles = (n: number) => `S/ ${n.toFixed(2)}`;
 
 const celda = "border border-gray-200 rounded-md px-2 py-1.5 text-sm w-full bg-white";
 
-export const AsientoManualForm = ({ onGuardado, onCancelar }: { onGuardado: () => void; onCancelar: () => void }) => {
+const soloFecha = (f?: string | null) => (f ? String(f).slice(0, 10) : "");
+const texto = (v: any) => (v == null || v === 0 ? "" : String(v));
+
+// Con `asiento` el formulario muestra ese asiento en modo consulta (los asientos no se editan: se anulan).
+export const AsientoManualForm = ({ onGuardado, onCancelar, asiento }: { onGuardado: () => void; onCancelar: () => void; asiento?: any }) => {
+  const soloLectura = !!asiento;
   const [cuentas, setCuentas] = useState<any[]>([]);
   const [centros, setCentros] = useState<any[]>([]);
-  const [fecha, setFecha] = useState(hoy());
-  const [fechaDocumento, setFechaDocumento] = useState("");
-  const [fechaVencimiento, setFechaVencimiento] = useState("");
-  const [glosa, setGlosa] = useState("");
-  const [lineas, setLineas] = useState<Linea[]>([lineaVacia(), lineaVacia()]);
+  const [fecha, setFecha] = useState(asiento ? soloFecha(asiento.fecha) : hoy());
+  const [fechaDocumento, setFechaDocumento] = useState(soloFecha(asiento?.fechaDocumento));
+  const [fechaVencimiento, setFechaVencimiento] = useState(soloFecha(asiento?.fechaVencimiento));
+  const [glosa, setGlosa] = useState(asiento?.glosa ?? "");
+  const [lineas, setLineas] = useState<Linea[]>(() =>
+    asiento
+      ? asiento.detalle.map((d: any) => ({
+          cuentaCodigo: d.cuentaCodigo ?? "",
+          cuentaAsociada: d.cuentaAsociada ?? "",
+          centroCosto1Id: texto(d.centroCosto1Id),
+          centroCosto2Id: texto(d.centroCosto2Id),
+          cuentaDestinoId: texto(d.cuentaDestinoId),
+          descripcion: d.descripcion ?? "",
+          debe: texto(d.debe),
+          haber: texto(d.haber),
+        }))
+      : [lineaVacia(), lineaVacia()]
+  );
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
@@ -48,7 +66,8 @@ export const AsientoManualForm = ({ onGuardado, onCancelar }: { onGuardado: () =
 
   const hojas = cuentas.filter((c: any) => c.nivel === 5);
   const clase9 = hojas.filter((c: any) => c.codigo.startsWith("9"));
-  const nombreDe = (codigo: string) => hojas.find((c: any) => c.codigo === codigo)?.nombre ?? "";
+  const nombreDe = (codigo: string) =>
+    hojas.find((c: any) => c.codigo === codigo)?.nombre ?? asiento?.detalle.find((d: any) => d.cuentaCodigo === codigo)?.cuentaNombre ?? "";
 
   const cambiar = (i: number, campo: keyof Linea, valor: string) =>
     setLineas((ls) => ls.map((l, j) => {
@@ -96,7 +115,8 @@ export const AsientoManualForm = ({ onGuardado, onCancelar }: { onGuardado: () =
   };
 
   return (
-    <div className="mt-5 bg-white border border-gray-100 rounded-2xl p-4">
+    <div className="bg-white">
+      <fieldset disabled={soloLectura} className="contents">
       <div className="flex flex-wrap gap-4 justify-between">
         <div className="flex flex-wrap gap-3 items-end flex-1 min-w-0">
           <div>
@@ -196,18 +216,23 @@ export const AsientoManualForm = ({ onGuardado, onCancelar }: { onGuardado: () =
           </tbody>
         </table>
       </div>
+      </fieldset>
 
       <div className="flex flex-wrap justify-between gap-3 mt-3">
+        {soloLectura ? <span /> : (
         <button type="button" className="border border-gray-300 rounded-lg px-3 py-2 text-sm hover:bg-gray-50"
           onClick={() => setLineas((ls) => [...ls, lineaVacia()])}>
           Agregar línea
         </button>
+        )}
         <div className="flex gap-2">
-          <button type="button" className="border border-gray-300 rounded-lg px-4 py-2 text-sm hover:bg-gray-50" onClick={onCancelar}>Cancelar</button>
-          <button type="button" className="bg-indigo-600 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
+          <button type="button" className="border border-gray-300 rounded-lg px-4 py-2 text-sm hover:bg-gray-50" onClick={onCancelar}>
+            {soloLectura ? "Cerrar" : "Cancelar"}
+          </button>
+          {!soloLectura && <button type="button" className="bg-indigo-600 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
             disabled={guardando || diferencia !== 0 || totalDebe === 0} onClick={guardar}>
             {guardando ? "Guardando..." : "Registrar asiento"}
-          </button>
+          </button>}
         </div>
       </div>
     </div>

@@ -936,3 +936,24 @@
     text-align: left;
   }
 }
+
+/* Popup de busqueda de clientes */
+
+.pickerPanelWide {
+  max-width: 640px;
+}
+
+.pickerFiltros {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.pickerFiltros .pickerSearch {
+  min-width: 0;
+}
+
+@media screen and (max-width: 640px) {
+  .pickerFiltros {
+    grid-template-columns: 1fr;
+  }
+}

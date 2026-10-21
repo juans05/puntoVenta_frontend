@@ -25,6 +25,7 @@ import {
   updateProductByPrice,
 } from "../../../../redux/reducers/ventas/ventas.reducer";
 import { ProductoPickerModal } from "./ProductoPickerModal";
+import { ClientePickerModal } from "./ClientePickerModal";
 import ModalLoadingPay from "../Facturacion/ModalLoadingPay";
 import { printTable } from "../../../../helpers/functions/printTitle";
 import { title } from "../../../../infraestructure/MData/MData";
@@ -139,6 +140,7 @@ const NuevaFactura = () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   });
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isClientePickerOpen, setIsClientePickerOpen] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [isOpenLoadingPay, setIsOpenLoadingPay] = useState(false);
 
@@ -980,7 +982,13 @@ const NuevaFactura = () => {
                   onKeyDown={(e) => e.key === "Enter" && buscarCliente()}
                   style={estiloError(!!errors.numeroDocumento)}
                 />
-                <button type="button" className={styles.searchIconBtn} onClick={buscarCliente} disabled={buscando}>
+                <button
+                  type="button"
+                  className={styles.searchIconBtn}
+                  onClick={() => setIsClientePickerOpen(true)}
+                  disabled={buscando}
+                  title="Buscar cliente"
+                >
                   <Icon icon="iconamoon:search-bold" />
                 </button>
                 <button
@@ -1555,6 +1563,12 @@ const NuevaFactura = () => {
       />
       {isOpenLoadingPay && code === 1 && colaXml.length === 0 && <ModalLoadingPay setIsOpenLoadingPay={setIsOpenLoadingPay} />}
       <ClientesModal onGuardado={clienteRegistrado} />
+      <ClientePickerModal
+        isOpen={isClientePickerOpen}
+        onClose={() => setIsClientePickerOpen(false)}
+        onSeleccionar={seleccionarCliente}
+        documentoInicial={numeroDocumento}
+      />
     </div>
   );
 };

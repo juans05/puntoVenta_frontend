@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import Modal from "react-modal";
 import { toast } from "sonner";
 import axiosInstance from "../../../../../../utils/axios";
 import { TableSkeleton } from "../../../../../../components/Skeleton";
@@ -32,6 +33,8 @@ export const AsientosContables = () => {
   const [origenTipo, setOrigenTipo] = useState("");
   const [expandido, setExpandido] = useState<number | null>(null);
   const [nuevo, setNuevo] = useState(false);
+  const [consultado, setConsultado] = useState<any>(null);
+  const cerrarModal = () => { setNuevo(false); setConsultado(null); };
 
   const anularManual = async (id: number) => {
     if (!window.confirm("¿Anular este asiento? Se generará su reverso.")) return;
@@ -67,20 +70,35 @@ export const AsientosContables = () => {
     <div className="w-full">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-xl font-bold text-gray-900">Asientos Contables</h3>
-        {!nuevo && (
-          <button type="button" className="bg-indigo-600 text-white text-sm font-semibold rounded-lg px-4 py-2" onClick={() => setNuevo(true)}>
-            Nuevo asiento
-          </button>
-        )}
+        <button type="button" className="bg-indigo-600 text-white text-sm font-semibold rounded-lg px-4 py-2" onClick={() => setNuevo(true)}>
+          Nuevo asiento
+        </button>
       </div>
       <p className="text-sm text-gray-500 mt-1 max-w-2xl">
         Libro diario de partida doble: compras, ventas, movimientos de inventario y pagos generan aquí
         su propio asiento. También puedes registrar asientos manuales.
       </p>
 
-      {nuevo && (
-        <AsientoManualForm onCancelar={() => setNuevo(false)} onGuardado={() => { setNuevo(false); cargar(); }} />
-      )}
+      <Modal
+        isOpen={nuevo || !!consultado}
+        onRequestClose={cerrarModal}
+        ariaHideApp={false}
+        className="bg-white rounded-2xl p-5 w-full max-w-[1200px] max-h-[90vh] overflow-y-auto outline-none mx-4"
+        overlayClassName="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">
+            {consultado ? `Asiento ${consultado.numero}` : "Nuevo asiento contable"}
+          </h3>
+          <button type="button" aria-label="Cerrar" className="text-gray-400 hover:text-gray-700 text-xl" onClick={cerrarModal}>✕</button>
+        </div>
+        <AsientoManualForm
+          key={consultado?.id ?? "nuevo"}
+          asiento={consultado ?? undefined}
+          onCancelar={cerrarModal}
+          onGuardado={() => { cerrarModal(); cargar(); }}
+        />
+      </Modal>
 
       <div className="flex flex-wrap items-end gap-3 mt-5 bg-white border border-gray-100 rounded-xl p-4">
         <div>
@@ -128,7 +146,12 @@ export const AsientosContables = () => {
                   <Fragment key={a.id}>
                     <tr className="bg-white border-b hover:bg-gray-50 cursor-pointer"
                       onClick={() => setExpandido(expandido === a.id ? null : a.id)}>
-                      <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900">{a.numero}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-medium">
+                        <button type="button" className="text-indigo-600 hover:underline"
+                          onClick={(e) => { e.stopPropagation(); setConsultado(a); }}>
+                          {a.numero}
+                        </button>
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap">{new Date(a.fecha).toLocaleDateString()}</td>
                       <td className="px-4 py-3">{a.glosa}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{ORIGENES.find((o) => o.value === a.origenTipo)?.label ?? a.origenTipo}</td>
