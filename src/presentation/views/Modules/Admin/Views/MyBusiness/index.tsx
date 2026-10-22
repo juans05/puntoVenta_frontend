@@ -17,6 +17,7 @@ import { Toaster, toast } from "sonner";
 import { Logotipos } from "./Logotipos";
 import { RedesSociales } from "./RedesSociales";
 import { Proximamente } from "./Proximamente";
+import { ClaveSol } from "./ClaveSol";
 
 export interface IEmpresa {
   tenantNombre: string;
@@ -380,7 +381,8 @@ export const MyBusiness = () => {
               ]}
             />
           )}
-          {seccion === "proximamente" && <Proximamente titulo={SECCIONES_PROXIMAMENTE[itemProximamente] ?? "Próximamente"} />}
+          {seccion === "proximamente" && itemProximamente === "certificado-sol" && <ClaveSol />}
+          {seccion === "proximamente" && itemProximamente !== "certificado-sol" && <Proximamente titulo={SECCIONES_PROXIMAMENTE[itemProximamente] ?? "Próximamente"} />}
         </div>
       </div>
 

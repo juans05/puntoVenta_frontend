@@ -6,6 +6,7 @@ import { useFormErrors, estiloError, CampoError } from "../../../../../../compon
 import Input from "../../../../../../components/Input";
 import { Button } from "@tremor/react";
 import { TableSkeleton } from "../../../../../../components/Skeleton";
+import { listarEmpresas } from "../../../../../../utils/empresas";
 
 Modal.setAppElement("#root");
 
@@ -95,7 +96,47 @@ export const Usuarios = () => {
 
   useEffect(() => {
     loadUsers();
+    listarEmpresas().then((es) => setEsPropietario(es.some((e) => e.esPropietario))).catch(() => {});
   }, []);
+
+  // Empresas de la cuenta a las que entra un usuario y con que perfil (solo el dueño las asigna).
+  const [esPropietario, setEsPropietario] = useState(false);
+  const [usuarioEmpresas, setUsuarioEmpresas] = useState<IUsuario | null>(null);
+  const [empresasUsuario, setEmpresasUsuario] = useState<any[]>([]);
+  const [guardandoEmpresas, setGuardandoEmpresas] = useState(false);
+
+  const abrirEmpresas = async (u: IUsuario) => {
+    setUsuarioEmpresas(u);
+    setEmpresasUsuario([]);
+    try {
+      const { data }: any = await axiosInstance.get(`/user/${u.id}/empresas`);
+      setEmpresasUsuario((data?.data ?? []).map((e: any) => ({ ...e, roleId: e.roleId ?? "" })));
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "No se pudieron cargar las empresas");
+      setUsuarioEmpresas(null);
+    }
+  };
+
+  const cambiarEmpresaUsuario = (tenantId: number, cambios: any) =>
+    setEmpresasUsuario((prev) => prev.map((e) => (e.tenantId === tenantId ? { ...e, ...cambios } : e)));
+
+  const guardarEmpresas = async () => {
+    if (!usuarioEmpresas) return;
+    setGuardandoEmpresas(true);
+    try {
+      await axiosInstance.put(
+        `/user/${usuarioEmpresas.id}/empresas`,
+        empresasUsuario.filter((e) => e.asignado).map((e) => ({ tenantId: e.tenantId, roleId: e.roleId || null }))
+      );
+      toast.success("Empresas del usuario actualizadas");
+      setUsuarioEmpresas(null);
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "No se pudieron guardar las empresas");
+    } finally {
+      setGuardandoEmpresas(false);
+    }
+  };
 
   const abrirNuevo = async () => {
     setForm({ ...initialForm, userName: generarCodigo(), password: generarPassword() });
@@ -309,7 +350,15 @@ export const Usuarios = () => {
                       {u.estado ? "● Activo" : "● Inactivo"}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {esPropietario && (
+                      <button
+                        className="text-xs font-semibold px-3 py-1.5 rounded-md border border-indigo-200 text-indigo-600 mr-2"
+                        onClick={() => abrirEmpresas(u)}
+                      >
+                        Empresas
+                      </button>
+                    )}
                     <button
                       className={`text-xs font-semibold px-3 py-1.5 rounded-md border ${u.estado ? "border-red-200 text-red-600" : "border-green-200 text-green-600"}`}
                       onClick={() => cambiarEstado(u)}
@@ -450,6 +499,55 @@ export const Usuarios = () => {
             </Button>
             <Button size="sm" onClick={handleSubmit} disabled={creando || Object.keys(errors).length > 0}>
               {creando ? "Creando..." : "Crear usuario"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!usuarioEmpresas}
+        onRequestClose={() => setUsuarioEmpresas(null)}
+        style={{ ...modalStyle, content: { ...modalStyle.content, width: "min(92vw, 560px)" } }}
+      >
+        <div className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900">Empresas de {usuarioEmpresas?.nombres}</h3>
+          <p className="text-xs text-gray-500 mb-4">
+            Marca a qué empresas entra y con qué perfil. Los perfiles se crean en Roles y Permisos de cada empresa.
+          </p>
+          <div className="flex flex-col gap-2">
+            {empresasUsuario.length === 0 && <p className="text-sm text-gray-400 py-4 text-center">Cargando...</p>}
+            {empresasUsuario.map((e) => (
+              <div key={e.tenantId} className="flex flex-wrap items-center gap-3 border border-gray-200 rounded-lg px-3 py-2">
+                <label className="flex items-center gap-2 flex-1 min-w-[180px]">
+                  <input
+                    type="checkbox"
+                    checked={e.asignado}
+                    disabled={e.esPropietario}
+                    onChange={(ev) => cambiarEmpresaUsuario(e.tenantId, { asignado: ev.target.checked })}
+                  />
+                  <span className="text-sm font-medium text-gray-800">{e.nombre}</span>
+                  {e.esPropietario && <span className="text-xs text-indigo-600">Propietario</span>}
+                </label>
+                <select
+                  className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm"
+                  value={e.roleId}
+                  disabled={!e.asignado || e.esPropietario}
+                  onChange={(ev) => cambiarEmpresaUsuario(e.tenantId, { roleId: ev.target.value })}
+                >
+                  <option value="">Administrador (todo)</option>
+                  {e.perfiles.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button size="sm" variant="secondary" onClick={() => setUsuarioEmpresas(null)}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={guardarEmpresas} disabled={guardandoEmpresas || empresasUsuario.length === 0}>
+              {guardandoEmpresas ? "Guardando..." : "Guardar"}
             </Button>
           </div>
         </div>

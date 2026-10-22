@@ -9,6 +9,8 @@ import { SUCURSAL_ACTIVA_KEY } from "../../../utils/axios";
 import { RootState } from "../../../redux/rootState";
 import { adminMenu, menuSidebar } from "../../../infraestructure/MData/MData";
 import { Avatar } from "../../Avatar";
+import { cambiarEmpresa, IEmpresaAcceso, listarEmpresas } from "../../../utils/empresas";
+import { toast } from "sonner";
 
 export const Navbar = ({ onClickSidebar }: any) => {
   const refMenu = useRef<HTMLDivElement>(null);
@@ -22,9 +24,19 @@ export const Navbar = ({ onClickSidebar }: any) => {
   const dispatch = useAppDispatch();
   const { sucursales }: any = useAppSelector((state: RootState) => state.extentions);
   const sucursalActiva = localStorage.getItem(SUCURSAL_ACTIVA_KEY) ?? "";
+  const [empresas, setEmpresas] = useState<IEmpresaAcceso[]>([]);
   useEffect(() => {
     dispatch(getSucursales() as any);
+    listarEmpresas().then(setEmpresas).catch(() => setEmpresas([]));
   }, []);
+  const empresaActiva = empresas.find((e) => e.activa);
+  const onCambiarEmpresa = (valor: string) => {
+    if (valor === "gestionar") {
+      window.location.href = "/dashboard/mis-empresas";
+      return;
+    }
+    cambiarEmpresa(Number(valor)).catch(() => toast.error("No se pudo cambiar de empresa"));
+  };
   // Recarga para que todas las pantallas vuelvan a pedir sus datos con la nueva sede.
   const cambiarSucursal = (id: string) => {
     if (id) localStorage.setItem(SUCURSAL_ACTIVA_KEY, id);
@@ -114,6 +126,22 @@ export const Navbar = ({ onClickSidebar }: any) => {
           </div>
           <div className="flex items-center">
             <div className="flex items-center gap-3 relative">
+              {(empresas.length > 1 || empresas.some((e) => e.esPropietario)) && (
+                <select
+                  value={empresaActiva?.tenantId ?? ""}
+                  onChange={(e) => onCambiarEmpresa(e.target.value)}
+                  title="Cambiar de empresa"
+                  className="h-9 max-w-[150px] sm:max-w-[220px] rounded-lg border border-neutral-200 bg-white px-2 text-sm font-medium text-neutral-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                >
+                  {empresas.map((e) => (
+                    <option key={e.tenantId} value={e.tenantId}>
+                      🏢 {e.nombre}
+                    </option>
+                  ))}
+                  <option value="gestionar">⚙ Mis empresas...</option>
+                </select>
+              )}
+
               {(sucursales?.length ?? 0) > 0 && (
                 <select
                   value={sucursalActiva}

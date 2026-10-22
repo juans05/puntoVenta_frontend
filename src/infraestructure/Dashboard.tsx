@@ -54,6 +54,9 @@ import Pedidos from "../presentation/views/Modules/Pedidos";
 import PedidoPublico from "../presentation/views/Public/Pedido/PedidoPublico";
 import ClienteLogin from "../presentation/views/Public/Cliente/ClienteLogin";
 import ClientePortal from "../presentation/views/Public/Cliente/ClientePortal";
+import SeleccionarEmpresa from "../presentation/views/SeleccionarEmpresa";
+import Registro from "../presentation/views/Registro";
+import { MisEmpresas } from "../presentation/views/Modules/Admin/Views/MisEmpresas";
 
 // Componente separado (en vez de leer useLocation directo en Dashboard) porque useLocation
 // necesita estar DENTRO del <Router>, y Dashboard es quien lo crea.
@@ -67,6 +70,8 @@ const DashboardRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
+      <Route path="/seleccionar-empresa" element={<SeleccionarEmpresa />} />
+      <Route path="/registro" element={<Registro />} />
       <Route path="/facturacion" element={<Facturacion />} />
       <Route path="/venta-rapida" element={<Facturacion requiereCaja={false} />} />
       <Route path="/nueva-venta" element={<NuevaVenta />} />
@@ -93,6 +98,7 @@ const DashboardRoutes = () => {
         <Route path="clientes" element={<ClientesProveedores />}/>
         <Route path="reporte-cierre-caja" element={<ReporteCierreCaja />}/>
         <Route path="mi-empresa" element={<MyBusiness />}/>
+        <Route path="mis-empresas" element={<MisEmpresas />}/>
         <Route path="configuracion-renta" element={<ConfiguracionRenta />}/>
         <Route path="usuarios" element={<Usuarios />}/>
         <Route path="sucursales" element={<Sucursales />}/>

@@ -32,6 +32,7 @@ import { Indicadores } from "./Indicadores/Indicadores";
 import ExportExcel from "../../../../../../components/ExportExcel/ExportExcel";
 import { EmitirNotaModal } from "../../../../../../components/Modal/Admin/Notas/EmitirNotaModal";
 import { toast } from "sonner";
+import { VentasSunatModal } from "./VentasSunatModal";
 const header: IHeaderTable[] = [
   /*        { type: "seleccion", alias: "Seleccionar" }, */
   /*   { type: "checked", alias: "Checked" }, */
@@ -63,6 +64,7 @@ const dataHistory: IDataHistory = {
 /* const dataFusionada = fusionarArreglos(dataCustomers, dataSuppliers); */
 export const DocumentosFacturados = () => {
   const navigate = useNavigate();
+  const [ventasSunatOpen, setVentasSunatOpen] = useState(false);
   const [dateHistory, setDateHistory] = useState<IDataHistory>(dataHistory);
   const { dateStart, dateEnd } = dateHistory;
   const [filterTipo, setFilterTipo] = useState<string>("todos");
@@ -376,6 +378,9 @@ export const DocumentosFacturados = () => {
                 <button className={styles.toolbarLink} style={{ color: "#17C653" }} onClick={() => navigate("/dashboard/nueva-factura/boleta")}>
                   <Icon icon="mdi:receipt-text-outline" /> Crear Boleta
                 </button>
+                <button className={styles.toolbarLink} style={{ color: "#7C3AED" }} onClick={() => setVentasSunatOpen(true)}>
+                  <Icon icon="mdi:cloud-download-outline" /> Traer de SUNAT
+                </button>
               </div>
               <label className={styles.advancedToggle}>
                 Opciones avanzada
@@ -540,6 +545,7 @@ export const DocumentosFacturados = () => {
         </div>
       </div>
       <VentasModal />
+      <VentasSunatModal isOpen={ventasSunatOpen} onClose={() => setVentasSunatOpen(false)} />
       <EmitirNotaModal
         isOpen={!!notaComprobante}
         comprobante={notaComprobante}

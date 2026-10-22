@@ -74,6 +74,12 @@ const Login = () => {
   useEffect(() => {
     const token = getToken();
 
+    // Con acceso a varias empresas, primero elige con cual trabajar.
+    if (token && (login as any)?.empresas?.length > 1) {
+      window.location.href = "/seleccionar-empresa";
+      return;
+    }
+
     console.log(token);
     console.log(me);
 
@@ -213,6 +219,10 @@ const Login = () => {
                 Iniciar sesión
               </button>
             </div>
+            <p style={{ textAlign: "center", fontSize: 14, color: "#6b7280" }}>
+              ¿No tienes cuenta?{" "}
+              <a href="/registro" style={{ color: "#2563eb", fontWeight: 600 }}>Crear cuenta</a>
+            </p>
           </div>
         </div>
         <div className={styles.login__banner} style={recursos?.imagenPortada ? { backgroundImage: `url(${recursos.imagenPortada})` } : undefined}>
