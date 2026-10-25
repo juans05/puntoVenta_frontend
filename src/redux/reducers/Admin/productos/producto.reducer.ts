@@ -522,7 +522,7 @@ export const createProducto = (producto: any) => {
       }
       return null;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? "No se pudo crear el producto");
+      toast.error(typeof error?.response?.data?.data === "string" ? error.response.data.data : error?.response?.data?.message ?? "No se pudo crear el producto");
       return null;
     }
   };
@@ -546,7 +546,7 @@ export const updateProducts = (productoUpdated: any) => {
       }
       return null;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? "No se pudo guardar el producto");
+      toast.error(typeof error?.response?.data?.data === "string" ? error.response.data.data : error?.response?.data?.message ?? "No se pudo guardar el producto");
       return null;
     }
   };

@@ -412,7 +412,8 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     cuentaIngresoDebeId: formValues.cuentaIngresoDebeId || undefined,
     cuentaGastoHaberId: formValues.cuentaGastoHaberId || undefined,
     cuentasInventarioMovimiento: JSON.stringify(
-      Object.fromEntries(Object.entries(formValues.cuentasInventarioMovimiento ?? {}).filter(([, v]) => v))
+      // El backend lee este JSON como Dictionary<string, int>: los ids van como numero, no texto.
+      Object.fromEntries(Object.entries(formValues.cuentasInventarioMovimiento ?? {}).filter(([, v]) => v).map(([k, v]) => [k, Number(v)]))
     ),
     porcentajeDetraccion: porcentajeDetraccion || undefined,
     destinoPreparacion: destinoPreparacion === "Ninguno" ? undefined : destinoPreparacion,
