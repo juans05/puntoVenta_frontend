@@ -438,12 +438,13 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
       return toast.error(`Falta elegir: ${faltantes.join(", ")} (pestaña Contabilidad)`);
     }
     if (activeProducto) {
-      dispatch(
+      const actualizado: any = await dispatch(
         updateProducts({
           ...buildPayload(),
           usuarioModificacion: "admin",
         })
       );
+      if (!actualizado) return;
       closeModal();
 
       // Refrescar la lista de productos después de actualizar uno
@@ -474,6 +475,8 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
         // el toast de error lo muestra la acción
       }
 
+      // Si el backend lo rechazo, createProducto ya mostro el motivo: se deja el modal abierto para corregir.
+      if (!creado) return;
       closeModal();
       toast.success("Se creó un nuevo producto");
       limpiarImagen();
@@ -1353,8 +1356,10 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                   </p>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 mb-4">
+                <div>
                 <h5 className="text-sm font-bold text-gray-800 mb-2">Cuenta de venta</h5>
-                <div className="grid grid-cols-1 gap-3 mb-4">
+                <div className="grid grid-cols-1 gap-3">
                   <SelectPro
                     isLabel
                     label="Debe"
@@ -1376,9 +1381,11 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                     onChange={(idValue: any) => setFormValues({ ...formValues, cuentaIngresoId: idValue })}
                   />
                 </div>
+                </div>
 
+                <div>
                 <h5 className="text-sm font-bold text-gray-800 mb-2">{esServicio ? "Cuenta de gasto" : "Cuenta de costo de venta / gasto"}</h5>
-                <div className="grid grid-cols-1 gap-3 mb-4">
+                <div className="grid grid-cols-1 gap-3">
                   <SelectPro
                     isLabel
                     label="Debe"
@@ -1400,6 +1407,8 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                     onChange={(idValue: any) => setFormValues({ ...formValues, cuentaGastoHaberId: idValue })}
                   />
                 </div>
+                </div>
+                </div>
 
                 {!esServicio && (
                   <>
@@ -1407,7 +1416,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                     <p className="text-xs text-gray-500 mb-2">
                       Opcional. Si eliges una, completa su par Debe/Haber. Sin configurar se usan 20 Mercaderías con 61 (compras y ajustes) o 69 (ventas).
                     </p>
-                    <div className="grid grid-cols-1 gap-y-4">
+                    <div className="grid grid-cols-1 gap-y-2">
                       {MOVIMIENTOS_INVENTARIO.map((m) => {
                         const claveDebe = m.entrada ? `${m.id}` : `${m.id}_C`;
                         const claveHaber = m.entrada ? `${m.id}_C` : `${m.id}`;
@@ -1416,8 +1425,8 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                           cuentasInventarioMovimiento: { ...(prev.cuentasInventarioMovimiento ?? {}), [clave]: idValue },
                         }));
                         return (
-                          <div key={`${m.id}-${activeProducto?.productoId ?? 0}`} className="grid grid-cols-1 gap-y-2">
-                            <span className="text-sm font-semibold text-gray-700">{m.label}</span>
+                          <div key={`${m.id}-${activeProducto?.productoId ?? 0}`} className="grid grid-cols-[140px_1fr_1fr] gap-x-3 items-end">
+                            <span className="text-sm font-medium text-gray-700 pb-2">{m.label}</span>
                             <SelectPro
                               isLabel
                               label={`Debe${m.entrada ? " (inventario)" : " (contrapartida)"}`}

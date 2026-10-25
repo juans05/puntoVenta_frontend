@@ -522,7 +522,7 @@ export const createProducto = (producto: any) => {
       }
       return null;
     } catch (error: any) {
-      console.log(error);
+      toast.error(error?.response?.data?.message ?? "No se pudo crear el producto");
       return null;
     }
   };
@@ -546,7 +546,7 @@ export const updateProducts = (productoUpdated: any) => {
       }
       return null;
     } catch (error: any) {
-      console.log(error);
+      toast.error(error?.response?.data?.message ?? "No se pudo guardar el producto");
       return null;
     }
   };
