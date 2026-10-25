@@ -428,18 +428,11 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
   });
 
   const createProduct = async () => {
-    // Obligatoriedad segun los interruptores: Venta=Si exige la cuenta de venta (Debe y Haber); Compra=Si
-    // exige costo de venta/gasto (Debe y Haber). Inventario por movimiento: opcional, pero si se elige
-    // un lado del par se exige el otro (todo movimiento lleva Debe y Haber).
+    // Todas las cuentas son opcionales. Inventario por movimiento: si se elige un lado del par
+    // se exige el otro (todo movimiento lleva Debe y Haber).
     const mov = formValues.cuentasInventarioMovimiento ?? {};
-    const faltantes = [
-      seVende && ["cuenta de venta (Debe)", formValues.cuentaIngresoDebeId],
-      seVende && ["cuenta de venta (Haber)", formValues.cuentaIngresoId],
-      seCompra && ["cuenta de costo/gasto (Debe)", formValues.cuentaCostoId],
-      seCompra && ["cuenta de costo/gasto (Haber)", formValues.cuentaGastoHaberId],
-      ...(esServicio ? [] : MOVIMIENTOS_INVENTARIO.filter((m) => !!mov[m.id] !== !!mov[`${m.id}_C`])
-        .map((m) => [`${m.label} (${mov[m.id] ? "contrapartida" : "inventario"})`, 0])),
-    ].filter((x): x is [string, any] => !!x && !x[1]).map(([n]) => n);
+    const faltantes = esServicio ? [] : MOVIMIENTOS_INVENTARIO.filter((m) => !!mov[m.id] !== !!mov[`${m.id}_C`])
+      .map((m) => `${m.label} (${mov[m.id] ? "contrapartida" : "inventario"})`);
     if (faltantes.length) {
       setTab("contabilidad");
       return toast.error(`Falta elegir: ${faltantes.join(", ")} (pestaña Contabilidad)`);
@@ -1356,16 +1349,15 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                   <h4 className="text-lg font-bold text-gray-900">Cuentas contables</h4>
                   <p className="text-sm text-gray-500 mt-0.5">
                     Solo cuentas de último nivel (8 dígitos) del Plan de Cuentas. Busca por número: "70" muestra solo las
-                    cuentas que empiezan con 70. Con Venta activada es obligatorio el par Debe/Haber de venta. Con Compra
-                    activada, el de costo de venta / gasto.
+                    cuentas que empiezan con 70. Todas son opcionales.
                   </p>
                 </div>
 
                 <h5 className="text-sm font-bold text-gray-800 mb-2">Cuenta de venta</h5>
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 gap-3 mb-4">
                   <SelectPro
                     isLabel
-                    label={seVende ? "Debe *" : "Debe"}
+                    label="Debe"
                     isSearch
                     id="cuentaIngresoDebeId"
                     name="cuentaIngresoDebeIgnorar"
@@ -1375,7 +1367,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                   />
                   <SelectPro
                     isLabel
-                    label={seVende ? "Haber *" : "Haber"}
+                    label="Haber"
                     isSearch
                     id="cuentaIngresoId"
                     name="cuentaIngresoIgnorar"
@@ -1386,10 +1378,10 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                 </div>
 
                 <h5 className="text-sm font-bold text-gray-800 mb-2">{esServicio ? "Cuenta de gasto" : "Cuenta de costo de venta / gasto"}</h5>
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 gap-3 mb-4">
                   <SelectPro
                     isLabel
-                    label={seCompra ? "Debe *" : "Debe"}
+                    label="Debe"
                     isSearch
                     id="cuentaCostoId"
                     name="cuentaCostoIgnorar"
@@ -1399,7 +1391,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                   />
                   <SelectPro
                     isLabel
-                    label={seCompra ? "Haber *" : "Haber"}
+                    label="Haber"
                     isSearch
                     id="cuentaGastoHaberId"
                     name="cuentaGastoHaberIgnorar"
@@ -1415,7 +1407,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                     <p className="text-xs text-gray-500 mb-2">
                       Opcional. Si eliges una, completa su par Debe/Haber. Sin configurar se usan 20 Mercaderías con 61 (compras y ajustes) o 69 (ventas).
                     </p>
-                    <div className="grid grid-cols-1 gap-y-2">
+                    <div className="grid grid-cols-1 gap-y-4">
                       {MOVIMIENTOS_INVENTARIO.map((m) => {
                         const claveDebe = m.entrada ? `${m.id}` : `${m.id}_C`;
                         const claveHaber = m.entrada ? `${m.id}_C` : `${m.id}`;
@@ -1424,8 +1416,8 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                           cuentasInventarioMovimiento: { ...(prev.cuentasInventarioMovimiento ?? {}), [clave]: idValue },
                         }));
                         return (
-                          <div key={`${m.id}-${activeProducto?.productoId ?? 0}`} className="grid grid-cols-[140px_1fr_1fr] gap-x-3 items-end">
-                            <span className="text-sm font-medium text-gray-700 pb-2">{m.label}</span>
+                          <div key={`${m.id}-${activeProducto?.productoId ?? 0}`} className="grid grid-cols-1 gap-y-2">
+                            <span className="text-sm font-semibold text-gray-700">{m.label}</span>
                             <SelectPro
                               isLabel
                               label={`Debe${m.entrada ? " (inventario)" : " (contrapartida)"}`}
