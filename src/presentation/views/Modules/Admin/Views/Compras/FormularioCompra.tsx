@@ -32,7 +32,7 @@ import Input from "../../../../../../components/Input";
 import SelectPro from "../../../../../../components/SelectPro";
 import SelectUbigeo from "../../../../../../components/SelectPro/SelectUbigeo";
 import { toast } from "sonner";
-import { AsientoPreview, lineasAsientoCompra, PlazoCredito } from "../../../../../../components/AsientoPreview";
+import { AsientoPreview, lineasAsientoCompra, separarIgv, tasaIgv, PlazoCredito } from "../../../../../../components/AsientoPreview";
 
 interface IDetalleLinea {
   productoId: number;
@@ -363,9 +363,8 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const otrosCargosNum = Number(otrosCargos) || 0;
   const baseConDescuento = subtotalProductos - montoDescuento + otrosCargosNum;
   const tipoIgvObj = (tiposIgv ?? []).find((t: any) => Number(t.id) === Number(tipoIgvId));
-  const aplicaImpuesto = tipoIgvObj ? tipoIgvObj.aplicaPorcentajeImpuesto : true;
-  const gravada = aplicaImpuesto ? Math.round((baseConDescuento / 1.18) * 100) / 100 : baseConDescuento;
-  const igv = aplicaImpuesto ? Math.round((baseConDescuento - gravada) * 100) / 100 : 0;
+  const tasa = tasaIgv(tipoIgvObj);
+  const { gravada, igv } = separarIgv(baseConDescuento, tasa > 0, tasa);
   const total = baseConDescuento;
 
   const { errors, setError, clearError, limpiarErrores } = useFormErrors();

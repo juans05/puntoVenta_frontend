@@ -4,7 +4,7 @@ import styles from "./compras.module.css";
 import axiosInstance from "../../../../../../utils/axios";
 import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 import { Ayuda } from "../../../../../../components/Ayuda";
-import { AsientoPreview, lineasAsientoCompra, separarIgv, PlazoCredito } from "../../../../../../components/AsientoPreview";
+import { AsientoPreview, lineasAsientoCompra, separarIgv, tasaIgv, PlazoCredito } from "../../../../../../components/AsientoPreview";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { RootState } from "../../../../../../redux/rootState";
 import { getProveedores, getProductosCompra } from "../../../../../../redux/reducers/Admin/compras/compra.reducer";
@@ -513,7 +513,8 @@ const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCer
   // Mismo calculo que el backend: los precios de la factura incluyen IGV.
   const totalFactura = pendientes.reduce((a: number, d: any) => a + (lineas[d.id]?.cantidad ?? 0) * (lineas[d.id]?.costo ?? 0), 0);
   const tipoIgvSel = tiposIgv.find((t: any) => t.id === tipoIgvId);
-  const { gravada, igv } = separarIgv(totalFactura, tipoIgvSel ? tipoIgvSel.aplicaPorcentajeImpuesto : true);
+  const tasaFactura = tasaIgv(tipoIgvSel);
+  const { gravada, igv } = separarIgv(totalFactura, tasaFactura > 0, tasaFactura);
   const detraccionSel = (tiposDetraccion ?? []).find((t: any) => t.id === tipoDetraccionId);
   const montoDetraccion = detraccionSel?.porcentaje ? Math.round(totalFactura * detraccionSel.porcentaje) / 100 : 0;
   const monedaSel = monedas.find((m: any) => m.id === monedaId);

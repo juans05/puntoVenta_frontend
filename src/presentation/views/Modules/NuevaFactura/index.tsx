@@ -35,7 +35,7 @@ import {
   clearActiveClientes,
 } from "../../../../redux/reducers/Admin/clientes-proveedores/clientesProveedoresAnfitrionas.reducer";
 import { ClientesModal } from "../../../../components/Modal/Admin/Clientes";
-import { AsientoPreview } from "../../../../components/AsientoPreview";
+import { AsientoPreview, tasaIgv } from "../../../../components/AsientoPreview";
 
 type TipoDocumento = "boleta" | "factura" | "nota-venta" | "cotizacion";
 
@@ -352,13 +352,11 @@ const NuevaFactura = () => {
     0
   );
 
-  // IGV real sumado por linea segun su Tipo IGV (Gravado usa 18%, Exonerado/Inafecto no paga).
+  // IGV real sumado por linea segun el % de su Tipo IGV (18, 10.5, 11...; Exonerado/Inafecto no paga).
   const igvBruto = productsBySale.reduce((acc: number, item: any) => {
-    const tipoIgv = (tiposIgv as any[])?.find((t) => t.id === item.tipoIgvId);
-    const aplicaImpuesto = tipoIgv ? tipoIgv.aplicaPorcentajeImpuesto : true;
-    if (!aplicaImpuesto) return acc;
+    const tasa = tasaIgv((tiposIgv as any[])?.find((t) => t.id === item.tipoIgvId));
     const importeLinea = item.precio * item.cantidad;
-    return acc + (importeLinea - importeLinea / 1.18);
+    return acc + (importeLinea - importeLinea / (1 + tasa / 100));
   }, 0);
 
   const montoDescuento = descuentoActivo

@@ -31,6 +31,14 @@ const modalStyle = {
 // "cuenta": droplist con buscador del plan de cuentas (ultimo nivel), opcional.
 type TipoCampo = "text" | "checkbox" | "select" | "cuenta";
 
+// % del IGV de un tipo de afectacion (0 = exonerado/inafecto). 10.5 y 11 son las tasas MYPE de restaurantes y hoteles.
+export const OPCIONES_PORCENTAJE_IGV = [
+  { value: 18, label: "18%" },
+  { value: 10.5, label: "10.5%" },
+  { value: 11, label: "11%" },
+  { value: 0, label: "No aplica (0%)" },
+];
+
 interface ICampoConfig {
   key: string;
   label: string;
@@ -340,7 +348,7 @@ export const CatalogosDocumentos = () => {
         fields={[
           { key: "codigo", label: "Código", type: "text" },
           { key: "descripcion", label: "Descripción", type: "text" },
-          { key: "aplicaPorcentajeImpuesto", label: "Aplica IGV (18%)", type: "checkbox" },
+          { key: "porcentaje", label: "% IGV", type: "select", options: OPCIONES_PORCENTAJE_IGV },
           { key: "cuentaContableId", label: "Cuenta contable del IGV", type: "cuenta", editableEnBase: true },
         ]}
       />

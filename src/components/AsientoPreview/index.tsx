@@ -67,6 +67,11 @@ export const separarIgv = (total: number, aplicaIgv: boolean, tasa = 18) => {
   return { gravada, igv, total };
 };
 
+// % de IGV de un Tipo IGV (Mi Empresa -> Impuestos): 0 si no aplica, su % propio (18, 10.5, 11...)
+// o 18 si no tiene. Sin tipo elegido se asume gravado al 18%, igual que el backend.
+export const tasaIgv = (tipo?: { aplicaPorcentajeImpuesto?: boolean; porcentaje?: number | null }) =>
+  !tipo ? 18 : tipo.aplicaPorcentajeImpuesto ? Number(tipo.porcentaje ?? 18) : 0;
+
 // Plazo de credito en dias: sugiere 15/30/45/60/90 pero acepta cualquier numero (datalist nativo),
 // y calcula la fecha de vencimiento a partir de la fecha de emision (o hoy).
 const PLAZOS = [7, 15, 20, 30, 45, 60, 90];

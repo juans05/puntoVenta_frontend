@@ -1,4 +1,4 @@
-import { CatalogoCrudTable } from "../CatalogosDocumentos";
+import { CatalogoCrudTable, OPCIONES_PORCENTAJE_IGV } from "../CatalogosDocumentos";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { printTable } from "../../../../../../helpers/functions/printTitle";
@@ -376,7 +376,7 @@ export const MyBusiness = () => {
               fields={[
                 { key: "codigo", label: "Código", type: "text" },
                 { key: "descripcion", label: "Descripción", type: "text" },
-                { key: "aplicaPorcentajeImpuesto", label: "Aplica IGV (18%)", type: "checkbox" },
+                { key: "porcentaje", label: "% IGV", type: "select", options: OPCIONES_PORCENTAJE_IGV },
                 { key: "cuentaContableId", label: "Cuenta contable del IGV", type: "cuenta", editableEnBase: true },
               ]}
             />

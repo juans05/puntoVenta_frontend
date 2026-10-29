@@ -32,14 +32,13 @@ import SelectPro from "../../../SelectPro";
 import { toast } from "sonner";
 import { ImageCropModal } from "../../../ImageCropModal";
 import { useFormErrors } from "../../../FormError";
+import { tasaIgv } from "../../../AsientoPreview";
 import axiosInstance from "../../../../utils/axios";
 
 const BTN_PRIMARY =
   "bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors";
 const BTN_SECONDARY =
   "border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg px-4 py-2 hover:bg-gray-50 transition-colors";
-
-const TASA_IGV_DEFAULT = 0.18;
 
 const DESTINO_PREPARACION_OPCIONES = ["Ninguno", "Cocina", "Barra"];
 
@@ -369,8 +368,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
   const precioVentaNum = Number(precioVentaConInpuesto) || 0;
   const precioCompraNum = Number(precioVentaSinInpuesto) || 0;
   const tipoIgvSeleccionado = (tiposIgv as any[])?.find((t: any) => Number(t.id) === Number(formValues.tipoIgvId));
-  const aplicaIgv = tipoIgvSeleccionado ? tipoIgvSeleccionado.aplicaPorcentajeImpuesto : true;
-  const precioVentaSinIgv = aplicaIgv ? precioVentaNum / (1 + TASA_IGV_DEFAULT) : precioVentaNum;
+  const precioVentaSinIgv = precioVentaNum / (1 + tasaIgv(tipoIgvSeleccionado) / 100);
   const gananciaMonto = precioVentaNum > 0 && precioCompraNum > 0 ? precioVentaSinIgv - precioCompraNum : null;
   const margenPct = precioCompraNum > 0 && gananciaMonto !== null ? (gananciaMonto / precioCompraNum) * 100 : 0;
 
