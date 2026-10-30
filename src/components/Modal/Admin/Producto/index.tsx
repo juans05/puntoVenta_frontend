@@ -13,6 +13,7 @@ import {
   createProducto,
   deleteProducts,
   eliminarImagenProducto,
+  getCategorias,
   getProducts,
   subirImagenProducto,
   updateProducts,
@@ -140,7 +141,7 @@ interface IProductoModalProps {
   onGuardado?: (producto: any) => void;
 }
 export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
-  const { modalProducts, activeProducto }: any =
+  const { modalProducts, activeProducto, categorias }: any =
     useAppSelector((state: RootState) => state.adminProducts);
   const { sucursales, monedas, tiposIgv, unidadesMedida }: IExtensionesState = useAppSelector(
     (state: RootState) => state.extentions
@@ -206,6 +207,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
   const [guardandoCatalogo, setGuardandoCatalogo] = useState(false);
 
   useEffect(() => {
+    dispatch(getCategorias() as any);
     dispatch(getSucursales() as any);
     dispatch(getMonedas() as any);
     dispatch(getTiposIgv() as any);
@@ -352,6 +354,19 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
       [e.target.name]: e.target.value,
     });
   };
+  // Familias (Grupo) de la categoria elegida: se recargan al cambiar de categoria.
+  const [familias, setFamilias] = useState<{ id: number; value: string }[]>([]);
+  useEffect(() => {
+    if (!formValues.categoriaId) return setFamilias([]);
+    axiosInstance
+      .get("/Grupo/listar", { params: { CategoriaId: formValues.categoriaId } })
+      .then((r: any) => setFamilias((r.data?.data ?? []).filter((g: any) => g.grupoId !== 0).map((g: any) => ({ id: g.grupoId, value: g.nombre }))))
+      .catch(() => setFamilias([])); // 404 = categoria sin familias
+  }, [formValues.categoriaId]);
+  const categoriasOptions = ((categorias as any[]) ?? [])
+    .filter((c: any) => c.categoriaId !== 0)
+    .map((c: any) => ({ id: c.categoriaId, value: c.nombre }));
+
   const handleChangeSelect = (idValue: any, value: string, name: string, id: number) => {
     setFormValues({
       ...formValues,
@@ -400,6 +415,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     marca: marca || undefined,
     comentario: comentario || undefined,
     categoriaId: formValues.categoriaId || undefined,
+    grupoId: formValues.grupoId || undefined,
     sucursalId: formValues.sucursalId || undefined,
     monedaId: formValues.monedaId || undefined,
     tipoIgvId: formValues.tipoIgvId || undefined,
@@ -879,7 +895,28 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-1 py-3">
-                  {/* Marca y Categoria ocultas en el formulario (se conservan en el modelo por compatibilidad). */}
+                  <SelectPro
+                    isLabel
+                    label="Categoría"
+                    isSearch
+                    id="categoriaId"
+                    name="nombreCategoria"
+                    defaultValue={formValues.nombreCategoria ?? ""}
+                    options={categoriasOptions}
+                    onChange={(idValue: any, value: string) =>
+                      setFormValues({ ...formValues, categoriaId: Number(idValue), nombreCategoria: value, grupoId: 0, nombreGrupo: "" })}
+                  />
+                  <SelectPro
+                    isLabel
+                    label="Familia"
+                    isSearch
+                    id="grupoId"
+                    name="nombreGrupo"
+                    defaultValue={formValues.nombreGrupo ?? ""}
+                    options={familias}
+                    disabled={!formValues.categoriaId}
+                    onChange={(idValue: any, value: string) => setFormValues({ ...formValues, grupoId: Number(idValue), nombreGrupo: value })}
+                  />
                   <SelectPro
                     isLabel
                     label="Sucursal"

@@ -9,7 +9,6 @@ import {
   getProducts,
   importarProductosDesdeExcel,
   openModalCategorias,
-  openModalGrupos,
   openModalHistorial,
   openModalProducto,
   previsualizarImportacionProductos,
@@ -18,7 +17,7 @@ import { excelArchivoACsv } from "../../../../../../helpers/functions/excelToCsv
 import { ProductoModal } from "../../../../../../components/Modal/Admin/Producto";
 import { HistorialModal } from "../../../../../../components/Modal/Admin/Producto/Historial";
 import { CategoriaModal } from "../../../../../../components/Modal/Admin/Producto/Categoria";
-import { GrupoModal } from "../../../../../../components/Modal/Admin/Producto/Grupo";
+import { FamiliasModal } from "../../../../../../components/Modal/Admin/Producto/Familias";
 import { Toaster, toast } from "sonner";
 import { title } from "../../../../../../infraestructure/MData/MData";
 import { printTable } from "../../../../../../helpers/functions/printTitle";
@@ -50,6 +49,7 @@ export const Productos = () => {
   const [busqueda, setBusqueda] = useState("");
   const debounceSearch = useDebounce(busqueda, 800);
   const [categoriaId, setCategoriaId] = useState(0);
+  const [familiasOpen, setFamiliasOpen] = useState(false);
   const [filtro, setFiltro] = useState<"todos" | "stockBajo">("todos");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -230,10 +230,10 @@ export const Productos = () => {
                 className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 onClick={() => {
                   setMenuAcciones(false);
-                  dispatch(openModalGrupos());
+                  setFamiliasOpen(true);
                 }}
               >
-                + Nuevo grupo
+                Familias
               </button>
               <button
                 type="button"
@@ -468,7 +468,7 @@ export const Productos = () => {
       <ProductoModal />
       <HistorialModal />
       <CategoriaModal />
-      <GrupoModal />
+      <FamiliasModal isOpen={familiasOpen} onClose={() => setFamiliasOpen(false)} categorias={categorias} />
       <Toaster richColors position="top-right" />
     </div>
   );
