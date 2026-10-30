@@ -21,6 +21,7 @@ import {
   clearActiveProveedor,
 } from "../../../../../../redux/reducers/Admin/clientes-proveedores/clientesProveedoresAnfitrionas.reducer";
 import { ProveedorModal } from "../../../../../../components/Modal/Admin/Proveedores";
+import { ClientePickerModal } from "../../../NuevaFactura/ClientePickerModal";
 import {
   openModalProducto,
   activeProducto as activeProductoMain,
@@ -93,6 +94,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const [tipoDocProveedor, setTipoDocProveedor] = useState<"RUC" | "DNI">("RUC");
   const [numeroDocumento, setNumeroDocumento] = useState("");
   const [buscandoProveedor, setBuscandoProveedor] = useState(false);
+  const [pickerProveedorOpen, setPickerProveedorOpen] = useState(false);
   const [proveedorId, setProveedorId] = useState<number>(0);
   const [proveedorNombre, setProveedorNombre] = useState("");
   const [proveedorDireccion, setProveedorDireccion] = useState("");
@@ -477,7 +479,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
                     onChange={(e) => setNumeroDocumento(e.target.value.replace(/\s/g, ""))}
                     onKeyDown={(e) => e.key === "Enter" && buscarProveedor()}
                   />
-                  <button type="button" className={styles.buscarBtn} onClick={buscarProveedor} disabled={buscandoProveedor}>
+                  <button type="button" className={styles.buscarBtn} onClick={() => setPickerProveedorOpen(true)} disabled={buscandoProveedor} title="Buscar proveedor">
                     🔍
                   </button>
                   <button
@@ -816,6 +818,16 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
           </div>
         </div>
       </div>
+      <ClientePickerModal
+        isOpen={pickerProveedorOpen}
+        onClose={() => setPickerProveedorOpen(false)}
+        onSeleccionar={(p: any) => {
+          setTipoDocProveedor((p.ruc ?? "").length === 8 ? "DNI" : "RUC");
+          seleccionarProveedorExistente(p);
+        }}
+        titulo="Buscar proveedor"
+        endpoint="/proveedor/listar"
+      />
       <ProveedorModal onGuardado={proveedorRegistrado} />
       <ProductoModal onGuardado={productoCreado} />
     </div>

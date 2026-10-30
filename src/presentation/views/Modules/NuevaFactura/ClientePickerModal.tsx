@@ -13,11 +13,14 @@ interface IProps {
   onClose: () => void;
   onSeleccionar: (cliente: any) => void;
   documentoInicial?: string;
+  // Reutilizado en Compras para proveedores: otro titulo y endpoint con los mismos filtros Nombre/NumeroDocumento.
+  titulo?: string;
+  endpoint?: string;
 }
 
 // Popup con todos los clientes de la empresa (el backend ya filtra por tenant/sucursal),
 // filtrable por nombre y numero de documento y paginado en el servidor.
-export const ClientePickerModal = ({ isOpen, onClose, onSeleccionar, documentoInicial = "" }: IProps) => {
+export const ClientePickerModal = ({ isOpen, onClose, onSeleccionar, documentoInicial = "", titulo = "Buscar cliente", endpoint = "/clientes/listar" }: IProps) => {
   const [nombre, setNombre] = useState("");
   const [documento, setDocumento] = useState("");
   const [pagina, setPagina] = useState(1);
@@ -41,7 +44,7 @@ export const ClientePickerModal = ({ isOpen, onClose, onSeleccionar, documentoIn
         const params = new URLSearchParams({ Page: String(pagina), Amount: String(POR_PAGINA) });
         if (nombre.trim()) params.set("Nombre", nombre.trim());
         if (documento.trim()) params.set("NumeroDocumento", documento.trim());
-        const { data }: any = await axiosInstance.get(`/clientes/listar?${params}`);
+        const { data }: any = await axiosInstance.get(`${endpoint}?${params}`);
         setClientes(data?.data?.items ?? []);
         setTotalPaginas(Math.max(1, data?.data?.pages ?? 1));
       } catch {
@@ -74,7 +77,7 @@ export const ClientePickerModal = ({ isOpen, onClose, onSeleccionar, documentoIn
       overlayClassName={styles.overlay}
     >
       <div className={styles.pickerHeader}>
-        <h3>Buscar cliente</h3>
+        <h3>{titulo}</h3>
         <button type="button" className={styles.closeBtn} onClick={onClose}>
           <Icon icon="mdi:close" width={20} />
         </button>
@@ -106,16 +109,16 @@ export const ClientePickerModal = ({ isOpen, onClose, onSeleccionar, documentoIn
         {cargando ? (
           <p className={styles.pickerEmpty}>Buscando...</p>
         ) : clientes.length === 0 ? (
-          <p className={styles.pickerEmpty}>No se encontraron clientes.</p>
+          <p className={styles.pickerEmpty}>No se encontraron resultados.</p>
         ) : (
           clientes.map((c) => (
-            <div key={c.id} className={styles.pickerRow} onClick={() => elegir(c)}>
+            <div key={c.id ?? c.proveedorId} className={styles.pickerRow} onClick={() => elegir(c)}>
               <Icon icon="mdi:account-circle-outline" width={22} />
               <div className={styles.pickerRowInfo}>
                 <span className={styles.pickerRowNombre}>{c.nombre}</span>
                 <span className={styles.pickerRowMeta}>
-                  {c.numeroDocumento || "Sin documento"}
-                  {c.direccion ? ` · ${c.direccion}` : ""}
+                  {c.numeroDocumento || c.ruc || "Sin documento"}
+                  {(c.direccion ?? c.dirección) ? ` · ${c.direccion ?? c.dirección}` : ""}
                 </span>
               </div>
               <Icon icon="mdi:chevron-right" width={20} />
