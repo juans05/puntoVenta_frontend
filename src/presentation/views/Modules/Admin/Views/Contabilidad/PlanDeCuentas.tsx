@@ -13,7 +13,7 @@ const MODOS_CENTRO_COSTO = [
 // Jerarquia PCGE de 5 niveles (ver "configuracion plan de cuentas ERPdocx.docx"): el nivel y la
 // clase se calculan del Codigo, igual que en el backend (CuentaContableRepository.AplicarCampos)
 // -- no se editan a mano.
-const NIVEL_POR_LARGO_CODIGO: Record<number, number> = { 2: 1, 3: 2, 4: 3, 5: 4, 8: 5 };
+const NIVEL_POR_LARGO_CODIGO: Record<number, number> = { 2: 1, 3: 2, 4: 3, 5: 4, 7: 5, 8: 5 };
 
 const mensajeError = (e: any, def: string) => e?.response?.data?.message ?? def;
 
@@ -176,7 +176,7 @@ const EditarCuenta = ({ cuenta, cuentas, codigosEeffNiif, onCerrar, onGuardar }:
     if (!codigo.trim()) { setError("codigo", "El código es obligatorio"); return toast.error("El código es obligatorio"); }
     if (!/^\d+$/.test(codigoLimpio)) { setError("codigo", "El código solo puede contener dígitos"); return toast.error("El código solo puede contener dígitos"); }
     if (!nivelCalculado) {
-      const msg = "El código debe tener 2, 3, 4, 5 u 8 dígitos (Niveles 01 a 05 del plan de cuentas)";
+      const msg = "El código debe tener 2, 3, 4, 5, 7 u 8 dígitos (Niveles 01 a 05 del plan de cuentas)";
       setError("codigo", msg);
       return toast.error(msg);
     }
@@ -206,8 +206,8 @@ const EditarCuenta = ({ cuenta, cuentas, codigosEeffNiif, onCerrar, onGuardar }:
 
   const inp = "w-full border border-gray-200 rounded-md px-2 py-1 text-sm mt-0.5";
   const lbl = "text-[11px] font-semibold text-gray-500 block";
-  // Cuenta cierre y cargo/abono de destino: solo ultimo nivel (Nivel 5 = 8 digitos), la unica hoja que admite asientos.
-  const cuentasUltimoNivel = otrasCuentas.filter((c: any) => c.nivel === 5);
+  // Cuenta cierre y cargo/abono de destino: solo ultimo nivel (7 u 8 digitos, sin subcuentas), la unica hoja que admite asientos.
+  const cuentasUltimoNivel = otrasCuentas.filter((c: any) => c.esHoja);
   const cuentaSelect = (value: number, set: (n: number) => void, disabled = false) => (
     <select className={inp} value={value} disabled={disabled} onChange={(e) => set(Number(e.target.value))}>
       <option value={0}>Sin elegir</option>

@@ -68,7 +68,7 @@ export const ProveedorModal: FC<IProveedorModalProps> = ({ onGuardado }) => {
   }, []);
   // Cuenta por pagar: solo cuentas 42/43 (por pagar comerciales) de ultimo nivel.
   const cuentasOptions = cuentasContables
-    .filter((c: any) => /^4[23]/.test(String(c.codigo)) && (c.nivel == null || c.nivel === 5))
+    .filter((c: any) => /^4[23]/.test(String(c.codigo)) && c.esHoja)
     .map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}`, search: c.codigo }));
   const cuentaPorPagarTexto = cuentasOptions.find((c: any) => c.id === formValues.cuentaPorPagarId)?.value ?? "";
   const {

@@ -185,9 +185,9 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
     seCompra,
   } = formValues;
 
-  // Solo ultimo nivel (Nivel 5 = 8 digitos): la unica hoja que admite asientos. Se muestra
+  // Solo ultimo nivel (7 u 8 digitos, sin subcuentas): la unica hoja que admite asientos. Se muestra
   // "codigo - nombre"; `search` = codigo para que buscar "70" traiga solo las que empiezan con 70.
-  const cuentasUltimoNivel = cuentasContables.filter((c: any) => c.nivel === 5);
+  const cuentasUltimoNivel = cuentasContables.filter((c: any) => c.esHoja);
   const etiquetaCuenta = (c: any) => `${c.codigo} - ${c.nombre}`;
   const cuentasOptions = cuentasUltimoNivel.map((c: any) => ({ id: c.id, value: etiquetaCuenta(c), search: c.codigo }));
   const textoCuenta = (id?: number) => {
@@ -1387,7 +1387,7 @@ export const ProductoModal = ({ onGuardado }: IProductoModalProps = {}) => {
                 <div className="mb-4">
                   <h4 className="text-lg font-bold text-gray-900">Cuentas contables</h4>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    Solo cuentas de último nivel (8 dígitos) del Plan de Cuentas. Busca por número: "70" muestra solo las
+                    Solo cuentas de último nivel (7 u 8 dígitos, sin subcuentas) del Plan de Cuentas. Busca por número: "70" muestra solo las
                     cuentas que empiezan con 70. Todas son opcionales.
                   </p>
                 </div>

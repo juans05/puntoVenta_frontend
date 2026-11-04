@@ -104,7 +104,7 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
   useEffect(() => {
     recargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodo, fechaDesde, fechaHasta, sucursalIdFiltro]);
+  }, [periodo, fechaDesde, fechaHasta, sucursalIdFiltro, tabActiva]); // tabActiva: al volver de Órdenes se ve la factura recién registrada
 
   useEffect(() => {
     const timeout = setTimeout(recargar, 350);
@@ -143,7 +143,20 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
     setVista("registrar");
   };
 
+  // Orden de compra -> Llenar manual abre la orden (no una factura). La factura se registra
+  // despues desde la orden ("Factura del proveedor"), luego de recibir la mercaderia.
+  const [abrirNuevaOrden, setAbrirNuevaOrden] = useState(false);
+  useEffect(() => {
+    if (abrirNuevaOrden) setAbrirNuevaOrden(false); // pulso de un render: <Ordenes> abre su modal y se apaga
+  }, [abrirNuevaOrden]);
+
   const abrirManual = () => {
+    if (tipoDoc === "orden") {
+      setTabActiva("ordenes");
+      setAbrirNuevaOrden(true);
+      setVista("lista");
+      return;
+    }
     setCompraEditandoId(undefined);
     setPrefillXml(null);
     setVista("formulario");
@@ -352,7 +365,7 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
             ←
           </button>
           <div>
-            <h3>{compraEditandoId ? "Editar compra" : "Registrar Factura de Compra"}</h3>
+            <h3>{compraEditandoId ? "Editar compra" : `Registrar ${docActual.tab} de Compra`}</h3>
             <p className={styles.subtitle}>
               {compraEditandoId
                 ? "Corrige los productos, cantidades o datos de la compra."
@@ -393,7 +406,7 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
             🕐 Historial
           </button>
           {flujoCompleto ? (
-            <button className={styles.registrarBtn} onClick={() => setTabActiva("ordenes")}>
+            <button className={styles.registrarBtn} onClick={() => { setTabActiva("ordenes"); setAbrirNuevaOrden(true); }}>
               + Nueva orden de compra
             </button>
           ) : (
@@ -498,7 +511,7 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
       </div>
 
       {tabActiva === "ordenes" && flujoCompleto ? (
-        <Ordenes config={flujoConfig} />
+        <Ordenes config={flujoConfig} abrirNueva={abrirNuevaOrden} />
       ) : tabActiva === "ordenes" ? (
         <div className={styles.panel}>
           <div className={styles.emptyState}>

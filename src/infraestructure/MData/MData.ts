@@ -147,6 +147,13 @@ export const menuSidebar = [
       },
       {
         code: "1600",
+        id: 258,
+        value: "Cuentas por defecto",
+        icon: "mdi:tune-variant",
+        url: "dashboard/contabilidad/cuentas-por-defecto",
+      },
+      {
+        code: "1600",
         id: 255,
         value: "Cierre de año fiscal",
         icon: "mdi:calendar-check-outline",

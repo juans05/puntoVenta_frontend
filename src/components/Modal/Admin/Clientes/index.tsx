@@ -62,7 +62,7 @@ export const ClientesModal: FC<IClientesModalProps> = ({ onGuardado }) => {
   }, []);
   // Cuenta por cobrar: solo cuentas 12 (Cuentas por cobrar comerciales - terceros) de ultimo nivel.
   const cuentasOptions = cuentasContables
-    .filter((c: any) => String(c.codigo).startsWith("12") && (c.nivel == null || c.nivel === 5))
+    .filter((c: any) => String(c.codigo).startsWith("12") && c.esHoja)
     .map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}`, search: c.codigo }));
   const cuentaPorCobrarTexto = cuentasOptions.find((c: any) => c.id === formValues.cuentaPorCobrarId)?.value ?? "";
   const {

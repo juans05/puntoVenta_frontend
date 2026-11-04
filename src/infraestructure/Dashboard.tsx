@@ -40,6 +40,7 @@ import { ReporteDetalladoVentas } from "../presentation/views/Modules/Admin/View
 import { ReporteDetalladoCompras } from "../presentation/views/Modules/Admin/Views/Contabilidad/ReporteDetalladoCompras";
 import ProductoLanding from "../presentation/views/Public/Tienda/ProductoLanding";
 import { PlanDeCuentas } from "../presentation/views/Modules/Admin/Views/Contabilidad/PlanDeCuentas";
+import { CuentasPorDefecto } from "../presentation/views/Modules/Admin/Views/Contabilidad/CuentasPorDefecto";
 import { AsientosContables } from "../presentation/views/Modules/Admin/Views/Contabilidad/AsientosContables";
 import { EstadoResultados } from "../presentation/views/Modules/Admin/Views/Contabilidad/EstadoResultados";
 import { CierreAnual } from "../presentation/views/Modules/Admin/Views/Contabilidad/CierreAnual";
@@ -136,6 +137,7 @@ const DashboardRoutes = () => {
         <Route path="contabilidad/reporte-ventas" element={<ReporteDetalladoVentas />}/>
         <Route path="contabilidad/reporte-compras" element={<ReporteDetalladoCompras />}/>
         <Route path="contabilidad/plan-de-cuentas" element={<PlanDeCuentas />}/>
+        <Route path="contabilidad/cuentas-por-defecto" element={<CuentasPorDefecto />}/>
         <Route path="contabilidad/cierre-anual" element={<CierreAnual />}/>
         <Route path="contabilidad/asientos-contables" element={<AsientosContables />}/>
         <Route path="contabilidad/estado-resultados" element={<EstadoResultados />}/>

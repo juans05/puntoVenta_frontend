@@ -239,7 +239,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const tipoIgvSeleccionado = (tiposIgv ?? []).find((t: any) => Number(t.id) === Number(tipoIgvId))?.value ?? "";
   const tipoDetraccionSeleccionado = (tiposDetraccion ?? []).find((t: any) => Number(t.id) === Number(tipoDetraccionId))?.value ?? "";
   const centrosCostoOptions = (centrosCosto ?? []).map((c: any) => ({ id: c.id, value: c.value }));
-  const cuentasContablesOptions = (cuentasContables ?? []).map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
+  const cuentasContablesOptions = (cuentasContables ?? []).filter((c: any) => c.esHoja).map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
   const nombreCentroCosto = (id: number) => (centrosCosto ?? []).find((c: any) => c.id === id)?.value ?? "";
   const nombreCuentaContable = (id: number) => cuentasContablesOptions.find((c: any) => c.id === id)?.value ?? "";
   const totalPagos = pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
@@ -543,7 +543,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
           </div>
 
           <div className={styles.card}>
-            <h4>📄 Datos de la Orden de Compra</h4>
+            <h4>📄 Datos del comprobante</h4>
             <div className={styles.grid}>
               <div>
                 <label>Sucursal</label>

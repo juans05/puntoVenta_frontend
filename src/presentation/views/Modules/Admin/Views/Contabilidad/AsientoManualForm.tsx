@@ -64,7 +64,7 @@ export const AsientoManualForm = ({ onGuardado, onCancelar, asiento }: { onGuard
     axiosInstance.get("/extensiones/centros-costo").then((r: any) => setCentros(r.data?.data ?? [])).catch(() => {});
   }, []);
 
-  const hojas = cuentas.filter((c: any) => c.nivel === 5);
+  const hojas = cuentas.filter((c: any) => c.esHoja);
   const clase9 = hojas.filter((c: any) => c.codigo.startsWith("9"));
   const nombreDe = (codigo: string) =>
     hojas.find((c: any) => c.codigo === codigo)?.nombre ?? asiento?.detalle.find((d: any) => d.cuentaCodigo === codigo)?.cuentaNombre ?? "";
@@ -78,6 +78,37 @@ export const AsientoManualForm = ({ onGuardado, onCancelar, asiento }: { onGuard
       if (campo === "haber" && valor) nueva.debe = "";
       return nueva;
     }));
+
+  // Pegado masivo desde Excel: al pegar varias celdas en una fila, se llenan las lineas desde ahi hacia abajo.
+  // Columnas de la plantilla (sin "Nombre de cuenta", que se calcula): Cuenta | Cuenta asociada |
+  // Centro de costos 1 | Centro de costos 2 | Cuenta de destino | Debito | Credito | Descripcion.
+  const pegar = (i: number) => (e: React.ClipboardEvent) => {
+    const texto = e.clipboardData.getData("text");
+    if (!/[\t\n]/.test(texto.trim())) return; // un solo valor: pegado normal en la celda
+    e.preventDefault();
+    const filas = texto.replace(/\r/g, "").split("\n").filter((f) => f.trim()).map((f) => f.split("\t").map((c) => c.trim()));
+    const primero = (v: string) => v.split(/[\s-]+/)[0].toLowerCase();
+    const idCentro = (v: string) =>
+      v ? String(centros.find((c: any) => String(c.value).toLowerCase() === v.toLowerCase() || primero(String(c.value)) === primero(v))?.id ?? "") : "";
+    const idDestino = (v: string) => (v ? String(clase9.find((c: any) => c.codigo === primero(v))?.id ?? "") : "");
+    // Acepta "1,234.50" y "1.234,50"
+    const monto = (v: string) => {
+      const t = v.replace(/[^\d.,-]/g, "");
+      return String(num(/,\d{1,2}$/.test(t) ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "")) || "");
+    };
+    setLineas((ls) => {
+      const copia = [...ls];
+      filas.forEach(([cuenta = "", asociada = "", cc1 = "", cc2 = "", destino = "", debe = "", haber = "", descripcion = ""], k) => {
+        const codigo = cuenta.split(/\s/)[0];
+        copia[i + k] = {
+          cuentaCodigo: codigo, cuentaAsociada: asociada, centroCosto1Id: idCentro(cc1), centroCosto2Id: idCentro(cc2),
+          cuentaDestinoId: esGastoConDestino(codigo) ? idDestino(destino) : "", debe: monto(debe), haber: monto(haber), descripcion,
+        };
+      });
+      return copia;
+    });
+    toast.success(`${filas.length} línea(s) pegadas desde Excel`);
+  };
 
   const totalDebe = lineas.reduce((s, l) => s + num(l.debe), 0);
   const totalHaber = lineas.reduce((s, l) => s + num(l.haber), 0);
@@ -169,7 +200,7 @@ export const AsientoManualForm = ({ onGuardado, onCancelar, asiento }: { onGuard
           </thead>
           <tbody>
             {lineas.map((l, i) => (
-              <tr key={i} className="align-top">
+              <tr key={i} className="align-top" onPaste={pegar(i)}>
                 <td className="py-1 pr-2">
                   <input list="cuentas-hoja" className={celda} placeholder="Código" value={l.cuentaCodigo}
                     onChange={(e) => cambiar(i, "cuentaCodigo", e.target.value)} />
@@ -217,6 +248,13 @@ export const AsientoManualForm = ({ onGuardado, onCancelar, asiento }: { onGuard
         </table>
       </div>
       </fieldset>
+
+      {!soloLectura && (
+        <p className="text-xs text-gray-500 mt-2">
+          Puedes copiar filas desde Excel y pegarlas en la celda "Cuenta contable" de cualquier línea. Orden de columnas: Cuenta · Cuenta asociada ·
+          Centro de costos 1 · Centro de costos 2 · Cuenta de destino · Débito · Crédito · Descripción.
+        </p>
+      )}
 
       <div className="flex flex-wrap justify-between gap-3 mt-3">
         {soloLectura ? <span /> : (

@@ -82,7 +82,7 @@ export const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, upd
     const c = id ? cuentas.find((x) => x.id === id) : null;
     return c ? `${c.codigo} - ${c.nombre}` : "";
   };
-  const cuentasOptions = cuentas.filter((c) => c.nivel === 5).map((c) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}`, search: c.codigo }));
+  const cuentasOptions = cuentas.filter((c: any) => c.esHoja).map((c) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}`, search: c.codigo }));
   // Editando una fila base: solo los campos marcados editableEnBase.
   const bloqueado = (f: ICampoConfig) => !!editando && !editando.esPersonalizado && !f.editableEnBase;
 
@@ -258,7 +258,7 @@ export const CatalogoCrudTable = ({ titulo, descripcion, listUrl, createUrl, upd
                       defaultValue={etiquetaCuenta(form[f.key])}
                       onChange={(idValue: any) => setForm((prev) => ({ ...prev, [f.key]: Number(idValue) || null }))}
                     />
-                    <p className="text-xs text-gray-500 mt-1">Opcional. Sin elegir, el asiento usa 40111 IGV - Cuenta propia.</p>
+                    <p className="text-xs text-gray-500 mt-1">Opcional. Sin elegir, el asiento usa la cuenta por defecto de IGV (Contabilidad → Cuentas por defecto).</p>
                   </div>
                 );
               }

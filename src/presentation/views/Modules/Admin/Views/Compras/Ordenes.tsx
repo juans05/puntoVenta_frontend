@@ -4,7 +4,7 @@ import styles from "./compras.module.css";
 import axiosInstance from "../../../../../../utils/axios";
 import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 import { Ayuda } from "../../../../../../components/Ayuda";
-import { AsientoPreview, lineasAsientoCompra, separarIgv, tasaIgv, PlazoCredito } from "../../../../../../components/AsientoPreview";
+import { AsientoPreview, lineasAsientoCompra, tasaIgv, PlazoCredito } from "../../../../../../components/AsientoPreview";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { RootState } from "../../../../../../redux/rootState";
 import { getProveedores, getProductosCompra } from "../../../../../../redux/reducers/Admin/compras/compra.reducer";
@@ -40,7 +40,7 @@ const mensajeError = (e: any, def: string) => e?.response?.data?.message ?? def;
 type Linea = { productoId: number; descripcion: string; cantidad: number; costoUnitario: number };
 type Dialogo = null | { tipo: "nueva" } | { tipo: "recibir" | "facturar" | "ver" | "cerrar"; orden: any };
 
-export const Ordenes = ({ config }: { config: any }) => {
+export const Ordenes = ({ config, abrirNueva = false }: { config: any; abrirNueva?: boolean }) => {
   const dispatch = useAppDispatch();
   const { proveedores, productosCompra }: any = useAppSelector((s: RootState) => s.compras);
   const { sucursales, monedas, tiposIgv, payMethods }: any = useAppSelector((s: RootState) => s.extentions);
@@ -51,6 +51,9 @@ export const Ordenes = ({ config }: { config: any }) => {
   const [estadoFiltro, setEstadoFiltro] = useState("");
   const [cargando, setCargando] = useState(false);
   const [dialogo, setDialogo] = useState<Dialogo>(null);
+  useEffect(() => {
+    if (abrirNueva) setDialogo({ tipo: "nueva" });
+  }, [abrirNueva]);
 
   const cargar = async () => {
     setCargando(true);
@@ -343,7 +346,7 @@ const NuevaOrden = ({ proveedores, productos, sucursales, departamentos, aprobac
           ? "Obligatorio: describe el servicio que te va a facturar el proveedor."
           : "Obligatorio: elige un producto del catálogo. No se puede repetir el mismo producto en dos líneas -- si necesitas más cantidad, edita esa misma línea."} /></label>
         <label style={label}>Cantidad<Ayuda texto="Obligatorio: cantidad a pedir, número entero mayor a 0." /></label>
-        <label style={label}>Costo unitario<Ayuda texto="Costo pactado con el proveedor por unidad, con IGV incluido. No puede ser negativo; déjalo en 0 si aún no lo conoces." /></label>
+        <label style={label}>Costo unitario<Ayuda texto="Costo pactado con el proveedor por unidad, sin IGV (el IGV se suma en la factura). No puede ser negativo; déjalo en 0 si aún no lo conoces." /></label>
         <span />
       </div>
       {lineas.map((l, i) => (
@@ -510,11 +513,12 @@ const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCer
   const [lineas, setLineas] = useState<Record<number, { cantidad: number; costo: number }>>(
     Object.fromEntries(pendientes.map((d: any) => [d.id, { cantidad: d.cantidadRecibida - d.cantidadFacturada, costo: d.costoUnitario }]))
   );
-  // Mismo calculo que el backend: los precios de la factura incluyen IGV.
-  const totalFactura = pendientes.reduce((a: number, d: any) => a + (lineas[d.id]?.cantidad ?? 0) * (lineas[d.id]?.costo ?? 0), 0);
+  // Mismo calculo que el backend: los precios de la orden son SIN IGV y el IGV se suma encima.
+  const gravada = Math.round(pendientes.reduce((a: number, d: any) => a + (lineas[d.id]?.cantidad ?? 0) * (lineas[d.id]?.costo ?? 0), 0) * 100) / 100;
   const tipoIgvSel = tiposIgv.find((t: any) => t.id === tipoIgvId);
   const tasaFactura = tasaIgv(tipoIgvSel);
-  const { gravada, igv } = separarIgv(totalFactura, tasaFactura > 0, tasaFactura);
+  const igv = Math.round(gravada * tasaFactura) / 100;
+  const totalFactura = Math.round((gravada + igv) * 100) / 100;
   const detraccionSel = (tiposDetraccion ?? []).find((t: any) => t.id === tipoDetraccionId);
   const montoDetraccion = detraccionSel?.porcentaje ? Math.round(totalFactura * detraccionSel.porcentaje) / 100 : 0;
   const monedaSel = monedas.find((m: any) => m.id === monedaId);
@@ -621,7 +625,7 @@ const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCer
         <thead><tr>
           <th>Producto</th><th>Por facturar</th>
           <th>Cant. factura<Ayuda texto="Cantidad que te está facturando el proveedor en este documento. No puede superar lo pendiente por facturar." /></th>
-          <th>Precio factura<Ayuda texto="Precio unitario que figura en la factura del proveedor. Si no coincide con el precio de la orden, se te avisará antes de guardar." /></th>
+          <th>Precio factura<Ayuda texto="Valor unitario sin IGV que figura en la factura del proveedor. Si no coincide con el precio de la orden, se te avisará antes de guardar." /></th>
           <th>Precio orden</th>
         </tr></thead>
         <tbody>
