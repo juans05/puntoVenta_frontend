@@ -106,7 +106,7 @@ const SelectUbigeo = ({
                         {typeof valueOptions === "object" ? <span>{`${valueOptions?.departamento}/${valueOptions?.provincia}/${valueOptions?.distrito}`}</span> : <span>{valueOptions}</span>} 
                     </div>
                     <div>
-                        <Input isLabel label={label} readOnly={searching ? true : false} autocomplete="off" placeholder={placeholder} onChange={searchOptions} name="option"
+                        <Input isLabel label={label} readOnly={searching ? true : false} autocomplete="off" placeholder={valueOptions ? "" : placeholder} onChange={searchOptions} name="option"
                         />
                     </div>
                     <div className={styles.select__arrow}>

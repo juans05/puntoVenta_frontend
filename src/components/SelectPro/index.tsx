@@ -117,6 +117,7 @@ const SelectPro = ({
             inputHtml.value = "";
             onChange(item.id, item.value, name, id);
         }
+        setSearch("");
         setIsOpen(false);
     }
 
@@ -173,11 +174,11 @@ const SelectPro = ({
             <div
                 ref={ref} className={isOpen ? `${styles.wrapper__select} ${styles.wrapper__selectOpen}` : styles.wrapper__select}>
                 <div className={disabled ? `${styles.input__select} ${styles.disabled__select}` : `${styles.input__select}`} onClick={() => setIsOpen(!isOpen)}>
-                    <div className={styles.selected__value}>
+                    <div className={styles.selected__value} title={valueOptions || undefined}>
                         {valueOptions && <span>{valueOptions}</span>}
                     </div>
                     <div id={id}>
-                        <Input isLabel label={label} required={required} readOnly={searching ? false : true} autocomplete="off" placeholder={placeholder} onChange={searchOptions} name="option" type="text"
+                        <Input isLabel label={label} required={required} readOnly={searching ? false : true} autocomplete="off" placeholder={valueOptions ? "" : placeholder} onChange={searchOptions} name="option" type="text"
                         />
                     </div>
                     <div className={styles.select__arrow}>
