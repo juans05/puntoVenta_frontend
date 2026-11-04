@@ -35,7 +35,7 @@ import {
   clearActiveClientes,
 } from "../../../../redux/reducers/Admin/clientes-proveedores/clientesProveedoresAnfitrionas.reducer";
 import { ClientesModal } from "../../../../components/Modal/Admin/Clientes";
-import { AsientoPreview, tasaIgv } from "../../../../components/AsientoPreview";
+import { AsientoPreview, AsientoSimulado, tasaIgv } from "../../../../components/AsientoPreview";
 
 type TipoDocumento = "boleta" | "factura" | "nota-venta" | "cotizacion";
 
@@ -369,6 +369,41 @@ const NuevaFactura = () => {
   const igv = igvBruto * factorDescuento;
 
   const vuelto = montoRecibido !== "" ? Number(montoRecibido) - total : 0;
+
+  // El descuento se prorratea sobre cada linea (el backend valida Total == suma del detalle);
+  // el residual de redondeo entre lineas se ajusta en la ultima para que la suma cuadre exacto.
+  const armarDetalle = () => {
+    const detalleComprobante = productsBySale.map((item: any) => ({
+      productoId: item.productoId,
+      cantidad: item.cantidad,
+      valorUnitario: Math.round(item.precio * factorDescuento * 100) / 100,
+      tipoIgvId: item.tipoIgvId,
+      unidadMedidaId: item.unidadMedidaId,
+    }));
+    const sumaAjustada = detalleComprobante.reduce((acc: number, l: any) => acc + l.valorUnitario * l.cantidad, 0);
+    const residual = Math.round((total - sumaAjustada) * 100) / 100;
+    if (residual !== 0 && detalleComprobante.length > 0) {
+      const ultima = detalleComprobante[detalleComprobante.length - 1];
+      ultima.valorUnitario = Math.round((ultima.valorUnitario + residual / ultima.cantidad) * 100) / 100;
+    }
+    return detalleComprobante;
+  };
+
+  // Vista previa del asiento con las cuentas configuradas: la calcula el backend con las mismas reglas
+  // que la venta, sin guardar. Si falla, AsientoPreview cae a los codigos por defecto.
+  const [asientosSimulados, setAsientosSimulados] = useState<AsientoSimulado[] | null>(null);
+  const firmaPreview = JSON.stringify([productsBySale.map((p: any) => [p.productoId, p.cantidad, p.precio, p.tipoIgvId]), total, esCredito, numeroDocumento, pedidoVentaId]);
+  useEffect(() => {
+    if (productsBySale.length === 0) { setAsientosSimulados(null); return; }
+    const t = setTimeout(() => {
+      axiosInstance
+        .post("/facturacion/simular-asiento", { tipoDocumentoVentaId, numeroDocumento, esCredito, total, pedidoVentaId: pedidoVentaId ? Number(pedidoVentaId) : undefined, detalleComprobante: armarDetalle() })
+        .then((r: any) => setAsientosSimulados(r.data?.data ?? null))
+        .catch(() => setAsientosSimulados(null));
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firmaPreview]);
 
   const agregarProductos = (seleccionados: any[]) => {
     seleccionados.forEach((p) =>
@@ -717,25 +752,7 @@ const NuevaFactura = () => {
       detallePago = [{ metodoPagoId, monto: total, referenciaOperacion: "" }];
     }
 
-    // El descuento se prorratea sobre cada linea (el backend valida Total == suma del detalle);
-    // el residual de redondeo entre lineas se ajusta en la ultima para que la suma cuadre exacto.
-    const detalleComprobante = productsBySale.map((item: any) => {
-      const valorUnitarioAjustado = Math.round(item.precio * factorDescuento * 100) / 100;
-      return {
-        productoId: item.productoId,
-        cantidad: item.cantidad,
-        valorUnitario: valorUnitarioAjustado,
-        tipoIgvId: item.tipoIgvId,
-        unidadMedidaId: item.unidadMedidaId,
-      };
-    });
-
-    const sumaAjustada = detalleComprobante.reduce((acc, l) => acc + l.valorUnitario * l.cantidad, 0);
-    const residual = Math.round((total - sumaAjustada) * 100) / 100;
-    if (residual !== 0 && detalleComprobante.length > 0) {
-      const ultima = detalleComprobante[detalleComprobante.length - 1];
-      ultima.valorUnitario = Math.round((ultima.valorUnitario + residual / ultima.cantidad) * 100) / 100;
-    }
+    const detalleComprobante = armarDetalle();
 
     const payload: ISaleProduct = {
       clientId: null,
@@ -1514,12 +1531,13 @@ const NuevaFactura = () => {
             </div>
             {/* Mismas cuentas por defecto que ComprobanteRepository.GenerarAsientoVenta. */}
             <AsientoPreview
+              asientos={asientosSimulados}
               lineas={[
                 { cuenta: esCredito ? "12" : "10", descripcion: esCredito ? "Cuentas por cobrar (total)" : "Caja (total)", debe: Math.round(total * 100) / 100, haber: 0 },
                 { cuenta: "40111", descripcion: "IGV por pagar", debe: 0, haber: Math.round(igv * 100) / 100 },
                 { cuenta: "70", descripcion: "Ventas (subtotal)", debe: 0, haber: Math.round((total - Math.round(igv * 100) / 100) * 100) / 100 },
               ]}
-              nota="Además, la salida de mercadería: 69 Costo de ventas (Debe) / 20 Mercaderías (Haber) al costo. Las cuentas propias del producto o del cliente reemplazan a estas."
+              nota={asientosSimulados ? "Cuentas tomadas de la configuración (producto, cliente, IGV y cuentas por defecto)." : "Además, la salida de mercadería: 69 Costo de ventas (Debe) / 20 Mercaderías (Haber) al costo. Las cuentas propias del producto o del cliente reemplazan a estas."}
             />
           </div>
         </div>

@@ -1,52 +1,71 @@
 import { useEffect } from "react";
 
-// Vista previa del asiento contable que generara el backend al guardar. Es solo informativa:
-// replica las reglas por defecto (PCGE) del repositorio correspondiente; si el producto/proveedor
-// tiene cuentas propias configuradas, el asiento real las usa en lugar de estos codigos.
+// Vista previa del asiento contable que generara el backend al guardar, con las columnas del asiento
+// (ver "Pestana de Asiento contable_v1.docx"). Con `asientos` muestra lo que calculo el backend con las
+// cuentas configuradas (producto, cliente/proveedor, IGV, cuentas por defecto); con `lineas`, los
+// codigos PCGE por defecto (solo informativo).
 export type LineaPreview = { cuenta: string; descripcion: string; debe: number; haber: number };
+export type AsientoSimulado = {
+  glosa: string;
+  detalle: { cuentaCodigo: string; cuentaNombre: string; cuentaAsociada?: string; centroCosto1?: string; centroCosto2?: string; cuentaDestino?: string; debe: number; haber: number; descripcion?: string }[];
+};
 
 const fmt = (n: number) => (n ? n.toFixed(2) : "");
+const celda: React.CSSProperties = { padding: "3px 6px", whiteSpace: "nowrap" };
+const COLUMNAS = ["Cuenta contable", "Cuenta asociada", "Nombre de cuenta", "Centro de costos 1", "Centro de costos 2", "Cuenta de destino", "Débito", "Crédito", "Descripción"];
 
-export const AsientoPreview = ({ titulo = "Asiento contable a generar", lineas, nota }: { titulo?: string; lineas: LineaPreview[]; nota?: string }) => {
-  const visibles = lineas.filter((l) => l.debe || l.haber);
-  const debe = visibles.reduce((a, l) => a + l.debe, 0);
-  const haber = visibles.reduce((a, l) => a + l.haber, 0);
+const TablaAsiento = ({ asiento }: { asiento: AsientoSimulado }) => {
+  const filas = asiento.detalle.filter((l) => l.debe || l.haber);
+  const debe = filas.reduce((a, l) => a + l.debe, 0);
+  const haber = filas.reduce((a, l) => a + l.haber, 0);
+  return (
+    <div style={{ overflowX: "auto", marginTop: 6 }}>
+      {asiento.glosa && <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 2 }}>{asiento.glosa}</div>}
+      <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ color: "#6b7280", textAlign: "left", borderBottom: "2px solid #d1d5db" }}>
+            {COLUMNAS.map((c) => <th key={c} style={{ ...celda, textAlign: c === "Débito" || c === "Crédito" ? "right" : "left" }}>{c}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((l, i) => (
+            <tr key={i} style={{ borderTop: "1px solid #eee" }}>
+              <td style={{ ...celda, fontWeight: 600 }}>{l.cuentaCodigo}</td>
+              <td style={celda}>{l.cuentaAsociada ?? ""}</td>
+              <td style={{ ...celda, whiteSpace: "normal" }}>{l.cuentaNombre}</td>
+              <td style={celda}>{l.centroCosto1 ?? ""}</td>
+              <td style={celda}>{l.centroCosto2 ?? ""}</td>
+              <td style={celda}>{l.cuentaDestino ?? ""}</td>
+              <td style={{ ...celda, textAlign: "right" }}>{fmt(l.debe)}</td>
+              <td style={{ ...celda, textAlign: "right" }}>{fmt(l.haber)}</td>
+              <td style={{ ...celda, whiteSpace: "normal" }}>{l.descripcion ?? ""}</td>
+            </tr>
+          ))}
+          <tr style={{ borderTop: "2px solid #d1d5db", fontWeight: 700 }}>
+            <td colSpan={6} style={celda}>Totales</td>
+            <td style={{ ...celda, textAlign: "right" }}>{debe.toFixed(2)}</td>
+            <td style={{ ...celda, textAlign: "right" }}>{haber.toFixed(2)}</td>
+            <td />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export const AsientoPreview = ({ titulo = "Asiento contable a generar", lineas = [], asientos, nota }: { titulo?: string; lineas?: LineaPreview[]; asientos?: AsientoSimulado[] | null; nota?: string }) => {
+  const lista: AsientoSimulado[] = asientos ?? [{ glosa: "", detalle: lineas.map((l) => ({ cuentaCodigo: l.cuenta, cuentaNombre: l.descripcion, debe: l.debe, haber: l.haber })) }];
+  const vacio = lista.every((a) => !a.detalle.some((l) => l.debe || l.haber));
   return (
     // <details> nativo: cerrado por defecto para no alargar el formulario; se abre al hacer clic.
     <details style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 10, marginTop: 10, background: "#fafafa" }}>
       <summary style={{ fontSize: 12, fontWeight: 700, color: "#374151", cursor: "pointer" }}>📒 Ver {titulo.charAt(0).toLowerCase() + titulo.slice(1)} (vista previa)</summary>
-      <div style={{ marginTop: 6 }}>
-      {visibles.length === 0 ? (
-        <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>Completa los montos para ver el asiento.</p>
+      {vacio ? (
+        <p style={{ fontSize: 12, color: "#6b7280", margin: "6px 0 0" }}>Completa los montos para ver el asiento.</p>
       ) : (
-        <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ color: "#6b7280", textAlign: "left" }}>
-              <th style={{ padding: "2px 4px" }}>Cuenta</th>
-              <th style={{ padding: "2px 4px" }}>Descripción</th>
-              <th style={{ padding: "2px 4px", textAlign: "right" }}>Debe</th>
-              <th style={{ padding: "2px 4px", textAlign: "right" }}>Haber</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibles.map((l, i) => (
-              <tr key={i} style={{ borderTop: "1px solid #eee" }}>
-                <td style={{ padding: "2px 4px", fontWeight: 600 }}>{l.cuenta}</td>
-                <td style={{ padding: "2px 4px" }}>{l.descripcion}</td>
-                <td style={{ padding: "2px 4px", textAlign: "right" }}>{fmt(l.debe)}</td>
-                <td style={{ padding: "2px 4px", textAlign: "right" }}>{fmt(l.haber)}</td>
-              </tr>
-            ))}
-            <tr style={{ borderTop: "2px solid #d1d5db", fontWeight: 700 }}>
-              <td colSpan={2} style={{ padding: "2px 4px" }}>Totales</td>
-              <td style={{ padding: "2px 4px", textAlign: "right" }}>{debe.toFixed(2)}</td>
-              <td style={{ padding: "2px 4px", textAlign: "right" }}>{haber.toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
+        lista.map((a, i) => <TablaAsiento key={i} asiento={a} />)
       )}
       {nota && <p style={{ fontSize: 11, color: "#6b7280", margin: "6px 0 0" }}>{nota}</p>}
-      </div>
     </details>
   );
 };
