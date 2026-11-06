@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import axiosInstance from "../../utils/axios";
 
 // Vista previa del asiento contable que generara el backend al guardar, con las columnas del asiento
 // (ver "Pestana de Asiento contable_v1.docx"). Con `asientos` muestra lo que calculo el backend con las
@@ -68,6 +69,25 @@ export const AsientoPreview = ({ titulo = "Asiento contable a generar", lineas =
       {nota && <p style={{ fontSize: 11, color: "#6b7280", margin: "6px 0 0" }}>{nota}</p>}
     </details>
   );
+};
+
+// Pide al backend el asiento simulado con las cuentas configuradas (producto, proveedor, IGV, cuentas
+// por defecto), con espera de 400 ms tras el ultimo cambio. null si falla o no hay body: AsientoPreview
+// cae entonces a los codigos por defecto de `lineas`.
+export const useAsientoSimulado = (url: string, body: any | null) => {
+  const [asientos, setAsientos] = useState<AsientoSimulado[] | null>(null);
+  const firma = JSON.stringify(body);
+  useEffect(() => {
+    if (!body) { setAsientos(null); return; }
+    const t = setTimeout(() => {
+      axiosInstance.post(url, body)
+        .then((r: any) => setAsientos(r.data?.data ?? null))
+        .catch(() => setAsientos(null));
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, firma]);
+  return asientos;
 };
 
 // Asiento de una factura de compra (CompraRepository.CrearCompraCore): 60 (bien) / 63 (servicio)

@@ -4,7 +4,7 @@ import styles from "./compras.module.css";
 import axiosInstance from "../../../../../../utils/axios";
 import { useFormErrors, estiloError, CampoError } from "../../../../../../components/FormError";
 import { Ayuda } from "../../../../../../components/Ayuda";
-import { AsientoPreview, lineasAsientoCompra, tasaIgv, PlazoCredito } from "../../../../../../components/AsientoPreview";
+import { AsientoPreview, lineasAsientoCompra, tasaIgv, PlazoCredito, useAsientoSimulado } from "../../../../../../components/AsientoPreview";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { RootState } from "../../../../../../redux/rootState";
 import { getProveedores, getProductosCompra } from "../../../../../../redux/reducers/Admin/compras/compra.reducer";
@@ -519,6 +519,10 @@ const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCer
   const tasaFactura = tasaIgv(tipoIgvSel);
   const igv = Math.round(gravada * tasaFactura) / 100;
   const totalFactura = Math.round((gravada + igv) * 100) / 100;
+  const asientosSimulados = useAsientoSimulado("/compras/simular-asiento?deOrden=true", pendientes.length === 0 ? null : {
+    ordenCompraId: orden.id, proveedorId: orden.proveedorId || undefined, tipoIgvId: tipoIgvId || undefined, esCredito,
+    detalle: pendientes.map((d: any) => ({ ordenCompraDetalleId: d.id, productoId: d.productoId, descripcion: d.descripcion, cantidad: lineas[d.id].cantidad, costoUnitario: lineas[d.id].costo })),
+  });
   const detraccionSel = (tiposDetraccion ?? []).find((t: any) => t.id === tipoDetraccionId);
   const montoDetraccion = detraccionSel?.porcentaje ? Math.round(totalFactura * detraccionSel.porcentaje) / 100 : 0;
   const monedaSel = monedas.find((m: any) => m.id === monedaId);
@@ -654,8 +658,8 @@ const Facturar = ({ orden, monedas, tiposIgv, tiposDetraccion, payMethods, onCer
           </tbody>
         </table>
       </div>
-      <AsientoPreview lineas={lineasAsientoCompra(gravada, igv, totalFactura, orden.tipoOrden === "SERVICIO")}
-        nota="Si el producto o el proveedor tienen cuentas propias configuradas, el asiento usará esas cuentas." />
+      <AsientoPreview lineas={lineasAsientoCompra(gravada, igv, totalFactura, orden.tipoOrden === "SERVICIO")} asientos={asientosSimulados}
+        nota="Calculado con las cuentas configuradas en el producto, el proveedor y las cuentas por defecto." />
       <div style={{ ...campo, marginTop: 8 }}>
         <label style={label}>Observación<Ayuda texto="Opcional. Notas internas sobre esta factura -- no se envían al proveedor." /></label>
         <textarea style={input} placeholder="Observación (opcional)" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
