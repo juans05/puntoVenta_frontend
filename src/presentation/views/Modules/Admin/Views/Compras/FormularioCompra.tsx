@@ -43,9 +43,10 @@ interface IDetalleLinea {
   centroCostoId: number;
   cuentaContableId: number;
   sucursalDestinoId: number;
+  tipoIgvId: number;
 }
 
-const lineaVacia: IDetalleLinea = { productoId: 0, nombre: "", descripcion: "", cantidad: 1, costoUnitario: 0, centroCostoId: 0, cuentaContableId: 0, sucursalDestinoId: 0 };
+const lineaVacia: IDetalleLinea = { productoId: 0, nombre: "", descripcion: "", cantidad: 1, costoUnitario: 0, centroCostoId: 0, cuentaContableId: 0, sucursalDestinoId: 0, tipoIgvId: 0 };
 
 interface IPagoInicial {
   metodoPagoId: number;
@@ -126,9 +127,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const [numeroDetraccion, setNumeroDetraccion] = useState("");
   const [fechaDetraccion, setFechaDetraccion] = useState("");
 
-  const [tiposDetraccion, setTiposDetraccion] = useState<any[]>([]);
   const [centrosCosto, setCentrosCosto] = useState<any[]>([]);
-  const [cuentasContables, setCuentasContables] = useState<any[]>([]);
 
   const [detalle, setDetalle] = useState<IDetalleLinea[]>([]);
   const [loading, setLoading] = useState(false);
@@ -153,9 +152,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
     dispatch(getTiposIgv() as any);
     dispatch(getAllUbigeos() as any);
     dispatch(getTypeDocument() as any);
-    axiosInstance.get("/extensiones/tipos-detraccion").then((r: any) => setTiposDetraccion(r.data?.data ?? [])).catch(() => {});
     axiosInstance.get("/extensiones/centros-costo").then((r: any) => setCentrosCosto(r.data?.data ?? [])).catch(() => {});
-    axiosInstance.get("/cuentas-contables/listar").then((r: any) => setCuentasContables(r.data?.data ?? [])).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -202,6 +199,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
               centroCostoId: d.centroCostoId ?? 0,
               cuentaContableId: d.cuentaContableId ?? 0,
               sucursalDestinoId: d.sucursalDestinoId ?? c?.sucursalId ?? 0,
+              tipoIgvId: d.tipoIgvId ?? c?.tipoIgvId ?? 0,
             }))
           );
         })
@@ -225,6 +223,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
           centroCostoId: 0,
           cuentaContableId: 0,
           sucursalDestinoId: sucursalIdInicial ?? 0,
+          tipoIgvId: 0,
         }))
       );
     }
@@ -241,12 +240,10 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const productosOptions = (productosCompra ?? []).map((p: any) => ({ id: p.productoId, value: p.nombre }));
   const metodoPagoSeleccionado = (payMethods ?? []).find((m: any) => Number(m.id) === Number(metodoPagoId))?.value ?? "";
   const monedaSeleccionada = (monedas ?? []).find((m: any) => Number(m.id) === Number(monedaId))?.value ?? "";
-  const tipoIgvSeleccionado = (tiposIgv ?? []).find((t: any) => Number(t.id) === Number(tipoIgvId))?.value ?? "";
-  const tipoDetraccionSeleccionado = (tiposDetraccion ?? []).find((t: any) => Number(t.id) === Number(tipoDetraccionId))?.value ?? "";
+  const tiposIgvOptions = (tiposIgv ?? []).map((t: any) => ({ id: t.id, value: t.value }));
+  const nombreTipoIgv = (id: number) => tiposIgvOptions.find((t: any) => Number(t.id) === Number(id))?.value ?? "";
   const centrosCostoOptions = (centrosCosto ?? []).map((c: any) => ({ id: c.id, value: c.value }));
-  const cuentasContablesOptions = (cuentasContables ?? []).filter((c: any) => c.esHoja).map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
   const nombreCentroCosto = (id: number) => (centrosCosto ?? []).find((c: any) => c.id === id)?.value ?? "";
-  const nombreCuentaContable = (id: number) => cuentasContablesOptions.find((c: any) => c.id === id)?.value ?? "";
   const sucursalesOptions = (sucursales ?? []).map((s: any) => ({ id: s.id, value: s.value }));
   const nombreSucursal = (id: number) => sucursalesOptions.find((s: any) => Number(s.id) === Number(id))?.value ?? "";
   const totalPagos = pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
@@ -344,8 +341,21 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const quitarLinea = (index: number) => setDetalle(detalle.filter((_, i) => i !== index));
   const cambiarLinea = (index: number, campo: keyof IDetalleLinea, valor: any) =>
     setDetalle(detalle.map((linea, i) => (i === index ? { ...linea, [campo]: valor } : linea)));
-  const seleccionarProducto = (index: number, idValue: any, value: string) =>
+  // Producto repetido: no se acepta en otra linea; se avisa y se resalta la linea donde ya esta
+  // (para sumar la cantidad ahi). resetLineas remonta los selects para borrar lo elegido.
+  const [lineaResaltada, setLineaResaltada] = useState<number | null>(null);
+  const [resetLineas, setResetLineas] = useState(0);
+  const seleccionarProducto = (index: number, idValue: any, value: string) => {
+    const existente = detalle.findIndex((l, i) => i !== index && Number(l.productoId) > 0 && Number(l.productoId) === Number(idValue));
+    if (existente >= 0) {
+      toast.error(`"${value}" ya está registrado en la línea ${existente + 1}. Modifica la cantidad en esa línea.`);
+      setLineaResaltada(existente);
+      setTimeout(() => setLineaResaltada(null), 2500);
+      setResetLineas((n) => n + 1);
+      return;
+    }
     setDetalle(detalle.map((linea, i) => (i === index ? { ...linea, productoId: Number(idValue), nombre: value } : linea)));
+  };
 
   // "+ Crear producto" del droplist de una linea: abre el modal completo de Producto (precio,
   // stock, etc. no caben en un alta rapida) precargado con el nombre buscado, y al guardar
@@ -371,9 +381,16 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
       : Number(descuentoValor) || 0;
   const otrosCargosNum = Number(otrosCargos) || 0;
   const baseConDescuento = subtotalProductos - montoDescuento + otrosCargosNum;
-  const tipoIgvObj = (tiposIgv ?? []).find((t: any) => Number(t.id) === Number(tipoIgvId));
-  const tasa = tasaIgv(tipoIgvObj);
-  const { gravada, igv } = separarIgv(baseConDescuento, tasa > 0, tasa);
+  // IGV por linea (como el backend): descuento/otros cargos prorrateados por el monto de cada linea.
+  const tasaDe = (id: number) => tasaIgv((tiposIgv ?? []).find((t: any) => Number(t.id) === Number(id || tipoIgvId)));
+  const factor = subtotalProductos > 0 ? baseConDescuento / subtotalProductos : 1;
+  const { gravada, igv } = (subtotalProductos > 0
+    ? detalle.map((l) => ({ monto: (Number(l.cantidad) || 0) * (Number(l.costoUnitario) || 0) * factor, tasa: tasaDe(l.tipoIgvId) }))
+    : [{ monto: baseConDescuento, tasa: tasaDe(0) }]
+  ).reduce((acc, l) => {
+    const p = separarIgv(l.monto, l.tasa > 0, l.tasa);
+    return { gravada: acc.gravada + p.gravada, igv: acc.igv + p.igv };
+  }, { gravada: 0, igv: 0 });
   const total = baseConDescuento;
   const totalPagado = esCredito ? totalPagos : total;
   const lineasPreview = detalle.filter((l) => Number(l.productoId) > 0 && Number(l.cantidad) > 0 && Number(l.costoUnitario) >= 0);
@@ -387,6 +404,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
       productoId: l.productoId, cantidad: Number(l.cantidad), costoUnitario: Number(l.costoUnitario),
       centroCostoId: l.centroCostoId > 0 ? l.centroCostoId : undefined,
       cuentaContableId: l.cuentaContableId > 0 ? l.cuentaContableId : undefined,
+      tipoIgvId: l.tipoIgvId > 0 ? l.tipoIgvId : undefined,
     })),
   });
 
@@ -444,6 +462,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
         centroCostoId: l.centroCostoId > 0 ? l.centroCostoId : undefined,
         cuentaContableId: l.cuentaContableId > 0 ? l.cuentaContableId : undefined,
         sucursalDestinoId: l.sucursalDestinoId > 0 ? l.sucursalDestinoId : undefined,
+        tipoIgvId: l.tipoIgvId > 0 ? l.tipoIgvId : undefined,
       })),
     };
 
@@ -519,11 +538,6 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
               <input className={styles.input} type="number" placeholder="T. cambio" title="Tipo de cambio" value={tipoCambio} onChange={(e) => setTipoCambio(e.target.value)} />
             </div>
           </div>
-          <div className={styles.campo}>
-            <label>Impuesto</label>
-            <SelectPro isSearch options={(tiposIgv ?? []).map((t: any) => ({ id: t.id, value: t.value }))} defaultValue={tipoIgvSeleccionado}
-              onChange={(idValue: any) => setTipoIgvId(Number(idValue))} placeholder="IGV 18%" />
-          </div>
         </div>
 
         <div>
@@ -540,8 +554,9 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
             <input type="month" className={styles.input} value={fechaKardex.slice(0, 7)} readOnly title="Se toma de la fecha de contabilización" />
           </div>
           <div className={styles.campo}>
-            <label>
-              <input type="checkbox" checked={esCredito} onChange={(e) => setEsCredito(e.target.checked)} /> Al crédito
+            <label className={styles.checkLabel}>
+              Al crédito
+              <input type="checkbox" checked={esCredito} onChange={(e) => setEsCredito(e.target.checked)} />
             </label>
             {esCredito ? (
               <div className={styles.dosCol}>
@@ -585,14 +600,14 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
           <span>Descripción</span>
           <span>Sucursal</span>
           <span>Centro de costo</span>
-          <span>Cuenta contable</span>
+          <span>Impuesto</span>
           <span>Cantidad</span>
           <span>Precio</span>
           <span className={styles.derecha}>Importe</span>
           <span />
         </div>
         {detalle.map((linea, index) => (
-          <div key={index} className={styles.fila}>
+          <div key={`${index}-${resetLineas}`} className={`${styles.fila} ${lineaResaltada === index ? styles.filaResaltada : ""}`}>
             <SelectPro isSearch options={productosOptions} defaultValue={linea.nombre}
               onChange={(idValue: any, value: string) => seleccionarProducto(index, idValue, value)} placeholder="Producto"
               onAgregarNuevo={(busqueda) => crearProductoDesdeLinea(index, busqueda)} agregarNuevoLabel="producto" />
@@ -601,8 +616,8 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
               onChange={(idValue: any) => cambiarLinea(index, "sucursalDestinoId", Number(idValue))} placeholder="Sucursal" />
             <SelectPro isSearch options={centrosCostoOptions} defaultValue={nombreCentroCosto(linea.centroCostoId)}
               onChange={(idValue: any) => cambiarLinea(index, "centroCostoId", Number(idValue))} placeholder="Opcional" />
-            <SelectPro isSearch options={cuentasContablesOptions} defaultValue={nombreCuentaContable(linea.cuentaContableId)}
-              onChange={(idValue: any) => cambiarLinea(index, "cuentaContableId", Number(idValue))} placeholder="Por defecto" />
+            <SelectPro isSearch options={tiposIgvOptions} defaultValue={nombreTipoIgv(linea.tipoIgvId)}
+              onChange={(idValue: any) => cambiarLinea(index, "tipoIgvId", Number(idValue))} placeholder="IGV 18%" />
             <input className={styles.input} type="number" value={linea.cantidad} onChange={(e) => cambiarLinea(index, "cantidad", e.target.value)} />
             <input className={styles.input} type="number" value={linea.costoUnitario} onChange={(e) => cambiarLinea(index, "costoUnitario", e.target.value)} />
             <span className={styles.derecha}>S/ {((Number(linea.cantidad) || 0) * (Number(linea.costoUnitario) || 0)).toFixed(2)}</span>
@@ -632,20 +647,6 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
               <CampoError mensaje={errors.pagos} />
             </div>
           )}
-
-          <details className={styles.plegable}>
-            <summary>💰 Detracción {tipoDetraccionId ? `· ${tipoDetraccionSeleccionado}` : "(opcional)"}</summary>
-            <div className={styles.tresCol}>
-              <SelectPro isSearch options={(tiposDetraccion ?? []).map((t: any) => ({ id: t.id, value: t.value }))} defaultValue={tipoDetraccionSeleccionado}
-                onChange={(idValue: any) => setTipoDetraccionId(Number(idValue))} placeholder="No aplica" />
-              <input className={styles.input} placeholder="N° de constancia" value={numeroDetraccion} disabled={!tipoDetraccionId} onChange={(e) => setNumeroDetraccion(e.target.value)} />
-              <input type="date" className={styles.input} value={fechaDetraccion} disabled={!tipoDetraccionId} onChange={(e) => setFechaDetraccion(e.target.value)} />
-            </div>
-          </details>
-
-          <AsientoPreview lineas={lineasAsientoCompra(gravada, igv, total)} asientos={asientosSimulados}
-            nota={asientosSimulados ? "Calculado con las cuentas configuradas en el producto, el proveedor y las cuentas por defecto."
-              : "Además, la mercadería entra a almacén: 20 Mercaderías (Debe) / 61 Variación de existencias (Haber). Las cuentas propias del producto o proveedor reemplazan a estas."} />
         </div>
 
         <div className={styles.totales}>
@@ -676,6 +677,9 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
               <div><span>Importe adeudado:</span><span>S/ {Math.max(0, total - totalPagado).toFixed(2)}</span></div>
             </>
           )}
+          <AsientoPreview lineas={lineasAsientoCompra(gravada, igv, total)} asientos={asientosSimulados}
+            nota={asientosSimulados ? "Calculado con las cuentas configuradas en el producto, el proveedor y las cuentas por defecto."
+              : "Además, la mercadería entra a almacén: 20 Mercaderías (Debe) / 61 Variación de existencias (Haber). Las cuentas propias del producto o proveedor reemplazan a estas."} />
           <div className={styles.acciones}>
             <button type="button" className={styles.cancelarBtn} onClick={onCancelar}>Cancelar</button>
             <button type="button" className={styles.guardarBtn} onClick={guardar} disabled={loading || cargandoCompra || Object.keys(errors).length > 0}>
