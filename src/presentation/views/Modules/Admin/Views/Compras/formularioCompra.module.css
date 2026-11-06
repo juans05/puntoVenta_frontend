@@ -370,3 +370,14 @@ button.cancelarBtn {
   box-shadow: inset 3px 0 0 #F79009;
   transition: background 0.3s;
 }
+
+/* Total de la factura segun SUNAT (cuando viene del Registro de Compras): verde si cuadra */
+.totales > div.totalSunatOk {
+  color: #067647;
+  font-weight: 600;
+}
+
+.totales > div.totalSunatDifiere {
+  color: #B42318;
+  font-weight: 600;
+}
