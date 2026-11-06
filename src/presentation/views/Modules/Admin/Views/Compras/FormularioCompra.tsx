@@ -29,22 +29,23 @@ import {
 } from "../../../../../../redux/reducers/Admin/productos/producto.reducer";
 import { ProductoModal } from "../../../../../../components/Modal/Admin/Producto";
 import axiosInstance from "../../../../../../utils/axios";
-import Input from "../../../../../../components/Input";
+
 import SelectPro from "../../../../../../components/SelectPro";
-import SelectUbigeo from "../../../../../../components/SelectPro/SelectUbigeo";
 import { toast } from "sonner";
-import { AsientoPreview, lineasAsientoCompra, separarIgv, tasaIgv, PlazoCredito } from "../../../../../../components/AsientoPreview";
+import { AsientoPreview, lineasAsientoCompra, separarIgv, tasaIgv, useAsientoSimulado } from "../../../../../../components/AsientoPreview";
 
 interface IDetalleLinea {
   productoId: number;
   nombre: string;
+  descripcion: string;
   cantidad: number;
   costoUnitario: number;
   centroCostoId: number;
   cuentaContableId: number;
+  sucursalDestinoId: number;
 }
 
-const lineaVacia: IDetalleLinea = { productoId: 0, nombre: "", cantidad: 1, costoUnitario: 0, centroCostoId: 0, cuentaContableId: 0 };
+const lineaVacia: IDetalleLinea = { productoId: 0, nombre: "", descripcion: "", cantidad: 1, costoUnitario: 0, centroCostoId: 0, cuentaContableId: 0, sucursalDestinoId: 0 };
 
 interface IPagoInicial {
   metodoPagoId: number;
@@ -99,7 +100,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const [proveedorNombre, setProveedorNombre] = useState("");
   const [proveedorDireccion, setProveedorDireccion] = useState("");
   const [proveedorUbigeoId, setProveedorUbigeoId] = useState("");
-  const [proveedorUbigeoLabel, setProveedorUbigeoLabel] = useState("");
+  const [, setProveedorUbigeoLabel] = useState("");
   const [proveedorEmail, setProveedorEmail] = useState("");
 
   const [docSerie, setDocSerie] = useState("");
@@ -195,10 +196,12 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
             (c?.detalle ?? []).map((d: any) => ({
               productoId: d.productoId,
               nombre: d.producto ?? "",
+              descripcion: d.descripcion ?? "",
               cantidad: d.cantidad,
               costoUnitario: d.costoUnitario,
               centroCostoId: d.centroCostoId ?? 0,
               cuentaContableId: d.cuentaContableId ?? 0,
+              sucursalDestinoId: d.sucursalDestinoId ?? c?.sucursalId ?? 0,
             }))
           );
         })
@@ -216,10 +219,12 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
         prefillXml.lineas.map((l) => ({
           productoId: 0,
           nombre: l.descripcion,
+          descripcion: "",
           cantidad: l.cantidad || 1,
           costoUnitario: l.precioUnitario || 0,
           centroCostoId: 0,
           cuentaContableId: 0,
+          sucursalDestinoId: sucursalIdInicial ?? 0,
         }))
       );
     }
@@ -242,6 +247,8 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const cuentasContablesOptions = (cuentasContables ?? []).filter((c: any) => c.esHoja).map((c: any) => ({ id: c.id, value: `${c.codigo} - ${c.nombre}` }));
   const nombreCentroCosto = (id: number) => (centrosCosto ?? []).find((c: any) => c.id === id)?.value ?? "";
   const nombreCuentaContable = (id: number) => cuentasContablesOptions.find((c: any) => c.id === id)?.value ?? "";
+  const sucursalesOptions = (sucursales ?? []).map((s: any) => ({ id: s.id, value: s.value }));
+  const nombreSucursal = (id: number) => sucursalesOptions.find((s: any) => Number(s.id) === Number(id))?.value ?? "";
   const totalPagos = pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
 
   const limpiarProveedor = () => {
@@ -333,7 +340,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
     seleccionarProveedorExistente(p);
   };
 
-  const agregarLinea = () => setDetalle([...detalle, { ...lineaVacia }]);
+  const agregarLinea = () => setDetalle([...detalle, { ...lineaVacia, sucursalDestinoId: sucursalId }]);
   const quitarLinea = (index: number) => setDetalle(detalle.filter((_, i) => i !== index));
   const cambiarLinea = (index: number, campo: keyof IDetalleLinea, valor: any) =>
     setDetalle(detalle.map((linea, i) => (i === index ? { ...linea, [campo]: valor } : linea)));
@@ -368,6 +375,20 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const tasa = tasaIgv(tipoIgvObj);
   const { gravada, igv } = separarIgv(baseConDescuento, tasa > 0, tasa);
   const total = baseConDescuento;
+  const totalPagado = esCredito ? totalPagos : total;
+  const lineasPreview = detalle.filter((l) => Number(l.productoId) > 0 && Number(l.cantidad) > 0 && Number(l.costoUnitario) >= 0);
+  const asientosSimulados = useAsientoSimulado("/compras/simular-asiento", lineasPreview.length === 0 ? null : {
+    proveedorId: proveedorId > 0 ? proveedorId : null, proveedorRuc: numeroDocumento || undefined,
+    tipoIgvId: tipoIgvId > 0 ? tipoIgvId : undefined, esCredito,
+    porcentajeDescuento: tipoDescuento === "%" ? Number(descuentoValor) || undefined : undefined,
+    montoDescuento: tipoDescuento === "S/" ? Number(descuentoValor) || undefined : undefined,
+    otrosCargos: otrosCargosNum || undefined,
+    detalle: lineasPreview.map((l) => ({
+      productoId: l.productoId, cantidad: Number(l.cantidad), costoUnitario: Number(l.costoUnitario),
+      centroCostoId: l.centroCostoId > 0 ? l.centroCostoId : undefined,
+      cuentaContableId: l.cuentaContableId > 0 ? l.cuentaContableId : undefined,
+    })),
+  });
 
   const { errors, setError, clearError, limpiarErrores } = useFormErrors();
 
@@ -419,8 +440,10 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
         productoId: l.productoId,
         cantidad: Number(l.cantidad),
         costoUnitario: Number(l.costoUnitario),
+        descripcion: l.descripcion || undefined,
         centroCostoId: l.centroCostoId > 0 ? l.centroCostoId : undefined,
         cuentaContableId: l.cuentaContableId > 0 ? l.cuentaContableId : undefined,
+        sucursalDestinoId: l.sucursalDestinoId > 0 ? l.sucursalDestinoId : undefined,
       })),
     };
 
@@ -452,372 +475,216 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   };
 
   return (
-    <div>
-      <div className={styles.columnas}>
-        <div className={styles.columnaPrincipal}>
-          <div className={styles.card}>
-            <h4>🏢 Proveedor</h4>
-            <div className={styles.grid}>
-              <div>
-                <label>T.DOC.</label>
-                <select
-                  className={styles.select}
-                  value={tipoDocProveedor}
-                  onChange={(e) => setTipoDocProveedor(e.target.value as "RUC" | "DNI")}
-                >
-                  <option value="RUC">R.U.C.</option>
-                  <option value="DNI">D.N.I.</option>
-                </select>
-              </div>
-              <div>
-                <label>NÚM. DOC.</label>
-                <div className={styles.buscarRow}>
-                  <input
-                    className={styles.input}
-                    placeholder="Escribe o busca..."
-                    value={numeroDocumento}
-                    onChange={(e) => setNumeroDocumento(e.target.value.replace(/\s/g, ""))}
-                    onKeyDown={(e) => e.key === "Enter" && buscarProveedor()}
-                  />
-                  <button type="button" className={styles.buscarBtn} onClick={() => setPickerProveedorOpen(true)} disabled={buscandoProveedor} title="Buscar proveedor">
-                    🔍
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.buscarBtn}
-                    onClick={abrirRegistroProveedor}
-                    title="Registrar nuevo proveedor"
-                  >
-                    ➕
-                  </button>
-                </div>
-              </div>
-              <div className={styles.full}>
-                <Input
-                  isLabel
-                  label="Razón social / Nombre"
-                  name="proveedorNombre"
-                  value={proveedorNombre}
-                  error={errors.proveedorNombre}
-                  onChange={(e: any) => {
-                    setProveedorNombre(e.target.value);
-                    clearError("proveedorNombre");
-                  }}
-                />
-              </div>
-              <div>
-                <Input
-                  isLabel
-                  label="Dirección"
-                  name="proveedorDireccion"
-                  value={proveedorDireccion}
-                  onChange={(e: any) => setProveedorDireccion(e.target.value)}
-                />
-              </div>
-              <div>
-                <SelectUbigeo
-                  isLabel
-                  isSearch
-                  label="Ubigeo"
-                  name="proveedorUbigeo"
-                  id="proveedorUbigeoId"
-                  options={ubigeos ?? []}
-                  defaultValue={proveedorUbigeoLabel}
-                  placeholder="Buscar distrito..."
-                  onChange={(idValue: any, value: string) => {
-                    setProveedorUbigeoId(idValue ? String(idValue) : "");
-                    setProveedorUbigeoLabel(value);
-                  }}
-                />
-              </div>
-              <div className={styles.full}>
-                <Input
-                  isLabel
-                  label="Correo (opcional)"
-                  name="proveedorEmail"
-                  value={proveedorEmail}
-                  onChange={(e: any) => setProveedorEmail(e.target.value)}
-                />
-              </div>
+    <div className={styles.hoja}>
+      <div className={styles.cabecera}>
+        <div>
+          <div className={styles.campo}>
+            <label className={styles.req}>Proveedor</label>
+            <div className={styles.buscarRow}>
+              <select className={styles.tipoDoc} value={tipoDocProveedor} onChange={(e) => setTipoDocProveedor(e.target.value as "RUC" | "DNI")}>
+                <option value="RUC">RUC</option>
+                <option value="DNI">DNI</option>
+              </select>
+              <input
+                className={styles.input}
+                placeholder="N° documento"
+                value={numeroDocumento}
+                onChange={(e) => setNumeroDocumento(e.target.value.replace(/\s/g, ""))}
+                onKeyDown={(e) => e.key === "Enter" && buscarProveedor()}
+              />
+              <button type="button" className={styles.buscarBtn} onClick={() => setPickerProveedorOpen(true)} disabled={buscandoProveedor} title="Buscar proveedor">🔍</button>
+              <button type="button" className={styles.buscarBtn} onClick={abrirRegistroProveedor} title="Registrar nuevo proveedor">➕</button>
             </div>
           </div>
-
-          <div className={styles.card}>
-            <h4>📄 Datos del comprobante</h4>
-            <div className={styles.grid}>
-              <div>
-                <label>Sucursal</label>
-                <SelectPro
-                  isSearch
-                  options={(sucursales ?? []).map((s: any) => ({ id: s.id, value: s.value }))}
-                  defaultValue={(sucursales ?? []).find((s: any) => Number(s.id) === Number(sucursalId))?.value ?? ""}
-                  onChange={(idValue: any) => setSucursalId(Number(idValue))}
-                  placeholder="Sin especificar"
-                />
-              </div>
-              <div>
-                <Input isLabel label="Serie" name="serie" value={docSerie} onChange={(e: any) => setDocSerie(e.target.value)} />
-              </div>
-              <div>
-                <Input isLabel label="Número" name="numero" value={docNumero} onChange={(e: any) => setDocNumero(e.target.value)} />
-              </div>
-              <div>
-                <label>Fecha de Emisión</label>
-                <input type="date" className={styles.dateInput} value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} />
-              </div>
-              <div>
-                <label>Fecha Kardex</label>
-                <input type="date" className={styles.dateInput} value={fechaKardex} onChange={(e) => setFechaKardex(e.target.value)} />
-              </div>
-              <div>
-                <label>Moneda</label>
-                <SelectPro
-                  isSearch
-                  options={(monedas ?? []).map((m: any) => ({ id: m.id, value: m.value }))}
-                  defaultValue={monedaSeleccionada}
-                  onChange={(idValue: any) => setMonedaId(Number(idValue))}
-                  placeholder="Soles (S/)"
-                />
-              </div>
-              <div>
-                <label>IGV</label>
-                <SelectPro
-                  isSearch
-                  options={(tiposIgv ?? []).map((t: any) => ({ id: t.id, value: t.value }))}
-                  defaultValue={tipoIgvSeleccionado}
-                  onChange={(idValue: any) => setTipoIgvId(Number(idValue))}
-                  placeholder="18%"
-                />
-              </div>
-              <div>
-                <Input
-                  isLabel
-                  label="T. Cambio"
-                  name="tipoCambio"
-                  type="number"
-                  value={tipoCambio}
-                  onChange={(e: any) => setTipoCambio(e.target.value)}
-                />
-              </div>
+          <div className={styles.campo}>
+            <label />
+            <div>
+              <input
+                className={styles.input}
+                placeholder="Razón social / Nombre"
+                value={proveedorNombre}
+                onChange={(e) => {
+                  setProveedorNombre(e.target.value);
+                  clearError("proveedorNombre");
+                }}
+              />
+              <CampoError mensaje={errors.proveedorNombre} />
             </div>
           </div>
-
-          <div className={styles.card}>
-            <h4>💰 Detracción (opcional)</h4>
-            <div className={styles.grid}>
-              <div>
-                <label>Tipo</label>
-                <SelectPro
-                  isSearch
-                  options={(tiposDetraccion ?? []).map((t: any) => ({ id: t.id, value: t.value }))}
-                  defaultValue={tipoDetraccionSeleccionado}
-                  onChange={(idValue: any) => setTipoDetraccionId(Number(idValue))}
-                  placeholder="No aplica"
-                />
-              </div>
-              <div>
-                <Input
-                  isLabel
-                  label="N° de constancia"
-                  name="numeroDetraccion"
-                  value={numeroDetraccion}
-                  onChange={(e: any) => setNumeroDetraccion(e.target.value)}
-                  disabled={!tipoDetraccionId}
-                />
-              </div>
-              <div>
-                <label>Fecha de detracción</label>
-                <input type="date" className={styles.dateInput} value={fechaDetraccion} disabled={!tipoDetraccionId}
-                  onChange={(e) => setFechaDetraccion(e.target.value)} />
-              </div>
+          <div className={styles.campo}>
+            <label>Divisa</label>
+            <div className={styles.dosCol}>
+              <SelectPro isSearch options={(monedas ?? []).map((m: any) => ({ id: m.id, value: m.value }))} defaultValue={monedaSeleccionada}
+                onChange={(idValue: any) => setMonedaId(Number(idValue))} placeholder="PEN - Soles" />
+              <input className={styles.input} type="number" placeholder="T. cambio" title="Tipo de cambio" value={tipoCambio} onChange={(e) => setTipoCambio(e.target.value)} />
             </div>
           </div>
-
-          <div className={styles.card}>
-            <h4>
-              📦 Productos
-              <button type="button" className={styles.addLineBtn} onClick={agregarLinea}>
-                + Agregar producto
-              </button>
-            </h4>
-
-            {detalle.length === 0 && (
-              <div className={styles.emptyProductos}>
-                🛒 Aún no hay productos. Trae una factura arriba o agrega productos.
-              </div>
-            )}
-            <CampoError mensaje={errors.productos} />
-
-            {detalle.map((linea, index) => (
-              <div key={index} className={styles.detalleRow}>
-                <div>
-                  <label>Producto</label>
-                  <SelectPro
-                    isSearch
-                    options={productosOptions}
-                    defaultValue={linea.nombre}
-                    onChange={(idValue: any, value: string) => seleccionarProducto(index, idValue, value)}
-                    placeholder="Selecciona un producto"
-                    onAgregarNuevo={(busqueda) => crearProductoDesdeLinea(index, busqueda)}
-                    agregarNuevoLabel="producto"
-                  />
-                </div>
-                <div>
-                  <label>Cantidad</label>
-                  <Input type="number" name="cantidad" value={linea.cantidad} onChange={(e: any) => cambiarLinea(index, "cantidad", e.target.value)} />
-                </div>
-                <div>
-                  <label>Costo unitario</label>
-                  <Input type="number" name="costoUnitario" value={linea.costoUnitario} onChange={(e: any) => cambiarLinea(index, "costoUnitario", e.target.value)} />
-                </div>
-                <div>
-                  <label>Subtotal</label>
-                  <div className={styles.subtotalLinea}>
-                    S/ {((Number(linea.cantidad) || 0) * (Number(linea.costoUnitario) || 0)).toFixed(2)}
-                  </div>
-                </div>
-                <button type="button" className={styles.removeRow} onClick={() => quitarLinea(index)} title="Quitar producto">
-                  🗑
-                </button>
-                <div className={styles.detalleRowExtra}>
-                  <SelectPro
-                    isSearch
-                    options={centrosCostoOptions}
-                    defaultValue={nombreCentroCosto(linea.centroCostoId)}
-                    onChange={(idValue: any) => cambiarLinea(index, "centroCostoId", Number(idValue))}
-                    placeholder="Centro de costo (opcional)"
-                  />
-                  <SelectPro
-                    isSearch
-                    options={cuentasContablesOptions}
-                    defaultValue={nombreCuentaContable(linea.cuentaContableId)}
-                    onChange={(idValue: any) => cambiarLinea(index, "cuentaContableId", Number(idValue))}
-                    placeholder="Cuenta contable (opcional)"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className={styles.card}>
-            <h4>
-              💳 Pago
-              <label className={styles.creditoToggle}>
-                ¿Compra al crédito?
-                <input type="checkbox" checked={esCredito} onChange={(e) => setEsCredito(e.target.checked)} />
-              </label>
-            </h4>
-            <div className={styles.grid}>
-              {esCredito && (
-                <div className={styles.full}>
-                  <PlazoCredito dias={diasCredito} onDias={setDiasCredito} fechaEmision={fechaEmision}
-                    fechaVencimiento={fechaVencimiento} onFechaVencimiento={setFechaVencimiento} />
-                </div>
-              )}
-              {esCredito ? (!esEdicion && (
-                <div className={styles.full}>
-                  <label>Pagos iniciales (opcional)</label>
-                  {pagos.map((p, i) => (
-                    <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                      <div style={{ flex: 1 }}>
-                        <SelectPro
-                          isSearch
-                          options={payMethods ?? []}
-                          defaultValue={(payMethods ?? []).find((m: any) => Number(m.id) === Number(p.metodoPagoId))?.value ?? ""}
-                          onChange={(idValue: any) => setPagos(pagos.map((x, j) => (j === i ? { ...x, metodoPagoId: Number(idValue) } : x)))}
-                          placeholder="Medio de pago"
-                        />
-                      </div>
-                      <Input
-                        type="number"
-                        name={`pagoMonto${i}`}
-                        value={p.monto}
-                        onChange={(e: any) => setPagos(pagos.map((x, j) => (j === i ? { ...x, monto: e.target.value } : x)))}
-                      />
-                      <button type="button" className={styles.removeRow} onClick={() => setPagos(pagos.filter((_, j) => j !== i))} title="Quitar pago">🗑</button>
-                    </div>
-                  ))}
-                  <button type="button" className={styles.addLineBtn} onClick={() => setPagos([...pagos, { metodoPagoId: 0, monto: "" }])}>
-                    + Añadir pago
-                  </button>
-                  {pagos.length > 0 && <p style={{ fontSize: 12, color: "#667085", marginTop: 6 }}>Pagado ahora: S/ {totalPagos.toFixed(2)} — el resto queda en Cuentas por pagar.</p>}
-                  <CampoError mensaje={errors.pagos} />
-                </div>
-              )) : (
-                <div className={styles.full}>
-                  <label>Forma de pago</label>
-                  <SelectPro
-                    isSearch
-                    options={payMethods ?? []}
-                    defaultValue={metodoPagoSeleccionado}
-                    onChange={(idValue: any) => setMetodoPagoId(Number(idValue))}
-                    placeholder="Efectivo"
-                  />
-                </div>
-              )}
-              <div className={styles.full}>
-                <Input isLabel label="Observación (opcional)" name="observacion" value={observacion} onChange={(e: any) => setObservacion(e.target.value)} />
-              </div>
-            </div>
+          <div className={styles.campo}>
+            <label>Impuesto</label>
+            <SelectPro isSearch options={(tiposIgv ?? []).map((t: any) => ({ id: t.id, value: t.value }))} defaultValue={tipoIgvSeleccionado}
+              onChange={(idValue: any) => setTipoIgvId(Number(idValue))} placeholder="IGV 18%" />
           </div>
         </div>
 
-        <div className={styles.columnaResumen}>
-          <div className={styles.resumenCard}>
-            <h4>📊 Resumen</h4>
-            <div className={styles.resumenFila}>
-              <span>Gravada</span>
-              <span>S/ {gravada.toFixed(2)}</span>
-            </div>
-            <div className={styles.resumenFila}>
-              <span>IGV</span>
-              <span>S/ {igv.toFixed(2)}</span>
-            </div>
-
-            <div className={styles.descuentoBloque}>
-              <div className={styles.resumenFila}>
-                <span>Descuento</span>
-                <div className={styles.tipoDescuentoToggle}>
-                  <button type="button" className={tipoDescuento === "%" ? styles.activo : ""} onClick={() => setTipoDescuento("%")}>
-                    %
-                  </button>
-                  <button type="button" className={tipoDescuento === "S/" ? styles.activo : ""} onClick={() => setTipoDescuento("S/")}>
-                    S/
-                  </button>
-                </div>
+        <div>
+          <div className={styles.campo}>
+            <label>Fecha de emisión</label>
+            <input type="date" className={styles.input} value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} />
+          </div>
+          <div className={styles.campo}>
+            <label title="También es la fecha del kardex">Fecha de contabilización</label>
+            <input type="date" className={styles.input} value={fechaKardex} onChange={(e) => setFechaKardex(e.target.value)} />
+          </div>
+          <div className={styles.campo}>
+            <label>Periodo</label>
+            <input type="month" className={styles.input} value={fechaKardex.slice(0, 7)} readOnly title="Se toma de la fecha de contabilización" />
+          </div>
+          <div className={styles.campo}>
+            <label>
+              <input type="checkbox" checked={esCredito} onChange={(e) => setEsCredito(e.target.checked)} /> Al crédito
+            </label>
+            {esCredito ? (
+              <div className={styles.dosCol}>
+                <input className={styles.input} type="number" min={1} placeholder="Días" title="Días de crédito" value={diasCredito}
+                  onChange={(e) => {
+                    setDiasCredito(e.target.value);
+                    const n = parseInt(e.target.value, 10);
+                    if (n > 0 && fechaEmision) {
+                      const d = new Date(`${fechaEmision}T00:00:00`);
+                      d.setDate(d.getDate() + n);
+                      setFechaVencimiento(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+                    }
+                  }} />
+                <input type="date" className={styles.input} title="Fecha de vencimiento" value={fechaVencimiento} onChange={(e) => setFechaVencimiento(e.target.value)} />
               </div>
-              <input
-                type="number"
-                className={styles.resumenInput}
-                value={descuentoValor}
-                onChange={(e) => setDescuentoValor(e.target.value)}
-              />
-              <div className={styles.resumenNegativo}>- S/ {montoDescuento.toFixed(2)}</div>
+            ) : (
+              <SelectPro isSearch options={payMethods ?? []} defaultValue={metodoPagoSeleccionado}
+                onChange={(idValue: any) => setMetodoPagoId(Number(idValue))} placeholder="Forma de pago: Efectivo" />
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div className={styles.campo}>
+            <label>Factura #</label>
+            <div className={styles.dosCol}>
+              <input className={styles.input} placeholder="Serie" value={docSerie} onChange={(e) => setDocSerie(e.target.value)} />
+              <input className={styles.input} placeholder="Número" value={docNumero} onChange={(e) => setDocNumero(e.target.value)} />
             </div>
+          </div>
+          <div className={styles.campo}>
+            <label>Notas</label>
+            <textarea className={styles.notas} rows={4} value={observacion} onChange={(e) => setObservacion(e.target.value)} />
+          </div>
+        </div>
+      </div>
 
-            <div className={styles.descuentoBloque}>
-              <span>Otros cargos</span>
-              <input type="number" className={styles.resumenInput} value={otrosCargos} onChange={(e) => setOtrosCargos(e.target.value)} />
-              <div className={styles.resumenPositivo}>+ S/ {otrosCargosNum.toFixed(2)}</div>
+      <div className={styles.lineas}>
+        <div className={`${styles.fila} ${styles.filaTitulo}`}>
+          <span>Artículo</span>
+          <span>Descripción</span>
+          <span>Sucursal</span>
+          <span>Centro de costo</span>
+          <span>Cuenta contable</span>
+          <span>Cantidad</span>
+          <span>Precio</span>
+          <span className={styles.derecha}>Importe</span>
+          <span />
+        </div>
+        {detalle.map((linea, index) => (
+          <div key={index} className={styles.fila}>
+            <SelectPro isSearch options={productosOptions} defaultValue={linea.nombre}
+              onChange={(idValue: any, value: string) => seleccionarProducto(index, idValue, value)} placeholder="Producto"
+              onAgregarNuevo={(busqueda) => crearProductoDesdeLinea(index, busqueda)} agregarNuevoLabel="producto" />
+            <input className={styles.input} value={linea.descripcion} onChange={(e) => cambiarLinea(index, "descripcion", e.target.value)} />
+            <SelectPro isSearch options={sucursalesOptions} defaultValue={nombreSucursal(linea.sucursalDestinoId)}
+              onChange={(idValue: any) => cambiarLinea(index, "sucursalDestinoId", Number(idValue))} placeholder="Sucursal" />
+            <SelectPro isSearch options={centrosCostoOptions} defaultValue={nombreCentroCosto(linea.centroCostoId)}
+              onChange={(idValue: any) => cambiarLinea(index, "centroCostoId", Number(idValue))} placeholder="Opcional" />
+            <SelectPro isSearch options={cuentasContablesOptions} defaultValue={nombreCuentaContable(linea.cuentaContableId)}
+              onChange={(idValue: any) => cambiarLinea(index, "cuentaContableId", Number(idValue))} placeholder="Por defecto" />
+            <input className={styles.input} type="number" value={linea.cantidad} onChange={(e) => cambiarLinea(index, "cantidad", e.target.value)} />
+            <input className={styles.input} type="number" value={linea.costoUnitario} onChange={(e) => cambiarLinea(index, "costoUnitario", e.target.value)} />
+            <span className={styles.derecha}>S/ {((Number(linea.cantidad) || 0) * (Number(linea.costoUnitario) || 0)).toFixed(2)}</span>
+            <button type="button" className={styles.removeRow} onClick={() => quitarLinea(index)} title="Quitar línea">🗑</button>
+          </div>
+        ))}
+        <CampoError mensaje={errors.productos} />
+      </div>
+
+      <div className={styles.pie}>
+        <div className={styles.pieIzq}>
+          <button type="button" className={styles.addLineBtn} onClick={agregarLinea}>⊕ Añade una línea</button>
+
+          {esCredito && !esEdicion && (
+            <div>
+              {pagos.map((p, i) => (
+                <div key={i} className={styles.pagoFila}>
+                  <SelectPro isSearch options={payMethods ?? []}
+                    defaultValue={(payMethods ?? []).find((m: any) => Number(m.id) === Number(p.metodoPagoId))?.value ?? ""}
+                    onChange={(idValue: any) => setPagos(pagos.map((x, j) => (j === i ? { ...x, metodoPagoId: Number(idValue) } : x)))} placeholder="Medio de pago" />
+                  <input className={styles.input} type="number" placeholder="Monto" value={p.monto}
+                    onChange={(e) => setPagos(pagos.map((x, j) => (j === i ? { ...x, monto: e.target.value } : x)))} />
+                  <button type="button" className={styles.removeRow} onClick={() => setPagos(pagos.filter((_, j) => j !== i))} title="Quitar pago">🗑</button>
+                </div>
+              ))}
+              <button type="button" className={styles.addLineBtn} onClick={() => setPagos([...pagos, { metodoPagoId: 0, monto: "" }])}>⊕ Añadir pago inicial</button>
+              <CampoError mensaje={errors.pagos} />
             </div>
+          )}
 
-            <div className={styles.totalFila}>
-              <span>Total a pagar</span>
-              <span>S/ {total.toFixed(2)}</span>
+          <details className={styles.plegable}>
+            <summary>💰 Detracción {tipoDetraccionId ? `· ${tipoDetraccionSeleccionado}` : "(opcional)"}</summary>
+            <div className={styles.tresCol}>
+              <SelectPro isSearch options={(tiposDetraccion ?? []).map((t: any) => ({ id: t.id, value: t.value }))} defaultValue={tipoDetraccionSeleccionado}
+                onChange={(idValue: any) => setTipoDetraccionId(Number(idValue))} placeholder="No aplica" />
+              <input className={styles.input} placeholder="N° de constancia" value={numeroDetraccion} disabled={!tipoDetraccionId} onChange={(e) => setNumeroDetraccion(e.target.value)} />
+              <input type="date" className={styles.input} value={fechaDetraccion} disabled={!tipoDetraccionId} onChange={(e) => setFechaDetraccion(e.target.value)} />
             </div>
+          </details>
 
-            <AsientoPreview lineas={lineasAsientoCompra(gravada, igv, total)}
-              nota="Además, la mercadería entra a almacén: 20 Mercaderías (Debe) / 61 Variación de existencias (Haber). Las cuentas propias del producto o proveedor reemplazan a estas." />
+          <AsientoPreview lineas={lineasAsientoCompra(gravada, igv, total)} asientos={asientosSimulados}
+            nota={asientosSimulados ? "Calculado con las cuentas configuradas en el producto, el proveedor y las cuentas por defecto."
+              : "Además, la mercadería entra a almacén: 20 Mercaderías (Debe) / 61 Variación de existencias (Haber). Las cuentas propias del producto o proveedor reemplazan a estas."} />
+        </div>
 
+        <div className={styles.totales}>
+          <div><span>Total parcial:</span><span>S/ {subtotalProductos.toFixed(2)}</span></div>
+          <div>
+            <span className={styles.conInput}>
+              Descuento
+              <span className={styles.tipoDescuentoToggle}>
+                <button type="button" className={tipoDescuento === "%" ? styles.activo : ""} onClick={() => setTipoDescuento("%")}>%</button>
+                <button type="button" className={tipoDescuento === "S/" ? styles.activo : ""} onClick={() => setTipoDescuento("S/")}>S/</button>
+              </span>
+              <input type="number" className={styles.totalInput} value={descuentoValor} onChange={(e) => setDescuentoValor(e.target.value)} />
+            </span>
+            <span>- S/ {montoDescuento.toFixed(2)}</span>
+          </div>
+          <div>
+            <span className={styles.conInput}>
+              Otros cargos
+              <input type="number" className={styles.totalInput} value={otrosCargos} onChange={(e) => setOtrosCargos(e.target.value)} />
+            </span>
+            <span>S/ {otrosCargosNum.toFixed(2)}</span>
+          </div>
+          <div><span>IGV:</span><span>S/ {igv.toFixed(2)}</span></div>
+          <div className={styles.totalFila}><span>Total ({monedaSeleccionada ? monedaSeleccionada.split(" ")[0] : "PEN"}):</span><span>S/ {total.toFixed(2)}</span></div>
+          {!esEdicion && (
+            <>
+              <div><span>Total pagado:</span><span>S/ {totalPagado.toFixed(2)}</span></div>
+              <div><span>Importe adeudado:</span><span>S/ {Math.max(0, total - totalPagado).toFixed(2)}</span></div>
+            </>
+          )}
+          <div className={styles.acciones}>
+            <button type="button" className={styles.cancelarBtn} onClick={onCancelar}>Cancelar</button>
             <button type="button" className={styles.guardarBtn} onClick={guardar} disabled={loading || cargandoCompra || Object.keys(errors).length > 0}>
-              {loading ? "Guardando..." : "Guardar compra"}
-            </button>
-            <button type="button" className={styles.cancelarBtn} onClick={onCancelar}>
-              Cancelar
+              {loading ? "Guardando..." : "Guardar"}
             </button>
           </div>
         </div>
       </div>
+
       <ClientePickerModal
         isOpen={pickerProveedorOpen}
         onClose={() => setPickerProveedorOpen(false)}
