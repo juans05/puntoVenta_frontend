@@ -363,3 +363,10 @@ button.cancelarBtn {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Linea donde ya esta el producto que se intento repetir */
+.filaResaltada {
+  background: #FEF0C7;
+  box-shadow: inset 3px 0 0 #F79009;
+  transition: background 0.3s;
+}

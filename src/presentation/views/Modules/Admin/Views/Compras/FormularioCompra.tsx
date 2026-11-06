@@ -341,8 +341,21 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const quitarLinea = (index: number) => setDetalle(detalle.filter((_, i) => i !== index));
   const cambiarLinea = (index: number, campo: keyof IDetalleLinea, valor: any) =>
     setDetalle(detalle.map((linea, i) => (i === index ? { ...linea, [campo]: valor } : linea)));
-  const seleccionarProducto = (index: number, idValue: any, value: string) =>
+  // Producto repetido: no se acepta en otra linea; se avisa y se resalta la linea donde ya esta
+  // (para sumar la cantidad ahi). resetLineas remonta los selects para borrar lo elegido.
+  const [lineaResaltada, setLineaResaltada] = useState<number | null>(null);
+  const [resetLineas, setResetLineas] = useState(0);
+  const seleccionarProducto = (index: number, idValue: any, value: string) => {
+    const existente = detalle.findIndex((l, i) => i !== index && Number(l.productoId) > 0 && Number(l.productoId) === Number(idValue));
+    if (existente >= 0) {
+      toast.error(`"${value}" ya está registrado en la línea ${existente + 1}. Modifica la cantidad en esa línea.`);
+      setLineaResaltada(existente);
+      setTimeout(() => setLineaResaltada(null), 2500);
+      setResetLineas((n) => n + 1);
+      return;
+    }
     setDetalle(detalle.map((linea, i) => (i === index ? { ...linea, productoId: Number(idValue), nombre: value } : linea)));
+  };
 
   // "+ Crear producto" del droplist de una linea: abre el modal completo de Producto (precio,
   // stock, etc. no caben en un alta rapida) precargado con el nombre buscado, y al guardar
@@ -594,7 +607,7 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
           <span />
         </div>
         {detalle.map((linea, index) => (
-          <div key={index} className={styles.fila}>
+          <div key={`${index}-${resetLineas}`} className={`${styles.fila} ${lineaResaltada === index ? styles.filaResaltada : ""}`}>
             <SelectPro isSearch options={productosOptions} defaultValue={linea.nombre}
               onChange={(idValue: any, value: string) => seleccionarProducto(index, idValue, value)} placeholder="Producto"
               onAgregarNuevo={(busqueda) => crearProductoDesdeLinea(index, busqueda)} agregarNuevoLabel="producto" />
