@@ -205,24 +205,44 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
     if (guardado) recargar();
   };
 
-  // Facturas elegidas de la propuesta de SUNAT: entran a la misma cola que los XML (una por una,
-  // revisar y guardar). SUNAT no manda productos, asi que llegan sin lineas.
+  // Facturas elegidas de la propuesta de SUNAT: el servidor baja el XML de cada una (con sus productos)
+  // y entran a la misma cola que los XML. Si SUNAT no entrega el XML, llega solo la cabecera.
   const dmyAIso = (f?: string) => {
     const [d, m, a] = (f ?? "").split("/");
     return a && m && d ? `${a}-${m}-${d}` : null;
   };
-  const registrarDesdeSunat = (filas: any[]) => {
+  const registrarDesdeSunat = async (filas: any[]) => {
     if (filas.length === 0) return;
-    const previews = filas.map((c) => ({
-      proveedorRuc: c.docProveedor,
-      proveedorNombre: c.proveedor,
-      numeroDocumento: `${c.serie}-${c.numero}`,
-      fechaEmision: dmyAIso(c.fecha),
-      fechaVencimiento: dmyAIso(c.fechaVencimiento),
-      totalSunat: c.total,
-      lineas: [],
-    }));
     setSunatAbierto(false);
+    const previews: any[] = [];
+    const sinXml: string[] = [];
+    // Una por una: SUNAT es lento y a veces responde 500, mejor no saturarlo.
+    for (const [i, c] of filas.entries()) {
+      toast(`Descargando XML de SUNAT ${i + 1} de ${filas.length}...`, { id: "xml-sunat", duration: Infinity });
+      const cabecera = {
+        proveedorRuc: c.docProveedor,
+        proveedorNombre: c.proveedor,
+        numeroDocumento: `${c.serie}-${c.numero}`,
+        fechaEmision: dmyAIso(c.fecha),
+        fechaVencimiento: dmyAIso(c.fechaVencimiento),
+        totalSunat: c.total,
+        lineas: [],
+      };
+      try {
+        const res: any = await axiosInstance.get(`/sunat/compras/xml`, {
+          params: { rucEmisor: c.docProveedor, tipo: c.tipo, serie: c.serie, numero: c.numero },
+        });
+        const xml = res.data?.data;
+        if (!xml) throw new Error(res.data?.message);
+        previews.push({ ...cabecera, ...xml, fechaVencimiento: xml.fechaVencimiento ?? cabecera.fechaVencimiento, totalSunat: c.total });
+      } catch (e: any) {
+        sinXml.push(`${c.serie}-${c.numero}: ${e?.response?.data?.message ?? e?.message ?? "sin respuesta"}`);
+        previews.push(cabecera);
+      }
+    }
+    toast.dismiss("xml-sunat");
+    if (sinXml.length > 0) toast.error(`Sin XML (llenar productos a mano): ${sinXml.join(" | ")}`, { duration: 10000 });
+    else toast.success(`${previews.length} XML descargado(s), revisa los datos antes de guardar`);
     setPrefillXml(previews[0]);
     setColaXml(previews.slice(1));
     setTotalXml(previews.length);
