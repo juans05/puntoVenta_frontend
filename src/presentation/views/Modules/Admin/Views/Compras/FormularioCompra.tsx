@@ -44,6 +44,10 @@ interface IDetalleLinea {
   cuentaContableId: number;
   sucursalDestinoId: number;
   tipoIgvId: number;
+  // Linea que vino de un XML: como la llama el proveedor. Al guardar, el backend aprende
+  // "esto del proveedor = este producto" y la proxima factura llega con el producto puesto.
+  codigoProveedor?: string;
+  textoProveedor?: string;
 }
 
 const lineaVacia: IDetalleLinea = { productoId: 0, nombre: "", descripcion: "", cantidad: 1, costoUnitario: 0, centroCostoId: 0, cuentaContableId: 0, sucursalDestinoId: 0, tipoIgvId: 0 };
@@ -62,7 +66,7 @@ export interface IPrefillXml {
   // Desde la propuesta de SUNAT (Registro de Compras): sin lineas, pero con vencimiento y total.
   fechaVencimiento?: string | null;
   totalSunat?: number | null;
-  lineas: { descripcion: string; cantidad: number; precioUnitario: number }[];
+  lineas: { descripcion: string; cantidad: number; precioUnitario: number; codigo?: string | null; productoId?: number | null; producto?: string | null }[];
 }
 
 interface IProps {
@@ -222,8 +226,10 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
       setFechaVencimiento(venc);
       setDetalle(
         prefillXml.lineas.map((l) => ({
-          productoId: 0,
-          nombre: l.descripcion,
+          productoId: l.productoId ?? 0,
+          nombre: l.producto ?? l.descripcion,
+          codigoProveedor: l.codigo ?? undefined,
+          textoProveedor: l.descripcion,
           descripcion: "",
           cantidad: l.cantidad || 1,
           costoUnitario: l.precioUnitario || 0,
@@ -470,6 +476,8 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
         cuentaContableId: l.cuentaContableId > 0 ? l.cuentaContableId : undefined,
         sucursalDestinoId: l.sucursalDestinoId > 0 ? l.sucursalDestinoId : undefined,
         tipoIgvId: l.tipoIgvId > 0 ? l.tipoIgvId : undefined,
+        codigoProveedor: l.codigoProveedor,
+        textoProveedor: l.textoProveedor,
       })),
     };
 

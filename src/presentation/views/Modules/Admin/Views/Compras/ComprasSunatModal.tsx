@@ -22,15 +22,17 @@ const dmyAIso = (f?: string) => {
 };
 
 // Estado de la descarga del XML por fila.
-type EstadoXml = { estado: "pendiente" | "bajando" | "ok" | "error"; detalle?: string };
+type EstadoXml = { estado: "pendiente" | "bajando" | "registrada" | "revisar" | "error"; detalle?: string };
 
 // Facturas de compra que SUNAT tiene para el RUC en el periodo (propuesta del Registro de Compras, RCE).
-// "Descargar XML" baja de SUNAT el XML de cada elegida (con sus productos) y, al terminar, las pasa a
-// Compras, que las abre una por una en el formulario ya llenado.
+// "Descargar y registrar" baja de SUNAT el XML de cada elegida. Si el sistema ya conoce el producto de
+// cada linea (lo aprendio al guardar una compra anterior de ese proveedor), la registra sola y la fila
+// pasa a "Registrada"; si no, queda "Por revisar" y al terminar se abren esas en el formulario.
 export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
   isOpen: boolean;
   onClose: () => void;
-  onRegistrar: (previews: any[]) => void;
+  // pendientes: las que hay que revisar en el formulario; registradas: cuantas se guardaron solas.
+  onRegistrar: (pendientes: any[], registradas: number) => void;
 }) => {
   const [mes, setMes] = useState(mesAnterior());
   const [comprobantes, setComprobantes] = useState<any[] | null>(null);
@@ -94,8 +96,8 @@ export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
     const lista = (comprobantes ?? []).filter((c) => elegidos.has(clave(c)));
     setDescargando(true);
     setXml(Object.fromEntries(lista.map((c) => [clave(c), { estado: "pendiente" as const }])));
-    const previews: any[] = [];
-    let fallidas = 0;
+    const pendientes: any[] = [];
+    let registradas = 0;
     for (const c of lista) {
       const k = clave(c);
       setXml((p) => ({ ...p, [k]: { estado: "bajando" } }));
@@ -109,35 +111,44 @@ export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
         lineas: [],
       };
       try {
-        const { data }: any = await axiosInstance.get(`/sunat/compras/xml`, {
-          params: { rucEmisor: c.docProveedor, tipo: c.tipo, serie: c.serie, numero: c.numero },
-          timeout: 120000,
-        });
-        const leido = data?.data;
-        if (!leido) throw new Error(data?.message);
-        previews.push({ ...cabecera, ...leido, fechaVencimiento: leido.fechaVencimiento ?? cabecera.fechaVencimiento, totalSunat: c.total });
-        setXml((p) => ({ ...p, [k]: { estado: "ok", detalle: `${leido.lineas?.length ?? 0} producto(s)` } }));
+        const { data }: any = await axiosInstance.post(`/sunat/compras/registrar-xml`,
+          { rucEmisor: c.docProveedor, tipo: c.tipo, serie: c.serie, numero: c.numero, fechaVencimiento: cabecera.fechaVencimiento },
+          { timeout: 120000 });
+        const r = data?.data;
+        if (!r) throw new Error(data?.message);
+        if (r.registrada) {
+          registradas++;
+          setComprobantes((lista) => (lista ?? []).map((x) => (clave(x) === k ? { ...x, enSistema: true } : x)));
+          setXml((p) => ({ ...p, [k]: { estado: "registrada", detalle: r.motivo ?? "" } }));
+        } else {
+          pendientes.push({ ...cabecera, ...r.preview, fechaVencimiento: cabecera.fechaVencimiento, totalSunat: c.total });
+          setXml((p) => ({ ...p, [k]: { estado: "revisar", detalle: r.motivo } }));
+        }
       } catch (e: any) {
-        fallidas++;
-        previews.push(cabecera);
+        pendientes.push(cabecera);
         setXml((p) => ({ ...p, [k]: { estado: "error", detalle: e?.response?.data?.message ?? e?.message ?? "Sin respuesta de SUNAT" } }));
       }
     }
     setDescargando(false);
-    if (fallidas > 0) toast.error(`${fallidas} sin XML: se abren solo con la cabecera, completa los productos a mano`);
-    else toast.success(`${previews.length} XML descargado(s), revisa cada factura antes de guardar`);
-    // Deja ver el resultado de la ultima fila un momento antes de pasar al registro.
-    await espera(fallidas > 0 ? 2500 : 800);
+    toast.success(`${registradas} registrada(s) automáticamente${pendientes.length ? `, ${pendientes.length} por revisar` : ""}`);
     setElegidos(new Set());
-    onRegistrar(previews);
+    // Deja ver el resultado de la tabla antes de abrir las que faltan revisar.
+    if (pendientes.length > 0) await espera(2500);
+    onRegistrar(pendientes, registradas);
   };
 
   const ESTILO_XML: Record<EstadoXml["estado"], string> = {
-    pendiente: "text-gray-400", bajando: "text-indigo-600", ok: "text-green-600", error: "text-red-600",
+    pendiente: "text-gray-400", bajando: "text-indigo-600", registrada: "text-green-600", revisar: "text-amber-600", error: "text-red-600",
   };
   const textoXml = (e: EstadoXml) =>
-    e.estado === "pendiente" ? "En espera" : e.estado === "bajando" ? "Descargando..." : e.estado === "ok" ? `✓ ${e.detalle}` : `✕ ${e.detalle}`;
-  const hechos = Object.values(xml).filter((e) => e.estado === "ok" || e.estado === "error").length;
+    ({
+      pendiente: "En espera",
+      bajando: "Descargando y registrando...",
+      registrada: `✓ Registrada ${e.detalle ?? ""}`,
+      revisar: `Por revisar: ${e.detalle}`,
+      error: `✕ ${e.detalle}`,
+    })[e.estado];
+  const hechos = Object.values(xml).filter((e) => e.estado !== "pendiente" && e.estado !== "bajando").length;
 
   return (
     <Modal
@@ -153,8 +164,9 @@ export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
       </div>
       <p className="text-sm text-gray-500 mb-4">
         Comprobantes que tus proveedores emitieron a tu RUC en el periodo (propuesta del Registro de Compras). Elige las
-        facturas y pulsa "Descargar XML": se baja el XML de cada una desde SUNAT y, al terminar, se abren una por una en el
-        formulario con proveedor y productos para revisar y guardar. Usa la Clave SOL configurada en Mi Empresa → Certificado y Clave SOL.
+        facturas y pulsa "Descargar y registrar": se baja el XML de cada una desde SUNAT y se registra sola si ya conoces
+        sus productos (de una compra anterior a ese proveedor). Las demás se abren al final en el formulario: al guardarlas,
+        el sistema aprende sus productos para la próxima vez. Usa la Clave SOL configurada en Mi Empresa → Certificado y Clave SOL.
       </p>
 
       <div className="flex flex-wrap items-end gap-3 mb-4">
@@ -187,7 +199,7 @@ export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
             <span className="bg-gray-50 rounded-lg px-3 py-2">Total: <b>S/ {total.toFixed(2)}</b></span>
             <button type="button" className="ml-auto bg-indigo-600 text-white font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
               disabled={elegidos.size === 0 || descargando} onClick={descargarXml}>
-              {descargando ? `Descargando XML ${hechos} de ${Object.keys(xml).length}...` : `Descargar XML (${elegidos.size})`}
+              {descargando ? `Procesando ${hechos} de ${Object.keys(xml).length}...` : `Descargar y registrar (${elegidos.size})`}
             </button>
           </div>
           <div className="border border-gray-100 rounded-xl overflow-x-auto">
