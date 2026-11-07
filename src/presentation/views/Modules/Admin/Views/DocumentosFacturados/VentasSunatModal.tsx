@@ -14,6 +14,8 @@ const mesAnterior = () => {
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const clave = (c: any) => `${c.serie}-${c.numero}`;
+
 // Ventas que SUNAT tiene registradas para el periodo (propuesta RVIE), marcando cuales no estan en el sistema.
 export const VentasSunatModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const [mes, setMes] = useState(mesAnterior());
@@ -21,11 +23,16 @@ export const VentasSunatModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
   const [cargando, setCargando] = useState(false);
   const [aviso, setAviso] = useState("");
   const [soloFaltantes, setSoloFaltantes] = useState(false);
+  const [elegidos, setElegidos] = useState<Set<string>>(new Set());
+  const [importando, setImportando] = useState(false);
+  // Periodo y ticket de la ultima consulta: el backend vuelve a leer el archivo de SUNAT con ellos al importar.
+  const [consulta, setConsulta] = useState<{ periodo: string; numTicket: string } | null>(null);
 
   const consultar = async () => {
     const periodo = mes.replace("-", "");
     setCargando(true);
     setComprobantes(null);
+    setElegidos(new Set());
     setAviso("");
     try {
       let numTicket: string | undefined;
@@ -35,6 +42,7 @@ export const VentasSunatModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
         const r = data?.data;
         if (r?.estado === "LISTO") {
           setComprobantes(r.comprobantes ?? []);
+          setConsulta({ periodo, numTicket: r.numTicket });
           return;
         }
         numTicket = r?.numTicket;
@@ -56,6 +64,35 @@ export const VentasSunatModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
   );
   const faltantes = (comprobantes ?? []).filter((c) => !c.enSistema).length;
   const total = (comprobantes ?? []).reduce((s, c) => s + (c.total ?? 0), 0);
+  const importables = filas.filter((c) => !c.enSistema);
+  const todosElegidos = importables.length > 0 && importables.every((c) => elegidos.has(clave(c)));
+
+  const alternar = (k: string) =>
+    setElegidos((prev) => {
+      const s = new Set(prev);
+      s.has(k) ? s.delete(k) : s.add(k);
+      return s;
+    });
+
+  // Registra en el sistema los elegidos: venta ya aceptada, sin detalle de productos, con asiento 12/40/70.
+  const importar = async () => {
+    if (!consulta) return;
+    setImportando(true);
+    try {
+      const { data }: any = await axiosInstance.post(`/sunat/ventas/${consulta.periodo}/importar`,
+        { numTicket: consulta.numTicket, comprobantes: [...elegidos] }, { timeout: 120000 });
+      const { importados = 0, omitidos = [] } = data?.data ?? {};
+      const fallidos = new Set(omitidos.map((o: string) => o.split(":")[0]));
+      setComprobantes((prev) => (prev ?? []).map((c) => (elegidos.has(clave(c)) && !fallidos.has(clave(c)) ? { ...c, enSistema: true } : c)));
+      setElegidos(new Set());
+      if (importados) toast.success(`${importados} comprobante(s) registrados en el sistema`);
+      if (omitidos.length) toast.error(`No se importaron: ${omitidos.join(" · ")}`);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "No se pudo importar");
+    } finally {
+      setImportando(false);
+    }
+  };
 
   return (
     <Modal
@@ -102,11 +139,20 @@ export const VentasSunatModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
               No están en el sistema: <b>{faltantes}</b>
             </span>
             <span className="bg-gray-50 rounded-lg px-3 py-2">Total: <b>S/ {total.toFixed(2)}</b></span>
+            <button type="button" className="ml-auto bg-indigo-600 text-white font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
+              disabled={importando || elegidos.size === 0} onClick={importar}
+              title="Se registran como ventas ya aceptadas por SUNAT, al crédito y sin detalle de productos, con su asiento 12 / 40 / 70">
+              {importando ? "Importando..." : `Importar seleccionados (${elegidos.size})`}
+            </button>
           </div>
           <div className="border border-gray-100 rounded-xl overflow-x-auto">
             <table className="w-full text-sm text-left text-gray-600">
               <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
+                  <th className="px-3 py-2">
+                    <input type="checkbox" aria-label="Elegir todos" disabled={importables.length === 0} checked={todosElegidos}
+                      onChange={() => setElegidos(todosElegidos ? new Set() : new Set(importables.map(clave)))} />
+                  </th>
                   <th className="px-3 py-2">Fecha</th>
                   <th className="px-3 py-2">Tipo</th>
                   <th className="px-3 py-2">Número</th>
@@ -119,10 +165,15 @@ export const VentasSunatModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
               </thead>
               <tbody>
                 {filas.length === 0 ? (
-                  <tr><td colSpan={8} className="px-3 py-8 text-center text-gray-400">No hay comprobantes para mostrar.</td></tr>
+                  <tr><td colSpan={9} className="px-3 py-8 text-center text-gray-400">No hay comprobantes para mostrar.</td></tr>
                 ) : (
                   filas.map((c, i) => (
                     <tr key={i} className="border-b">
+                      <td className="px-3 py-2">
+                        {!c.enSistema && (
+                          <input type="checkbox" aria-label={`Elegir ${clave(c)}`} checked={elegidos.has(clave(c))} onChange={() => alternar(clave(c))} />
+                        )}
+                      </td>
                       <td className="px-3 py-2 whitespace-nowrap">{c.fecha}</td>
                       <td className="px-3 py-2 whitespace-nowrap">{TIPOS[c.tipo] ?? c.tipo}</td>
                       <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-900">{c.serie}-{c.numero}</td>

@@ -11,6 +11,7 @@ import { getSucursales } from "../../../../../../redux/reducers/extensiones/exte
 import { CompraVerModal } from "../../../../../../components/Modal/Admin/Compra/CompraVerModal";
 import { FormularioCompra } from "./FormularioCompra";
 import { Ordenes } from "./Ordenes";
+import { ComprasSunatModal } from "./ComprasSunatModal";
 import axiosInstance from "../../../../../../utils/axios";
 import { Toaster, toast } from "sonner";
 import { printTable } from "../../../../../../helpers/functions/printTitle";
@@ -62,9 +63,7 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
   const [tipoDoc, setTipoDoc] = useState<(typeof DOCS)[number]["id"]>("factura");
   const docActual = DOCS.find((d) => d.id === tipoDoc)!;
   const [sucursalRegistroId, setSucursalRegistroId] = useState<number>(0);
-  const [usuarioSol, setUsuarioSol] = useState("");
-  const [claveSol, setClaveSol] = useState("");
-  const [verClaveSol, setVerClaveSol] = useState(false);
+  const [sunatAbierto, setSunatAbierto] = useState(false);
 
   const [busqueda, setBusqueda] = useState("");
   const [periodo, setPeriodo] = useState<Periodo>("mes");
@@ -206,6 +205,17 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
     if (guardado) recargar();
   };
 
+  // Facturas de SUNAT ya con su XML descargado (ComprasSunatModal): entran a la misma cola que "Subir XML".
+  const registrarDesdeSunat = (previews: any[]) => {
+    if (previews.length === 0) return;
+    setSunatAbierto(false);
+    setPrefillXml(previews[0]);
+    setColaXml(previews.slice(1));
+    setTotalXml(previews.length);
+    setCompraEditandoId(undefined);
+    setVista("formulario");
+  };
+
   const abrirEditar = (id: number) => {
     setPrefillXml(null);
     setCompraEditandoId(id);
@@ -270,11 +280,14 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
             <button
               type="button"
               className={`${styles.opcionCard} ${metodoTraer === "sunat" ? styles.opcionCardActive : ""}`}
-              onClick={() => setMetodoTraer("sunat")}
+              onClick={() => {
+                setMetodoTraer("sunat");
+                setSunatAbierto(true);
+              }}
             >
               <span className={styles.opcionIcon}>🔍</span>
               <span className={styles.opcionTitle}>Buscar en SUNAT</span>
-              <span className={styles.opcionDesc}>Con RUC, serie y correlativo</span>
+              <span className={styles.opcionDesc}>Facturas del mes con tu Clave SOL</span>
             </button>
             <button
               type="button"
@@ -316,42 +329,10 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
             </button>
           </div>
 
-          {metodoTraer === "sunat" && (
-            <>
-              <div className={styles.solBanner}>
-                ⚠️ Para traer comprobantes desde SUNAT, primero registra tu acceso a Operaciones en Línea (Clave SOL).
-              </div>
-              <div className={styles.solFields}>
-                <div>
-                  <label>USUARIO SOL</label>
-                  <input value={usuarioSol} onChange={(e) => setUsuarioSol(e.target.value)} />
-                </div>
-                <div>
-                  <label>CLAVE SOL</label>
-                  <div className={styles.claveSolWrap}>
-                    <input
-                      type={verClaveSol ? "text" : "password"}
-                      value={claveSol}
-                      onChange={(e) => setClaveSol(e.target.value)}
-                    />
-                    <button type="button" onClick={() => setVerClaveSol(!verClaveSol)}>
-                      {verClaveSol ? "🙈" : "👁"}
-                    </button>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className={styles.registrarBtn}
-                  onClick={() => toast("Buscar en SUNAT: próximamente. Por ahora usa Subir XML o Llenar manual.")}
-                >
-                  💾 Guardar acceso
-                </button>
-              </div>
-            </>
-          )}
         </div>
 
         <input ref={xmlInputRef} type="file" accept=".xml" multiple hidden onChange={handleXmlSeleccionado} />
+        <ComprasSunatModal isOpen={sunatAbierto} onClose={() => setSunatAbierto(false)} onRegistrar={registrarDesdeSunat} />
         <Toaster richColors position="top-right" duration={2000} />
       </div>
     );

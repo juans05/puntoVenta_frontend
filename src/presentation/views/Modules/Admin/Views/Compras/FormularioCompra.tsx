@@ -59,6 +59,9 @@ export interface IPrefillXml {
   proveedorRuc?: string | null;
   numeroDocumento?: string | null;
   fechaEmision?: string | null;
+  // Desde la propuesta de SUNAT (Registro de Compras): sin lineas, pero con vencimiento y total.
+  fechaVencimiento?: string | null;
+  totalSunat?: number | null;
   lineas: { descripcion: string; cantidad: number; precioUnitario: number }[];
 }
 
@@ -213,6 +216,10 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
       setDocSerie(partes.length > 1 ? partes[0] : "");
       setDocNumero(partes.length > 1 ? partes.slice(1).join("-") : partes[0] ?? "");
       setFechaEmision(toIso(prefillXml.fechaEmision));
+      // Vencimiento posterior a la emision = factura al credito.
+      const venc = toIso(prefillXml.fechaVencimiento);
+      setEsCredito(!!venc && venc > toIso(prefillXml.fechaEmision));
+      setFechaVencimiento(venc);
       setDetalle(
         prefillXml.lineas.map((l) => ({
           productoId: 0,
@@ -650,6 +657,11 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
         </div>
 
         <div className={styles.totales}>
+          {prefillXml?.totalSunat != null && (
+            <div className={Math.abs(prefillXml.totalSunat - total) > 0.01 ? styles.totalSunatDifiere : styles.totalSunatOk}>
+              <span>Total en SUNAT:</span><span>S/ {prefillXml.totalSunat.toFixed(2)}</span>
+            </div>
+          )}
           <div><span>Total parcial:</span><span>S/ {subtotalProductos.toFixed(2)}</span></div>
           <div>
             <span className={styles.conInput}>
