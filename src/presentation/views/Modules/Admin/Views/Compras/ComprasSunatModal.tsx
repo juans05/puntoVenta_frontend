@@ -16,12 +16,21 @@ const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const clave = (c: any) => `${c.docProveedor}|${c.serie}-${c.numero}`;
 
+const dmyAIso = (f?: string) => {
+  const [d, m, a] = (f ?? "").split("/");
+  return a && m && d ? `${a}-${m}-${d}` : null;
+};
+
+// Estado de la descarga del XML por fila.
+type EstadoXml = { estado: "pendiente" | "bajando" | "ok" | "error"; detalle?: string };
+
 // Facturas de compra que SUNAT tiene para el RUC en el periodo (propuesta del Registro de Compras, RCE).
-// Las elegidas se devuelven a Compras, que las abre una por una en el formulario ya llenado.
+// "Descargar XML" baja de SUNAT el XML de cada elegida (con sus productos) y, al terminar, las pasa a
+// Compras, que las abre una por una en el formulario ya llenado.
 export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
   isOpen: boolean;
   onClose: () => void;
-  onRegistrar: (comprobantes: any[]) => void;
+  onRegistrar: (previews: any[]) => void;
 }) => {
   const [mes, setMes] = useState(mesAnterior());
   const [comprobantes, setComprobantes] = useState<any[] | null>(null);
@@ -29,12 +38,15 @@ export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
   const [aviso, setAviso] = useState("");
   const [soloFaltantes, setSoloFaltantes] = useState(true);
   const [elegidos, setElegidos] = useState<Set<string>>(new Set());
+  const [xml, setXml] = useState<Record<string, EstadoXml>>({});
+  const [descargando, setDescargando] = useState(false);
 
   const consultar = async () => {
     const periodo = mes.replace("-", "");
     setCargando(true);
     setComprobantes(null);
     setElegidos(new Set());
+    setXml({});
     setAviso("");
     try {
       let numTicket: string | undefined;
@@ -76,27 +88,73 @@ export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
       return s;
     });
 
-  const registrar = () => {
-    onRegistrar((comprobantes ?? []).filter((c) => elegidos.has(clave(c))));
+  // Una por una: SUNAT es lento y a veces responde 500, mejor no saturarlo. Si una no trae XML,
+  // igual pasa con la cabecera (proveedor, numero, fechas, total) y los productos se llenan a mano.
+  const descargarXml = async () => {
+    const lista = (comprobantes ?? []).filter((c) => elegidos.has(clave(c)));
+    setDescargando(true);
+    setXml(Object.fromEntries(lista.map((c) => [clave(c), { estado: "pendiente" as const }])));
+    const previews: any[] = [];
+    let fallidas = 0;
+    for (const c of lista) {
+      const k = clave(c);
+      setXml((p) => ({ ...p, [k]: { estado: "bajando" } }));
+      const cabecera = {
+        proveedorRuc: c.docProveedor,
+        proveedorNombre: c.proveedor,
+        numeroDocumento: `${c.serie}-${c.numero}`,
+        fechaEmision: dmyAIso(c.fecha),
+        fechaVencimiento: dmyAIso(c.fechaVencimiento),
+        totalSunat: c.total,
+        lineas: [],
+      };
+      try {
+        const { data }: any = await axiosInstance.get(`/sunat/compras/xml`, {
+          params: { rucEmisor: c.docProveedor, tipo: c.tipo, serie: c.serie, numero: c.numero },
+          timeout: 120000,
+        });
+        const leido = data?.data;
+        if (!leido) throw new Error(data?.message);
+        previews.push({ ...cabecera, ...leido, fechaVencimiento: leido.fechaVencimiento ?? cabecera.fechaVencimiento, totalSunat: c.total });
+        setXml((p) => ({ ...p, [k]: { estado: "ok", detalle: `${leido.lineas?.length ?? 0} producto(s)` } }));
+      } catch (e: any) {
+        fallidas++;
+        previews.push(cabecera);
+        setXml((p) => ({ ...p, [k]: { estado: "error", detalle: e?.response?.data?.message ?? e?.message ?? "Sin respuesta de SUNAT" } }));
+      }
+    }
+    setDescargando(false);
+    if (fallidas > 0) toast.error(`${fallidas} sin XML: se abren solo con la cabecera, completa los productos a mano`);
+    else toast.success(`${previews.length} XML descargado(s), revisa cada factura antes de guardar`);
+    // Deja ver el resultado de la ultima fila un momento antes de pasar al registro.
+    await espera(fallidas > 0 ? 2500 : 800);
     setElegidos(new Set());
+    onRegistrar(previews);
   };
+
+  const ESTILO_XML: Record<EstadoXml["estado"], string> = {
+    pendiente: "text-gray-400", bajando: "text-indigo-600", ok: "text-green-600", error: "text-red-600",
+  };
+  const textoXml = (e: EstadoXml) =>
+    e.estado === "pendiente" ? "En espera" : e.estado === "bajando" ? "Descargando..." : e.estado === "ok" ? `✓ ${e.detalle}` : `✕ ${e.detalle}`;
+  const hechos = Object.values(xml).filter((e) => e.estado === "ok" || e.estado === "error").length;
 
   return (
     <Modal
       isOpen={isOpen}
-      onRequestClose={onClose}
+      onRequestClose={() => !descargando && onClose()}
       ariaHideApp={false}
       className="bg-white rounded-2xl p-5 w-full max-w-[1100px] max-h-[90vh] overflow-y-auto outline-none mx-4"
       overlayClassName="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center"
     >
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-lg font-bold text-gray-900">Facturas de compra en SUNAT</h3>
-        <button type="button" aria-label="Cerrar" className="text-gray-400 hover:text-gray-700 text-xl" onClick={onClose}>✕</button>
+        <button type="button" aria-label="Cerrar" className="text-gray-400 hover:text-gray-700 text-xl" disabled={descargando} onClick={onClose}>✕</button>
       </div>
       <p className="text-sm text-gray-500 mb-4">
-        Comprobantes que tus proveedores emitieron a tu RUC en el periodo (propuesta del Registro de Compras). SUNAT no
-        envía los productos: al registrar cada factura se abre el formulario con proveedor, número, fechas y total, y tú
-        eliges los productos. Usa la Clave SOL configurada en Mi Empresa → Certificado y Clave SOL.
+        Comprobantes que tus proveedores emitieron a tu RUC en el periodo (propuesta del Registro de Compras). Elige las
+        facturas y pulsa "Descargar XML": se baja el XML de cada una desde SUNAT y, al terminar, se abren una por una en el
+        formulario con proveedor y productos para revisar y guardar. Usa la Clave SOL configurada en Mi Empresa → Certificado y Clave SOL.
       </p>
 
       <div className="flex flex-wrap items-end gap-3 mb-4">
@@ -128,8 +186,8 @@ export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
             </span>
             <span className="bg-gray-50 rounded-lg px-3 py-2">Total: <b>S/ {total.toFixed(2)}</b></span>
             <button type="button" className="ml-auto bg-indigo-600 text-white font-semibold rounded-lg px-4 py-2 disabled:opacity-60"
-              disabled={elegidos.size === 0} onClick={registrar}>
-              {`Registrar seleccionadas (${elegidos.size})`}
+              disabled={elegidos.size === 0 || descargando} onClick={descargarXml}>
+              {descargando ? `Descargando XML ${hechos} de ${Object.keys(xml).length}...` : `Descargar XML (${elegidos.size})`}
             </button>
           </div>
           <div className="border border-gray-100 rounded-xl overflow-x-auto">
@@ -137,7 +195,7 @@ export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
               <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
                   <th className="px-3 py-2">
-                    <input type="checkbox" aria-label="Elegir todos" disabled={importables.length === 0} checked={todosElegidos}
+                    <input type="checkbox" aria-label="Elegir todos" disabled={importables.length === 0 || descargando} checked={todosElegidos}
                       onChange={() => setElegidos(todosElegidos ? new Set() : new Set(importables.map(clave)))} />
                   </th>
                   <th className="px-3 py-2">Fecha</th>
@@ -148,17 +206,18 @@ export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
                   <th className="px-3 py-2 text-right">IGV</th>
                   <th className="px-3 py-2 text-right">Total</th>
                   <th className="px-3 py-2">En el sistema</th>
+                  <th className="px-3 py-2">XML</th>
                 </tr>
               </thead>
               <tbody>
                 {filas.length === 0 ? (
-                  <tr><td colSpan={9} className="px-3 py-8 text-center text-gray-400">No hay comprobantes para mostrar.</td></tr>
+                  <tr><td colSpan={10} className="px-3 py-8 text-center text-gray-400">No hay comprobantes para mostrar.</td></tr>
                 ) : (
                   filas.map((c) => (
                     <tr key={clave(c)} className="border-b">
                       <td className="px-3 py-2">
                         {!c.enSistema && (
-                          <input type="checkbox" aria-label={`Elegir ${c.serie}-${c.numero}`} checked={elegidos.has(clave(c))} onChange={() => alternar(clave(c))} />
+                          <input type="checkbox" aria-label={`Elegir ${c.serie}-${c.numero}`} checked={elegidos.has(clave(c))} disabled={descargando} onChange={() => alternar(clave(c))} />
                         )}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap">{c.fecha}</td>
@@ -175,6 +234,9 @@ export const ComprasSunatModal = ({ isOpen, onClose, onRegistrar }: {
                         {c.enSistema
                           ? <span className="text-xs font-semibold text-green-600">✓ Registrada</span>
                           : <span className="text-xs font-semibold text-red-600">✕ Sin registrar</span>}
+                      </td>
+                      <td className={`px-3 py-2 text-xs font-semibold max-w-[220px] ${xml[clave(c)] ? ESTILO_XML[xml[clave(c)].estado] : ""}`}>
+                        {xml[clave(c)] && textoXml(xml[clave(c)])}
                       </td>
                     </tr>
                   ))
