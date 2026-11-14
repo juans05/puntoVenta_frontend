@@ -27,13 +27,6 @@ const toISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padSta
 
 type Periodo = "hoy" | "semana" | "mes" | "todo";
 type Tab = "cpe" | "ordenes" | "sindoc";
-const DOCS = [
-  { id: "factura", icon: "📄", tab: "Factura", nombre: "la factura" },
-  { id: "boleta", icon: "🧾", tab: "Boleta", nombre: "la boleta" },
-  { id: "orden", icon: "🛒", tab: "Orden Compra", nombre: "la orden de compra" },
-  { id: "notaventa", icon: "🗒️", tab: "Nota de venta", nombre: "la nota de venta" },
-] as const;
-
 const rangoPorPeriodo = (periodo: Periodo): { start?: Date; end: Date } => {
   const end = new Date();
   if (periodo === "todo") return { end };
@@ -58,10 +51,8 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
   const [importandoXml, setImportandoXml] = useState(false);
   const xmlInputRef = useRef<HTMLInputElement>(null);
 
-  const [vista, setVista] = useState<"lista" | "registrar" | "formulario">("lista");
-  const [metodoTraer, setMetodoTraer] = useState<"sunat" | "xml" | "pdf" | "manual" | null>(null);
-  const [tipoDoc, setTipoDoc] = useState<(typeof DOCS)[number]["id"]>("factura");
-  const docActual = DOCS.find((d) => d.id === tipoDoc)!;
+  // Sin pantalla intermedia: "Registrar compra" abre directo el formulario; XML y SUNAT son botones.
+  const [vista, setVista] = useState<"lista" | "formulario">("lista");
   const [sucursalRegistroId, setSucursalRegistroId] = useState<number>(0);
   const [sunatAbierto, setSunatAbierto] = useState(false);
 
@@ -137,32 +128,18 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
     dispatch(anularCompra(id) as any);
   };
 
-  const abrirRegistrar = () => {
-    setMetodoTraer(null);
-    setVista("registrar");
-  };
-
-  // Orden de compra -> Llenar manual abre la orden (no una factura). La factura se registra
-  // despues desde la orden ("Factura del proveedor"), luego de recibir la mercaderia.
+  // Flujo completo: "+ Nueva orden de compra" abre el modal de <Ordenes>.
   const [abrirNuevaOrden, setAbrirNuevaOrden] = useState(false);
   useEffect(() => {
     if (abrirNuevaOrden) setAbrirNuevaOrden(false); // pulso de un render: <Ordenes> abre su modal y se apaga
   }, [abrirNuevaOrden]);
 
   const abrirManual = () => {
-    if (tipoDoc === "orden") {
-      setTabActiva("ordenes");
-      setAbrirNuevaOrden(true);
-      setVista("lista");
-      return;
-    }
     setCompraEditandoId(undefined);
     setPrefillXml(null);
+    setTotalXml(0);
+    setColaXml([]);
     setVista("formulario");
-  };
-
-  const abrirPdf = () => {
-    toast("Traer factura desde PDF: próximamente. Por ahora usa XML o Llenado Manual.");
   };
 
   const abrirSelectorXml = () => {
@@ -226,118 +203,23 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
   const rangoTexto = start ? `${formatCorto(start)} – ${formatCorto(end)}` : "Todo el historial";
   const nombreUsuario = (me?.nombre || "").toString().toUpperCase();
 
-  if (vista === "registrar") {
-    return (
-      <div>
-        <div className={styles.registrarHeader}>
-          <button className={styles.backBtn} onClick={() => setVista("lista")}>
-            ←
-          </button>
-          <div>
-            <h3>Registrar {docActual.tab} de Compra</h3>
-            <p className={styles.subtitle}>Registra {docActual.nombre} de tu proveedor en segundos.</p>
-          </div>
-          <div className={styles.headerActions}>
-            <button className={styles.historialBtn} onClick={() => { setPeriodo("todo"); setVista("lista"); }}>
-              🕐 Historial
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.registrarTabsRow}>
-          <select
-            className={styles.periodoSelect}
-            value={sucursalRegistroId}
-            onChange={(e) => setSucursalRegistroId(Number(e.target.value))}
-          >
-            <option value={0}>📍 Sucursal</option>
-            {(sucursales ?? []).map((s: any) => (
-              <option key={s.id} value={s.id}>
-                {s.value}
-              </option>
-            ))}
-          </select>
-          <div className={styles.docTabs}>
-            {DOCS.map((d) => (
-              <button
-                key={d.id}
-                className={`${styles.docTab} ${tipoDoc === d.id ? styles.docTabActive : ""}`}
-                onClick={() => setTipoDoc(d.id)}
-              >
-                {d.icon} {d.tab}
-              </button>
-            ))}
-            <button className={styles.docTab} onClick={() => toast("Próximamente")}>📁 Otro doc.</button>
-            <button className={styles.docTab} onClick={() => toast("Próximamente")}>📝 N. Crédito</button>
-            <button className={styles.docTab} onClick={() => toast("Próximamente")}>📝 N. Débito</button>
-          </div>
-        </div>
-
-        <div className={styles.comoTraerCard}>
-          <div className={styles.comoTraerTitle}>
-            <span className={styles.comoTraerIcon}>⬇️</span> ¿Cómo quieres traer {docActual.nombre}?
-          </div>
-          <div className={styles.opcionesGrid}>
-            <button
-              type="button"
-              className={`${styles.opcionCard} ${metodoTraer === "sunat" ? styles.opcionCardActive : ""}`}
-              onClick={() => {
-                setMetodoTraer("sunat");
-                setSunatAbierto(true);
-              }}
-            >
-              <span className={styles.opcionIcon}>🔍</span>
-              <span className={styles.opcionTitle}>Buscar en SUNAT</span>
-              <span className={styles.opcionDesc}>Facturas del mes con tu Clave SOL</span>
-            </button>
-            <button
-              type="button"
-              className={`${styles.opcionCard} ${metodoTraer === "xml" ? styles.opcionCardActive : ""}`}
-              onClick={() => {
-                setMetodoTraer("xml");
-                abrirSelectorXml();
-              }}
-            >
-              <span className={styles.opcionIcon}>📄</span>
-              <span className={styles.opcionTitle}>Subir XML</span>
-              <span className={styles.opcionDesc}>Uno o varios archivos .xml</span>
-            </button>
-            <button
-              type="button"
-              className={`${styles.opcionCard} ${metodoTraer === "pdf" ? styles.opcionCardActive : ""}`}
-              onClick={() => {
-                setMetodoTraer("pdf");
-                abrirPdf();
-              }}
-            >
-              <span className={styles.opcionIcon}>
-                📷 <span className={styles.iaBadge}>+ IA</span>
-              </span>
-              <span className={styles.opcionTitle}>Foto o PDF</span>
-              <span className={styles.opcionDesc}>La leemos automáticamente</span>
-            </button>
-            <button
-              type="button"
-              className={`${styles.opcionCard} ${metodoTraer === "manual" ? styles.opcionCardActive : ""}`}
-              onClick={() => {
-                setMetodoTraer("manual");
-                abrirManual();
-              }}
-            >
-              <span className={styles.opcionIcon}>✏️</span>
-              <span className={styles.opcionTitle}>Llenar manual</span>
-              <span className={styles.opcionDesc}>Escribir los datos</span>
-            </button>
-          </div>
-
-        </div>
-
-        <input ref={xmlInputRef} type="file" accept=".xml" multiple hidden onChange={handleXmlSeleccionado} />
-        <ComprasSunatModal isOpen={sunatAbierto} onClose={() => setSunatAbierto(false)} onRegistrar={registrarDesdeSunat} />
-        <Toaster richColors position="top-right" duration={2000} />
-      </div>
-    );
-  }
+  // Botones e importadores compartidos por la lista y el formulario.
+  const botonesTraer = (
+    <>
+      <button className={styles.historialBtn} onClick={() => setSunatAbierto(true)} title="Facturas del mes con tu Clave SOL">
+        ☁️ Buscar en SUNAT
+      </button>
+      <button className={styles.historialBtn} disabled={importandoXml} onClick={abrirSelectorXml} title="Uno o varios archivos .xml">
+        📄 {importandoXml ? "Leyendo XML..." : "Subir XML"}
+      </button>
+    </>
+  );
+  const importadores = (
+    <>
+      <input ref={xmlInputRef} type="file" accept=".xml" multiple hidden onChange={handleXmlSeleccionado} />
+      <ComprasSunatModal isOpen={sunatAbierto} onClose={() => setSunatAbierto(false)} onRegistrar={registrarDesdeSunat} />
+    </>
+  );
 
   if (vista === "formulario") {
     return (
@@ -347,7 +229,7 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
             ←
           </button>
           <div>
-            <h3>{compraEditandoId ? "Editar compra" : `Registrar ${docActual.tab} de Compra`}</h3>
+            <h3>{compraEditandoId ? "Editar compra" : "Registrar compra"}</h3>
             <p className={styles.subtitle}>
               {compraEditandoId
                 ? "Corrige los productos, cantidades o datos de la compra."
@@ -356,15 +238,29 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
                 : "Completa los datos del comprobante y del proveedor."}
             </p>
           </div>
+          {!compraEditandoId && (
+            <div className={styles.headerActions}>
+              <select className={styles.periodoSelect} value={sucursalRegistroId} onChange={(e) => setSucursalRegistroId(Number(e.target.value))}>
+                <option value={0}>📍 Sucursal</option>
+                {(sucursales ?? []).map((s: any) => (
+                  <option key={s.id} value={s.id}>
+                    {s.value}
+                  </option>
+                ))}
+              </select>
+              {botonesTraer}
+            </div>
+          )}
         </div>
 
         <FormularioCompra
           compraId={compraEditandoId}
           prefillXml={prefillXml}
-          sucursalIdInicial={sucursalRegistroId || undefined}
+          sucursalIdInicial={sucursalRegistroId}
           onGuardado={() => siguienteXml(true)}
           onCancelar={() => siguienteXml(false)}
         />
+        {importadores}
         <Toaster richColors position="top-right" duration={2000} />
       </div>
     );
@@ -392,9 +288,12 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
               + Nueva orden de compra
             </button>
           ) : (
-            <button className={styles.registrarBtn} disabled={importandoXml} onClick={abrirRegistrar}>
-              {importandoXml ? "Leyendo XML..." : "+ Registrar compra"}
-            </button>
+            <>
+              {botonesTraer}
+              <button className={styles.registrarBtn} onClick={abrirManual}>
+                + Registrar compra
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -579,6 +478,7 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
         </div>
       )}
 
+      {importadores}
       <CompraVerModal isOpen={!!compraViendoId} onClose={() => setCompraViendoId(undefined)} compraId={compraViendoId} />
       {notaCompraDe && (
         <NotaCompraModal
