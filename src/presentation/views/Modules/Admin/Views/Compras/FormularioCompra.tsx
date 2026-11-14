@@ -100,6 +100,11 @@ export const FormularioCompra = ({ compraId, prefillXml, sucursalIdInicial, onGu
   const esEdicion = !!compraId;
 
   const [sucursalId, setSucursalId] = useState<number>(sucursalIdInicial ?? 0);
+  // La sucursal se elige en la cabecera de la pantalla (fuera del formulario) y puede cambiar con el formulario abierto.
+  useEffect(() => {
+    if (!compraId) setSucursalId(sucursalIdInicial ?? 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sucursalIdInicial]);
   const [tipoDocProveedor, setTipoDocProveedor] = useState<"RUC" | "DNI">("RUC");
   const [numeroDocumento, setNumeroDocumento] = useState("");
   const [buscandoProveedor, setBuscandoProveedor] = useState(false);
