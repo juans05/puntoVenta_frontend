@@ -17,18 +17,20 @@ type Lado = "cobrar" | "pagar";
 
 const CONFIG = {
   cobrar: {
-    titulo: "Cuentas por cobrar", socio: "Cliente", accion: "Registrar cobro", pagos: "Cobros realizados",
+    titulo: "Cuentas por cobrar", socio: "Cliente", accion: "Registrar cobro", fecha: "Fecha de cobro", pagos: "Cobros realizados",
     base: "/cuentas-por-cobrar", ruta: "cliente", crear: "/cobranzas/crear", listar: "/cobranzas/listar", anular: "/cobranzas",
     ok: "Cobro registrado",
   },
   pagar: {
-    titulo: "Cuentas por pagar", socio: "Proveedor", accion: "Registrar pago", pagos: "Pagos realizados",
+    titulo: "Cuentas por pagar", socio: "Proveedor", accion: "Registrar pago", fecha: "Fecha de pago", pagos: "Pagos realizados",
     base: "/cuentas-por-pagar", ruta: "proveedor", crear: "/pagos-proveedor/crear", listar: "/pagos-proveedor/listar", anular: "/pagos-proveedor",
     ok: "Pago registrado",
   },
 } as const;
 
 const formatSoles = (n: number) => `S/ ${Number(n).toFixed(2)}`;
+// Hoy en hora local, yyyy-MM-dd (toISOString da UTC: de noche en Peru ya seria mañana).
+const hoyIso = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const mensajeError = (e: any, def: string) => e?.response?.data?.message ?? def;
 const input: React.CSSProperties = { border: "1px solid #d1d5db", borderRadius: 8, padding: "6px 8px" };
 
@@ -81,6 +83,7 @@ export const CuentasCorrientes = ({ lado }: { lado: Lado }) => {
   const [docs, setDocs] = useState<any[]>([]);
   const [aPagar, setAPagar] = useState<Record<number, string>>({});
   const [metodoPagoId, setMetodoPagoId] = useState(0);
+  const [fecha, setFecha] = useState(hoyIso());
   const [referencia, setReferencia] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [banco, setBanco] = useState("");
@@ -203,7 +206,7 @@ export const CuentasCorrientes = ({ lado }: { lado: Lado }) => {
       : referencia;
     try {
       await axiosInstance.post(c.crear, {
-        socioId: socioSel.id, metodoPagoId, referencia: ref.slice(0, 150) || undefined,
+        socioId: socioSel.id, metodoPagoId, fecha: fecha || undefined, referencia: ref.slice(0, 150) || undefined,
         observacion: descripcion.trim().slice(0, 150) || undefined, detalle,
       });
       toast.success(c.ok);
@@ -299,6 +302,9 @@ export const CuentasCorrientes = ({ lado }: { lado: Lado }) => {
                     value={descripcion} onChange={(e) => { setDescripcion(e.target.value); clearError("descripcion"); }} />
                 )}
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
+                  <label style={{ fontSize: 12, color: "#6b7280" }}>{c.fecha}{" "}
+                    <input style={input} type="date" max={hoyIso()} value={fecha} onChange={(e) => setFecha(e.target.value)} />
+                  </label>
                   <select style={{ ...input, ...estiloError(!!errors.metodoPagoId) }} value={metodoPagoId}
                     onChange={(e) => { setMetodoPagoId(Number(e.target.value)); clearError("metodoPagoId"); clearError("medio"); }}>
                     <option value={0}>Medio de pago</option>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import axiosInstance from "../../../../../../utils/axios";
 import { TableSkeleton } from "../../../../../../components/Skeleton";
 import { useFormErrors, CampoError } from "../../../../../../components/FormError";
@@ -70,6 +71,40 @@ export const PlanDeCuentas = () => {
     }
   };
 
+  // Excel con las mismas columnas para bajar y subir: Código, Nombre, Tipo, Estado.
+  const descargarExcel = () => {
+    const hoja = XLSX.utils.json_to_sheet(cuentas.map((c) => ({
+      "Código": c.codigo, Nombre: c.nombre, Tipo: c.tipo, Estado: c.estado ? "Activa" : "Inactiva",
+    })));
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Plan de cuentas");
+    XLSX.writeFile(libro, "plan-de-cuentas.xlsx");
+  };
+
+  // Sube el Excel: el backend crea las cuentas nuevas y actualiza las existentes por código (todo o nada).
+  const subirExcel = async (archivo?: File) => {
+    if (!archivo) return;
+    try {
+      const libro = XLSX.read(await archivo.arrayBuffer());
+      const filas: any[] = XLSX.utils.sheet_to_json(libro.Sheets[libro.SheetNames[0]], { defval: "" });
+      const texto = (f: any, ...claves: string[]) => String(claves.map((k) => f[k]).find((v) => v !== undefined && v !== "") ?? "").trim();
+      const payload = filas.map((f) => {
+        const estado = texto(f, "Estado").toLowerCase();
+        return {
+          codigo: texto(f, "Código", "Codigo"), nombre: texto(f, "Nombre"), tipo: texto(f, "Tipo") || undefined,
+          estado: estado ? !estado.startsWith("inact") : undefined,
+        };
+      }).filter((f) => f.codigo || f.nombre);
+      if (payload.length === 0) return toast.error("El Excel no tiene filas (columnas: Código, Nombre, Tipo, Estado)");
+      if (!window.confirm(`Se importarán ${payload.length} cuentas: las nuevas se crean y las existentes se actualizan. ¿Continuar?`)) return;
+      const { data }: any = await axiosInstance.post("/cuentas-contables/importar", payload);
+      toast.success(data?.message ?? "Plan de cuentas importado");
+      cargar();
+    } catch (e) {
+      toast.error(mensajeError(e, "No se pudo importar el Excel"), { duration: 10000 });
+    }
+  };
+
   return (
     <div className="w-full">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -79,10 +114,21 @@ export const PlanDeCuentas = () => {
             Catálogo PCGE editable: sirve de base a los asientos automáticos (recepción, factura y pago de compras).
           </p>
         </div>
-        <button type="button" className="bg-indigo-600 text-white text-sm font-semibold rounded-lg px-4 py-2"
-          onClick={() => setEditando({})}>
-          + Nueva cuenta
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg px-4 py-2"
+            onClick={descargarExcel} disabled={cuentas.length === 0}>
+            Descargar Excel
+          </button>
+          <label className="border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg px-4 py-2 cursor-pointer">
+            Subir Excel
+            <input type="file" accept=".xlsx,.xls" className="hidden"
+              onChange={(e) => { subirExcel(e.target.files?.[0]); e.target.value = ""; }} />
+          </label>
+          <button type="button" className="bg-indigo-600 text-white text-sm font-semibold rounded-lg px-4 py-2"
+            onClick={() => setEditando({})}>
+            + Nueva cuenta
+          </button>
+        </div>
       </div>
 
       <div className="mt-5 bg-white border border-gray-100 rounded-xl p-4">

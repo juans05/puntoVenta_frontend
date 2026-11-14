@@ -25,6 +25,8 @@ interface ICatalogoItem {
   id: number;
   value: string;
   estado: boolean;
+  cuentaContableId?: number | null;
+  cuenta?: string | null;
 }
 
 interface ICatalogoTableProps {
@@ -35,6 +37,8 @@ interface ICatalogoTableProps {
   listUrl: string;
   createUrl: string;
   estadoUrl: (id: number) => string;
+  // Solo metodos de pago: permite editar el nombre y la cuenta contable (caja/banco) del asiento.
+  updateUrl?: (id: number) => string;
 }
 
 const CatalogoTable = ({
@@ -45,12 +49,25 @@ const CatalogoTable = ({
   listUrl,
   createUrl,
   estadoUrl,
+  updateUrl,
 }: ICatalogoTableProps) => {
   const [items, setItems] = useState<ICatalogoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [nombre, setNombre] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [editando, setEditando] = useState<ICatalogoItem | null>(null);
+  const [cuentaContableId, setCuentaContableId] = useState(0);
+  const [cuentas, setCuentas] = useState<any[]>([]);
+  const columnas = updateUrl ? 4 : 3;
+
+  useEffect(() => {
+    if (!updateUrl) return;
+    axiosInstance.get("/cuentas-contables/listar")
+      .then((r: any) => setCuentas((r.data?.data ?? []).filter((c: any) => c.esHoja)))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -71,6 +88,14 @@ const CatalogoTable = ({
 
   const { errors, setError, clearError, limpiarErrores } = useFormErrors();
 
+  const abrir = (item: ICatalogoItem | null) => {
+    limpiarErrores();
+    setEditando(item);
+    setNombre(item?.value ?? "");
+    setCuentaContableId(item?.cuentaContableId ?? 0);
+    setModalOpen(true);
+  };
+
   const handleSubmit = async () => {
     limpiarErrores();
     if (!nombre.trim()) {
@@ -79,8 +104,9 @@ const CatalogoTable = ({
     }
     setGuardando(true);
     try {
-      await axiosInstance.post(createUrl, { nombre });
-      toast.success("Registrado exitosamente");
+      if (editando && updateUrl) await axiosInstance.put(updateUrl(editando.id), { nombre, cuentaContableId: cuentaContableId || null });
+      else await axiosInstance.post(createUrl, { nombre });
+      toast.success(editando ? "Actualizado" : "Registrado exitosamente");
       setModalOpen(false);
       setNombre("");
       loadData();
@@ -109,7 +135,7 @@ const CatalogoTable = ({
           <h3 className="text-lg font-semibold text-gray-900">{titulo}</h3>
           <p className="text-sm text-gray-500">{descripcion}</p>
         </div>
-        <Button size="sm" onClick={() => setModalOpen(true)}>{labelNuevo}</Button>
+        <Button size="sm" onClick={() => abrir(null)}>{labelNuevo}</Button>
       </div>
 
       <div className="relative overflow-x-auto sm:rounded-lg border border-gray-200 mb-8">
@@ -117,28 +143,31 @@ const CatalogoTable = ({
           <thead className="text-xs text-gray-700 uppercase bg-gray-50">
             <tr>
               <th scope="col" className="px-4 py-3">Nombre</th>
+              {updateUrl && <th scope="col" className="px-4 py-3">Cuenta contable</th>}
               <th scope="col" className="px-4 py-3">Estado</th>
               <th scope="col" className="px-4 py-3"></th>
             </tr>
           </thead>
           {loading ? (
             <tbody>
-              <tr><td colSpan={3} style={{ padding: 0 }}><TableSkeleton columns={3} /></td></tr>
+              <tr><td colSpan={columnas} style={{ padding: 0 }}><TableSkeleton columns={columnas} /></td></tr>
             </tbody>
           ) : (
             <tbody>
               {items.length === 0 && (
-                <tr><td colSpan={3} className="px-4 py-6 text-center">No hay registros todavía</td></tr>
+                <tr><td colSpan={columnas} className="px-4 py-6 text-center">No hay registros todavía</td></tr>
               )}
               {items.map((item) => (
                 <tr key={item.id} className="bg-white border-b hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">{item.value}</td>
+                  {updateUrl && <td className="px-4 py-3">{item.cuenta ?? <span className="text-gray-400">Por defecto (10)</span>}</td>}
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.estado ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                       {item.estado ? "Activo" : "Inactivo"}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 flex gap-2">
+                    {updateUrl && <Button size="xs" variant="secondary" onClick={() => abrir(item)}>Editar</Button>}
                     <Button size="xs" variant={item.estado ? "secondary" : "primary"} onClick={() => handleToggle(item)}>
                       {item.estado ? "Deshabilitar" : "Habilitar"}
                     </Button>
@@ -152,7 +181,7 @@ const CatalogoTable = ({
 
       <Modal isOpen={modalOpen} onRequestClose={() => setModalOpen(false)} style={modalStyle}>
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">{labelNuevo}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{editando ? `Editar ${editando.value}` : labelNuevo}</h3>
           <Input
             isLabel
             label={labelInput}
@@ -161,6 +190,17 @@ const CatalogoTable = ({
             error={errors.nombre}
             onChange={(e: any) => { setNombre(e.target.value); clearError("nombre"); }}
           />
+          {editando && updateUrl && (
+            <label className="block text-sm font-medium text-gray-700 mt-4">
+              Cuenta contable (caja o banco)
+              <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1" value={cuentaContableId}
+                onChange={(e) => setCuentaContableId(Number(e.target.value))}>
+                <option value={0}>Por defecto (10 Caja)</option>
+                {cuentas.map((c) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
+              </select>
+              <span className="text-xs font-normal text-gray-500">Los cobros y pagos con este método van a esta cuenta en el asiento.</span>
+            </label>
+          )}
           <div className="flex justify-end gap-3 mt-6">
             <Button size="sm" variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleSubmit} disabled={guardando || Object.keys(errors).length > 0}>
@@ -201,6 +241,7 @@ export const CatalogosGasto = () => {
         listUrl="/extensiones/metodo-pago/listar"
         createUrl="/extensiones/metodo-pago/crear"
         estadoUrl={(id) => `/extensiones/metodo-pago/${id}/estado`}
+        updateUrl={(id) => `/extensiones/metodo-pago/${id}`}
       />
 
       <Toaster richColors position="top-right" duration={2000} />
