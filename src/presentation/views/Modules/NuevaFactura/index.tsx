@@ -114,8 +114,6 @@ const NuevaFactura = () => {
     (state: RootState) => state.sales
   );
 
-  // Antes del formulario se elige como traer el documento; convertir una cotizacion va directo.
-  const [eligioMetodo, setEligioMetodo] = useState(!!cotizacionOrigenId || !!pedidoVentaId);
   // XML importados en lote: se revisan y emiten de a uno (el primero ya esta en el formulario).
   const [colaXml, setColaXml] = useState<any[]>([]);
   const [totalXml, setTotalXml] = useState(0);
@@ -150,6 +148,10 @@ const NuevaFactura = () => {
   const [clientesEncontrados, setClientesEncontrados] = useState<any[]>([]);
 
   const [esCredito, setEsCredito] = useState(false);
+  // Dias de credito: los fijos (1/15/20/30/60) mas los que la empresa registro; -1 = "Otro plazo...".
+  const [plazosCredito, setPlazosCredito] = useState<number[]>([1, 15, 20, 30, 60]);
+  const [diasCredito, setDiasCredito] = useState(30);
+  const [nuevoPlazo, setNuevoPlazo] = useState("");
   const [descuentoActivo, setDescuentoActivo] = useState(false);
   const [porcentajeDescuento, setPorcentajeDescuento] = useState("0");
   const [montoRecibido, setMontoRecibido] = useState("");
@@ -188,6 +190,7 @@ const NuevaFactura = () => {
 
   useEffect(() => {
     axiosInstance.get("/extensiones/tipos-detraccion").then((r: any) => setTiposDetraccion(r.data?.data ?? [])).catch(() => {});
+    axiosInstance.get("/extensiones/plazos-credito").then((r: any) => r.data?.data?.length && setPlazosCredito(r.data.data)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -484,7 +487,6 @@ const NuevaFactura = () => {
 
     setColaXml(leidos.slice(1));
     setTotalXml(leidos.length);
-    setEligioMetodo(true);
     cargarXmlEnFormulario(leidos[0]);
     toast.success(`${leidos.length} XML leído(s): revisa y emite uno por uno`);
   };
@@ -530,6 +532,28 @@ const NuevaFactura = () => {
       setDescuentoActivo(false);
       setPorcentajeDescuento("0");
       setMontoRecibido("");
+    }
+  };
+
+  // Vencimiento de la venta a credito = fecha del documento + dias de credito (yyyy-MM-dd, sin pasar por UTC).
+  const vencimientoCredito = (() => {
+    if (!esCredito || diasCredito < 1 || !fechaVenta) return "";
+    const d = new Date(`${fechaVenta}T00:00:00`);
+    d.setDate(d.getDate() + diasCredito);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+
+  // "Otro plazo...": lo registra en la tabla de la empresa y queda elegido; la proxima vez ya sale en la lista.
+  const registrarPlazo = async () => {
+    const dias = parseInt(nuevoPlazo, 10);
+    if (!(dias >= 1 && dias <= 365)) return toast.error("Los días de crédito deben estar entre 1 y 365");
+    try {
+      await axiosInstance.post("/extensiones/plazos-credito/crear", { dias });
+      setPlazosCredito((prev) => Array.from(new Set([...prev, dias])).sort((x, y) => x - y));
+      setDiasCredito(dias);
+      setNuevoPlazo("");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "No se pudo registrar el plazo");
     }
   };
 
@@ -655,6 +679,12 @@ const NuevaFactura = () => {
   };
 
   const metodoPagoSeleccionado = (payMethods as any[])?.find((m) => m.id === metodoPagoId);
+  // Al contado arranca en Efectivo (lo mas comun) para no obligar a elegirlo en cada venta.
+  const efectivoId = (payMethods as any[])?.find((m) => String(m.value).toUpperCase().includes("EFECTIVO"))?.id ?? 0;
+  useEffect(() => {
+    if (!esCredito && metodoPagoId === 0 && efectivoId) setMetodoPagoId(efectivoId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [esCredito, efectivoId, metodoPagoId]);
 
   const tipoDocumentoVentaId =
     tipoDocumentoInicial === "boleta" ? 2 : tipoDocumentoInicial === "factura" ? 1 : tipoDocumentoInicial === "cotizacion" ? 6 : 3;
@@ -742,6 +772,9 @@ const NuevaFactura = () => {
 
     let detallePago: { metodoPagoId: number; monto: number; referenciaOperacion: string }[];
 
+    if (esCredito && diasCredito < 1) {
+      return toast.error("Registra los días de crédito (✓) o elige un plazo de la lista");
+    }
     if (esCredito) {
       // El backend ignora DetallePago cuando EsCredito=true (ver ComprobanteRepository.
       // CrearComprobante): no se cobra nada ahora, queda pendiente en Cuentas por Cobrar.
@@ -786,7 +819,7 @@ const NuevaFactura = () => {
       guiaRemisionManual: campos.guiaRemisionManual ? guiaRemisionManual.trim() || undefined : undefined,
       guiaRemisionElectronica: campos.guiaRemisionElectronica ? guiaRemisionElectronica.trim() || undefined : undefined,
       etiquetas: campos.etiquetas ? etiquetas.trim() || undefined : undefined,
-      fechaVencimiento: campos.fechaVencimiento ? fechaVencimiento || undefined : undefined,
+      fechaVencimiento: vencimientoCredito || (campos.fechaVencimiento ? fechaVencimiento || undefined : undefined),
       numeroOrden: campos.numeroOrden ? numeroOrden.trim() || undefined : undefined,
       colaboradorId: campos.colaborador && colaboradorId !== "" ? colaboradorId : undefined,
       monedaId: campos.tipoMoneda && monedaId !== 0 ? monedaId : undefined,
@@ -844,46 +877,6 @@ const NuevaFactura = () => {
     dispatch(resetSale());
   };
 
-  if (!eligioMetodo) {
-    const TITULOS: Record<TipoDocumento, [string, string]> = {
-      factura: ["Nueva Factura", "la factura"],
-      boleta: ["Nueva Boleta", "la boleta"],
-      "nota-venta": ["Nueva Nota de Venta", "la nota de venta"],
-      cotizacion: ["Nueva Cotización", "la cotización"],
-    };
-    const [tituloDoc, nombreDoc] = TITULOS[tipoDocumentoInicial];
-    const proximamente = (n: string) => toast(`${n}: próximamente. Por ahora usa Subir XML o Llenar manual.`);
-    const opciones = [
-      { icon: "🔍", titulo: "Buscar en SUNAT", desc: "Con RUC, serie y correlativo", onClick: () => proximamente("Buscar en SUNAT") },
-      { icon: "📄", titulo: leyendoXml ? "Leyendo XML..." : "Subir XML", desc: "Uno o varios archivos .xml", onClick: () => xmlInputRef.current?.click() },
-      { icon: "📷", titulo: "Foto o PDF", desc: "La leemos automáticamente", onClick: () => proximamente("Foto o PDF") },
-      { icon: "✏️", titulo: "Llenar manual", desc: "Escribir los datos", onClick: () => setEligioMetodo(true) },
-    ];
-    return (
-      <div>
-        <Toaster richColors position="top-right" />
-        <div className={styles.header}>
-          <h3>{tituloDoc}</h3>
-        </div>
-        <div className={comprasStyles.comoTraerCard}>
-          <div className={comprasStyles.comoTraerTitle}>
-            <span className={comprasStyles.comoTraerIcon}>⬇️</span> ¿Cómo quieres traer {nombreDoc}?
-          </div>
-          <div className={comprasStyles.opcionesGrid}>
-            {opciones.map((o) => (
-              <button key={o.titulo} type="button" className={comprasStyles.opcionCard} onClick={o.onClick}>
-                <span className={comprasStyles.opcionIcon}>{o.icon}</span>
-                <span className={comprasStyles.opcionTitle}>{o.titulo}</span>
-                <span className={comprasStyles.opcionDesc}>{o.desc}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-        <input ref={xmlInputRef} type="file" accept=".xml" multiple hidden onChange={handleXmlSeleccionado} />
-      </div>
-    );
-  }
-
   const DOC: Record<TipoDocumento, [string, string, string | undefined]> = {
     factura: ["Nueva Factura", "Factura", seriesDocumento.factura],
     boleta: ["Nueva Boleta", "Boleta", seriesDocumento.boleta],
@@ -907,7 +900,12 @@ const NuevaFactura = () => {
               : "Completa los datos del comprobante y del cliente."}
           </p>
         </div>
-        <div className={styles.advancedWrap} style={{ marginLeft: "auto" }}>
+        <button type="button" className={comprasStyles.historialBtn} onClick={() => xmlInputRef.current?.click()} disabled={leyendoXml}
+          title="Carga cliente y productos desde uno o varios XML">
+          📄 {leyendoXml ? "Leyendo XML..." : "Subir XML"}
+        </button>
+        <input ref={xmlInputRef} type="file" accept=".xml" multiple hidden onChange={handleXmlSeleccionado} />
+        <div className={styles.advancedWrap}>
           <button type="button" className={styles.advancedBtn} onClick={() => setShowAdvanced((v) => !v)}>
             <Icon icon="mdi:cog-outline" /> Opc. Avanzadas <Icon icon="mdi:chevron-down" />
           </button>
@@ -1081,14 +1079,37 @@ const NuevaFactura = () => {
                 Al crédito
                 <input type="checkbox" checked={esCredito} onChange={(e) => toggleCredito(e.target.checked)} />
               </label>
-              <select className={f.input} value={metodoPagoId} disabled={esCredito} onChange={(e) => setMetodoPagoId(Number(e.target.value))}>
-                <option value={0}>Forma de pago</option>
-                {(payMethods as any[])?.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.value}
-                  </option>
-                ))}
-              </select>
+              {esCredito ? (
+                <div>
+                  <div className={diasCredito === -1 ? f.dosCol : undefined}>
+                    <select className={f.input} title="Días de crédito" value={diasCredito} onChange={(e) => setDiasCredito(Number(e.target.value))}>
+                      {plazosCredito.map((d) => (
+                        <option key={d} value={d}>
+                          {d} {d === 1 ? "día" : "días"} de crédito
+                        </option>
+                      ))}
+                      <option value={-1}>Otro plazo...</option>
+                    </select>
+                    {diasCredito === -1 && (
+                      <div className={f.buscarRow}>
+                        <input className={f.input} type="number" min={1} max={365} placeholder="Días" autoFocus value={nuevoPlazo}
+                          onChange={(e) => setNuevoPlazo(e.target.value)} onKeyDown={(e) => e.key === "Enter" && registrarPlazo()} />
+                        <button type="button" className={f.buscarBtn} onClick={registrarPlazo} title="Registrar este plazo">✓</button>
+                      </div>
+                    )}
+                  </div>
+                  {vencimientoCredito && <small style={{ color: "#667085" }}>Vence el {vencimientoCredito.split("-").reverse().join("/")}</small>}
+                </div>
+              ) : (
+                <select className={f.input} value={metodoPagoId} onChange={(e) => setMetodoPagoId(Number(e.target.value))}>
+                  <option value={0}>Forma de pago</option>
+                  {(payMethods as any[])?.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.value}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className={f.campo}>
               <label className={f.checkLabel} title="¿Deseas enviar el comprobante electrónico al email del cliente?">
