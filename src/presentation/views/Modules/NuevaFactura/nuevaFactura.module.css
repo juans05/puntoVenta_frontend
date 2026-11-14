@@ -957,3 +957,29 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Lineas de venta sobre la hoja de Compras (formularioCompra.module.css): menos columnas.
+   "div." sube la especificidad para ganarle a .fila sin depender del orden de carga. */
+div.filaVenta {
+  grid-template-columns: minmax(0, 2.5fr) 110px 120px 110px 100px 30px;
+}
+
+.articulo {
+  font-size: 13px;
+  color: #344054;
+}
+
+.modoEnvioCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #344054;
+}
+
+@media screen and (max-width: 800px) {
+  div.filaVenta {
+    grid-template-columns: 1fr 1fr;
+  }
+}
