@@ -5,6 +5,8 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import styles from "./nuevaFactura.module.css";
 import { useFormErrors, estiloError, CampoError } from "../../../../components/FormError";
 import comprasStyles from "../Admin/Views/Compras/compras.module.css";
+// Mismo diseño que Compras > Registrar factura: se reutiliza su hoja de estilos.
+import f from "../Admin/Views/Compras/formularioCompra.module.css";
 import { getToken } from "../../../../helpers/auth-helpers";
 import axiosInstance from "../../../../utils/axios";
 import { useAppDispatch, useAppSelector } from "../../../../redux/store";
@@ -144,7 +146,6 @@ const NuevaFactura = () => {
   const [enviando, setEnviando] = useState(false);
   const [isOpenLoadingPay, setIsOpenLoadingPay] = useState(false);
 
-  const resumenRef = useRef<HTMLDivElement>(null);
   const [buscando, setBuscando] = useState(false);
   const [clientesEncontrados, setClientesEncontrados] = useState<any[]>([]);
 
@@ -883,216 +884,170 @@ const NuevaFactura = () => {
     );
   }
 
+  const DOC: Record<TipoDocumento, [string, string, string | undefined]> = {
+    factura: ["Nueva Factura", "Factura", seriesDocumento.factura],
+    boleta: ["Nueva Boleta", "Boleta", seriesDocumento.boleta],
+    cotizacion: ["Nueva Cotización", "Cotización", seriesDocumento.cotizacion],
+    "nota-venta": ["Nueva Nota de Venta", "Nota de venta", seriesDocumento.notaVenta],
+  };
+  const [tituloForm, etiquetaDoc, serieDoc] = DOC[tipoDocumentoInicial];
+
   return (
     <div>
       <Toaster richColors position="top-right" />
-      <div className={styles.header}>
-        <h3>
-          {tipoDocumentoInicial === "factura"
-            ? "Nueva Factura"
-            : tipoDocumentoInicial === "boleta"
-            ? "Nueva Boleta"
-            : tipoDocumentoInicial === "cotizacion"
-            ? "Nueva Cotización"
-            : "Nueva Nota de Venta"}
-          {totalXml > 1 && (
-            <small style={{ marginLeft: 12, fontWeight: 400 }}>
-              Documento {totalXml - colaXml.length} de {totalXml}
-            </small>
-          )}
-        </h3>
-        <div className={styles.headerActions}>
-          <div className={styles.advancedWrap}>
-            <button type="button" className={styles.advancedBtn} onClick={() => setShowAdvanced((v) => !v)}>
-              <Icon icon="mdi:cog-outline" /> Opc. Avanzadas <Icon icon="mdi:chevron-down" />
-            </button>
-            {showAdvanced && (
-              <>
-                <div className={styles.advancedBackdrop} onClick={() => setShowAdvanced(false)} />
-                <div className={styles.advancedPanel}>
-                  {[1, 2, 3].map((col) => (
-                    <div key={col} className={styles.advancedColumn}>
-                      {CAMPOS_AVANZADOS.filter((c) => c.columna === col).map((c) => (
-                        <label key={c.key} className={styles.advancedItem}>
-                          <input type="checkbox" checked={!!campos[c.key]} onChange={() => toggleCampo(c.key)} />
-                          {c.label}
-                        </label>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+      <div className={comprasStyles.registrarHeader}>
+        <button type="button" className={comprasStyles.backBtn} onClick={() => navigate(-1)} title="Volver">
+          ←
+        </button>
+        <div>
+          <h3>{tituloForm}</h3>
+          <p className={comprasStyles.subtitle}>
+            {totalXml > 1
+              ? `Documento ${totalXml - colaXml.length} de ${totalXml}: revisa y guarda para pasar al siguiente.`
+              : "Completa los datos del comprobante y del cliente."}
+          </p>
         </div>
-      </div>
-
-      <div className={styles.documentoCodeWrap}>
-        <div className={styles.documentoCodeBox}>
-          <span className={styles.documentoCodeTipo}>
-            {tipoDocumentoInicial === "factura"
-              ? "FACTURA"
-              : tipoDocumentoInicial === "boleta"
-              ? "BOLETA"
-              : tipoDocumentoInicial === "cotizacion"
-              ? "COTIZACIÓN"
-              : "NOTA DE VENTA"}
-            {" · Serie "}
-            {tipoDocumentoInicial === "factura"
-              ? seriesDocumento.factura ?? "..."
-              : tipoDocumentoInicial === "boleta"
-              ? seriesDocumento.boleta ?? "..."
-              : tipoDocumentoInicial === "cotizacion"
-              ? seriesDocumento.cotizacion ?? "..."
-              : seriesDocumento.notaVenta ?? "..."}
-          </span>
-          <span className={styles.documentoCodeValor}>{correlative || "Se asigna al guardar"}</span>
-        </div>
-      </div>
-
-      <div className={styles.grid}>
-        <div className={styles.section}>
-          <h4 className={styles.sectionTitleDivider}>CLIENTE:</h4>
-
-          <div className={styles.formGrid3}>
-            <div>
-              <label className={styles.fieldLabelIcon}>
-                <Icon icon="mdi:account-outline" /> Tipo Doc.Ident.<span className={styles.required}>*</span>
-              </label>
-              <select
-                className={styles.select}
-                style={estiloError(!!errors.tipoDocIdentId)}
-                value={tipoDocIdentId}
-                onChange={(e) => {
-                  setTipoDocIdentId(Number(e.target.value));
-                  clearError("tipoDocIdentId");
-                }}
-              >
-                {tiposDocumentoDisponibles?.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.value}
-                  </option>
+        <div className={styles.advancedWrap} style={{ marginLeft: "auto" }}>
+          <button type="button" className={styles.advancedBtn} onClick={() => setShowAdvanced((v) => !v)}>
+            <Icon icon="mdi:cog-outline" /> Opc. Avanzadas <Icon icon="mdi:chevron-down" />
+          </button>
+          {showAdvanced && (
+            <>
+              <div className={styles.advancedBackdrop} onClick={() => setShowAdvanced(false)} />
+              <div className={styles.advancedPanel}>
+                {[1, 2, 3].map((col) => (
+                  <div key={col} className={styles.advancedColumn}>
+                    {CAMPOS_AVANZADOS.filter((c) => c.columna === col).map((c) => (
+                      <label key={c.key} className={styles.advancedItem}>
+                        <input type="checkbox" checked={!!campos[c.key]} onChange={() => toggleCampo(c.key)} />
+                        {c.label}
+                      </label>
+                    ))}
+                  </div>
                 ))}
-              </select>
-              <CampoError mensaje={errors.tipoDocIdentId} />
-            </div>
-            <div>
-              <label className={styles.fieldLabelIcon}>
-                <Icon icon="mdi:pencil-outline" /> {labelNumeroDocumento}: <span className={styles.required}>*</span>
-              </label>
-              <div className={styles.buscarClienteRow}>
-                <input
-                  placeholder="Número de documento aquí"
-                  value={numeroDocumento}
-                  maxLength={tipoDocIdentId === TIPO_DOC_DNI ? 8 : tipoDocIdentId === TIPO_DOC_RUC ? 11 : 20}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                    const esNumerico = tipoDocIdentId === TIPO_DOC_DNI || tipoDocIdentId === TIPO_DOC_RUC;
-                    const limpio = esNumerico
-                      ? e.target.value.replace(/\D/g, "")
-                      : e.target.value.replace(/[^a-zA-Z0-9]/g, "");
-                    setNumeroDocumento(limpio);
-                    // Cambiar el numero de documento invalida los datos bloqueados del cliente anterior.
-                    setCamposBloqueados(CAMPOS_DESBLOQUEADOS);
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && buscarCliente()}
-                  style={estiloError(!!errors.numeroDocumento)}
-                />
-                <button
-                  type="button"
-                  className={styles.searchIconBtn}
-                  onClick={() => setIsClientePickerOpen(true)}
-                  disabled={buscando}
-                  title="Buscar cliente"
-                >
-                  <Icon icon="iconamoon:search-bold" />
-                </button>
-                <button
-                  type="button"
-                  className={styles.searchIconBtn}
-                  onClick={abrirRegistroCliente}
-                  title="Registrar nuevo cliente"
-                >
-                  <Icon icon="mdi:account-plus-outline" />
-                </button>
               </div>
-              <CampoError mensaje={errors.numeroDocumento} />
-            </div>
-            <div>
-              <label className={styles.fieldLabelIcon}>
-                <Icon icon="mdi:card-account-details-outline" /> Razón Social: <span className={styles.required}>*</span>
-              </label>
-              <input
-                placeholder="Nombre o Razón Social aquí"
-                value={razonSocial}
-                disabled={camposBloqueados.razonSocial}
-                style={estiloError(!!errors.razonSocial)}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                  setRazonSocial(e.target.value);
-                  clearError("razonSocial");
-                }}
-              />
-              <CampoError mensaje={errors.razonSocial} />
-            </div>
-          </div>
-
-          {clientesEncontrados.length > 1 && (
-            <div className={styles.clientesEncontrados}>
-              <p>Se encontraron {clientesEncontrados.length} clientes, selecciona uno:</p>
-              {clientesEncontrados.map((c: any) => (
-                <div key={c.id} className={styles.clienteRow}>
-                  <span>
-                    {c.nombre} · {c.numeroDocumento}
-                  </span>
-                  <button type="button" onClick={() => seleccionarCliente(c)}>
-                    Seleccionar
-                  </button>
-                </div>
-              ))}
-            </div>
+            </>
           )}
+        </div>
+      </div>
 
-          {(campos.direccionCliente || campos.ubigeo || campos.numeroCelular) && (
-            <div className={styles.formGrid3}>
-              {campos.direccionCliente && (
-                <div>
-                  <label className={styles.fieldLabelIcon}>
-                    <Icon icon="mdi:home-outline" /> Dirección:
-                  </label>
-                  <input
-                    placeholder="Escribe aquí la dirección completa"
-                    value={direccionCliente}
-                    disabled={camposBloqueados.direccion}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setDireccionCliente(e.target.value)}
-                  />
-                </div>
-              )}
-              {campos.ubigeo && (
-                <div>
-                  <label className={styles.fieldLabelIcon}>
-                    <Icon icon="mdi:earth" /> Ubigeo:
-                  </label>
-                  <SelectUbigeo
-                    isSearch
-                    disabled={camposBloqueados.ubigeo}
-                    placeholder="Selecciona tu código de ubigeo"
-                    name="ubigeo"
-                    id="ubigeoId"
-                    defaultValue={ubigeoLabel}
-                    options={(ubigeos as any[]) ?? []}
-                    onChange={(idValue: any, value: string) => {
-                      setUbigeoId(String(idValue));
-                      setUbigeoLabel(value);
+      <div className={f.hoja}>
+        <div className={f.cabecera}>
+          <div>
+            <div className={f.campo}>
+              <label className={f.req}>Cliente</label>
+              <div>
+                <div className={f.buscarRow}>
+                  <select
+                    className={f.tipoDoc}
+                    style={{ width: "auto", maxWidth: 120, ...estiloError(!!errors.tipoDocIdentId) }}
+                    value={tipoDocIdentId}
+                    onChange={(e) => {
+                      setTipoDocIdentId(Number(e.target.value));
+                      clearError("tipoDocIdentId");
                     }}
-                  />
-                </div>
-              )}
-              {campos.numeroCelular && (
-                <div>
-                  <label className={styles.fieldLabelIcon}>
-                    <Icon icon="mdi:cellphone" /> Num. Celular:
-                  </label>
+                  >
+                    {tiposDocumentoDisponibles?.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.value}
+                      </option>
+                    ))}
+                  </select>
                   <input
-                    placeholder="Escribe el número de celular"
+                    className={f.input}
+                    placeholder={labelNumeroDocumento}
+                    value={numeroDocumento}
+                    maxLength={tipoDocIdentId === TIPO_DOC_DNI ? 8 : tipoDocIdentId === TIPO_DOC_RUC ? 11 : 20}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      const esNumerico = tipoDocIdentId === TIPO_DOC_DNI || tipoDocIdentId === TIPO_DOC_RUC;
+                      const limpio = esNumerico
+                        ? e.target.value.replace(/\D/g, "")
+                        : e.target.value.replace(/[^a-zA-Z0-9]/g, "");
+                      setNumeroDocumento(limpio);
+                      // Cambiar el numero de documento invalida los datos bloqueados del cliente anterior.
+                      setCamposBloqueados(CAMPOS_DESBLOQUEADOS);
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && buscarCliente()}
+                    style={estiloError(!!errors.numeroDocumento)}
+                  />
+                  <button type="button" className={f.buscarBtn} onClick={() => setIsClientePickerOpen(true)} disabled={buscando} title="Buscar cliente">🔍</button>
+                  <button type="button" className={f.buscarBtn} onClick={abrirRegistroCliente} title="Registrar nuevo cliente">➕</button>
+                </div>
+                <CampoError mensaje={errors.tipoDocIdentId} />
+                <CampoError mensaje={errors.numeroDocumento} />
+              </div>
+            </div>
+            <div className={f.campo}>
+              <label />
+              <div>
+                <input
+                  className={f.input}
+                  placeholder="Razón social / Nombre"
+                  value={razonSocial}
+                  disabled={camposBloqueados.razonSocial}
+                  style={estiloError(!!errors.razonSocial)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    setRazonSocial(e.target.value);
+                    clearError("razonSocial");
+                  }}
+                />
+                <CampoError mensaje={errors.razonSocial} />
+              </div>
+            </div>
+
+            {clientesEncontrados.length > 1 && (
+              <div className={styles.clientesEncontrados}>
+                <p>Se encontraron {clientesEncontrados.length} clientes, selecciona uno:</p>
+                {clientesEncontrados.map((c: any) => (
+                  <div key={c.id} className={styles.clienteRow}>
+                    <span>
+                      {c.nombre} · {c.numeroDocumento}
+                    </span>
+                    <button type="button" onClick={() => seleccionarCliente(c)}>
+                      Seleccionar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {campos.direccionCliente && (
+              <div className={f.campo}>
+                <label>Dirección</label>
+                <input
+                  className={f.input}
+                  placeholder="Dirección completa"
+                  value={direccionCliente}
+                  disabled={camposBloqueados.direccion}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setDireccionCliente(e.target.value)}
+                />
+              </div>
+            )}
+            {campos.ubigeo && (
+              <div className={f.campo}>
+                <label>Ubigeo</label>
+                <SelectUbigeo
+                  isSearch
+                  disabled={camposBloqueados.ubigeo}
+                  placeholder="Código de ubigeo"
+                  name="ubigeo"
+                  id="ubigeoId"
+                  defaultValue={ubigeoLabel}
+                  options={(ubigeos as any[]) ?? []}
+                  onChange={(idValue: any, value: string) => {
+                    setUbigeoId(String(idValue));
+                    setUbigeoLabel(value);
+                  }}
+                />
+              </div>
+            )}
+            {campos.numeroCelular && (
+              <div className={f.campo}>
+                <label>Num. celular</label>
+                <div>
+                  <input
+                    className={f.input}
+                    placeholder="Número de celular"
                     value={celular}
                     maxLength={9}
                     disabled={camposBloqueados.celular}
@@ -1104,370 +1059,313 @@ const NuevaFactura = () => {
                   />
                   <CampoError mensaje={errors.celular} />
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
-          <div className={styles.formGrid}>
-            <div>
-              <label className={styles.toggleLabel}>
-                <span className={styles.switch}>
-                  <input type="checkbox" checked={enviarEmail} onChange={(e) => setEnviarEmail(e.target.checked)} />
-                  <span className={styles.switchSlider}></span>
-                </span>
-                ¿Deseas enviar el comprobante electrónico al email del cliente?
+          <div>
+            {campos.fechaDocumento && (
+              <div className={f.campo}>
+                <label>Fecha</label>
+                <input type="date" className={f.input} value={fechaVenta} onChange={(e: ChangeEvent<HTMLInputElement>) => setFechaVenta(e.target.value)} />
+              </div>
+            )}
+            {tipoDocumentoInicial === "cotizacion" && (
+              <div className={f.campo}>
+                <label>Válida hasta (opcional)</label>
+                <input type="date" className={f.input} value={fechaVigencia} onChange={(e: ChangeEvent<HTMLInputElement>) => setFechaVigencia(e.target.value)} />
+              </div>
+            )}
+            <div className={f.campo}>
+              <label className={f.checkLabel}>
+                Al crédito
+                <input type="checkbox" checked={esCredito} onChange={(e) => toggleCredito(e.target.checked)} />
               </label>
-              {enviarEmail && (
+              <select className={f.input} value={metodoPagoId} disabled={esCredito} onChange={(e) => setMetodoPagoId(Number(e.target.value))}>
+                <option value={0}>Forma de pago</option>
+                {(payMethods as any[])?.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.value}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className={f.campo}>
+              <label className={f.checkLabel} title="¿Deseas enviar el comprobante electrónico al email del cliente?">
+                Enviar al email
+                <input type="checkbox" checked={enviarEmail} onChange={(e) => setEnviarEmail(e.target.checked)} />
+              </label>
+              <div>
                 <input
                   type="email"
-                  placeholder="Email del cliente"
+                  className={f.input}
+                  placeholder={enviarEmail ? "Email del cliente" : "Comprobante electrónico al email del cliente"}
                   value={email}
+                  disabled={!enviarEmail}
                   style={estiloError(!!errors.email)}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => {
                     setEmail(e.target.value);
                     clearError("email");
                   }}
                 />
-              )}
-              <CampoError mensaje={errors.email} />
+                <CampoError mensaje={errors.email} />
+              </div>
             </div>
-            {campos.fechaDocumento && (
-              <div>
-                <label>Fecha</label>
-                <input
-                  type="date"
-                  value={fechaVenta}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFechaVenta(e.target.value)}
-                />
-              </div>
-            )}
-            {tipoDocumentoInicial === "cotizacion" && (
-              <div>
-                <label>Válida hasta (opcional)</label>
-                <input
-                  type="date"
-                  value={fechaVigencia}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFechaVigencia(e.target.value)}
-                />
-              </div>
-            )}
           </div>
 
-          {(campos.tipoOperacion ||
-            campos.sucursal ||
-            campos.placaVehiculo ||
-            campos.guiaRemisionManual ||
-            campos.guiaRemisionElectronica ||
-            campos.etiquetas ||
-            campos.fechaVencimiento ||
-            campos.numeroOrden ||
-            campos.colaborador ||
-            campos.tipoMoneda ||
-            campos.tipoCambio ||
-            campos.retencion ||
-            campos.detraccion ||
-            campos.anticipo) && (
-            <>
-              <h4 className={styles.sectionTitleDivider}>DATOS ADICIONALES:</h4>
-              <div className={styles.formGrid3}>
-                {campos.tipoOperacion && (
-                  <div>
-                    <label>Tipo de Operación</label>
-                    <select className={styles.select} value={tipoOperacionId} onChange={(e) => setTipoOperacionId(Number(e.target.value))}>
-                      <option value={0}>Selecciona un tipo de operación</option>
-                      {(tiposOperacion as any[])?.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.value}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                {campos.sucursal && (
-                  <div>
-                    <label>Sucursal</label>
-                    <select className={styles.select} value={sucursalId} onChange={(e) => setSucursalId(Number(e.target.value))}>
-                      <option value={0}>Selecciona una sucursal</option>
-                      {(sucursales as any[])?.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.value}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                {campos.colaborador && (
-                  <div>
-                    <label>Colaborador</label>
-                    <select className={styles.select} value={colaboradorId} onChange={(e) => setColaboradorId(e.target.value)}>
-                      <option value="">Selecciona un colaborador</option>
-                      {(colaboradores as any[])?.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.nombres} {u.apellidos}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                {campos.tipoMoneda && (
-                  <div>
-                    <label>Tipo de Moneda</label>
-                    <select className={styles.select} value={monedaId} onChange={(e) => setMonedaId(Number(e.target.value))}>
-                      <option value={0}>Selecciona una moneda</option>
-                      {(monedas as any[])?.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.value}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                {campos.tipoCambio && (
-                  <div>
-                    <label>Tipo de Cambio (SUNAT)</label>
-                    <input
-                      type="text"
-                      value={tipoCambio}
-                      style={estiloError(!!errors.tipoCambio)}
-                      onChange={(e) => {
-                        setTipoCambio(sanitizeDecimal(e.target.value));
-                        clearError("tipoCambio");
-                      }}
-                    />
-                    <CampoError mensaje={errors.tipoCambio} />
-                  </div>
-                )}
-                {campos.placaVehiculo && (
-                  <div>
-                    <label>N° Placa Vehículo</label>
-                    <input
-                      value={placaVehiculo}
-                      maxLength={10}
-                      onChange={(e) => setPlacaVehiculo(e.target.value.toUpperCase())}
-                    />
-                  </div>
-                )}
-                {campos.guiaRemisionManual && (
-                  <div>
-                    <label>N° Guía Remisión Manual</label>
-                    <input value={guiaRemisionManual} maxLength={20} onChange={(e) => setGuiaRemisionManual(e.target.value)} />
-                  </div>
-                )}
-                {campos.guiaRemisionElectronica && (
-                  <div>
-                    <label>N° Guía Remisión Electrónica</label>
-                    <input value={guiaRemisionElectronica} maxLength={20} onChange={(e) => setGuiaRemisionElectronica(e.target.value)} />
-                  </div>
-                )}
-                {campos.numeroOrden && (
-                  <div>
-                    <label>N° de Orden</label>
-                    <input value={numeroOrden} maxLength={30} onChange={(e) => setNumeroOrden(e.target.value)} />
-                  </div>
-                )}
-                {campos.fechaVencimiento && (
-                  <div>
-                    <label>Fecha Vencimiento del Documento</label>
-                    <input type="date" value={fechaVencimiento} onChange={(e) => setFechaVencimiento(e.target.value)} />
-                  </div>
-                )}
-                {campos.etiquetas && (
-                  <div>
-                    <label>Etiquetas</label>
-                    <input placeholder="Separadas por coma" value={etiquetas} maxLength={200} onChange={(e) => setEtiquetas(e.target.value)} />
-                  </div>
-                )}
-                {campos.detraccion && (
-                  <div>
-                    <label>Detracción</label>
-                    <select className={styles.select} value={tipoDetraccionId} onChange={(e) => setTipoDetraccionId(Number(e.target.value))}>
-                      <option value={0}>Sin detracción</option>
-                      {tiposDetraccion.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {Number(t.porcentaje)}%{t.descripcion ? ` - ${t.descripcion}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                    {tipoDetraccionId !== 0 && (
-                      <small>
-                        Monto: S/ {((total * Number(tiposDetraccion.find((t) => t.id === tipoDetraccionId)?.porcentaje ?? 0)) / 100).toFixed(2)}
-                      </small>
-                    )}
-                  </div>
-                )}
-                {campos.retencion && (
-                  <div>
-                    <label>Retención S/.</label>
-                    <input
-                      type="text"
-                      value={montoRetencion}
-                      style={estiloError(!!errors.montoRetencion)}
-                      onChange={(e) => {
-                        setMontoRetencion(sanitizeDecimal(e.target.value));
-                        clearError("montoRetencion");
-                      }}
-                    />
-                    <CampoError mensaje={errors.montoRetencion} />
-                  </div>
-                )}
-                {campos.anticipo && (
-                  <div>
-                    <label>Anticipo S/.</label>
-                    <input
-                      type="text"
-                      value={montoAnticipo}
-                      style={estiloError(!!errors.montoAnticipo)}
-                      onChange={(e) => {
-                        setMontoAnticipo(sanitizeDecimal(e.target.value));
-                        clearError("montoAnticipo");
-                      }}
-                    />
-                    <CampoError mensaje={errors.montoAnticipo} />
-                  </div>
-                )}
+          <div>
+            <div className={f.campo}>
+              <label>{etiquetaDoc} #</label>
+              <div className={f.dosCol}>
+                <input className={f.input} readOnly value={serieDoc ?? "..."} title="Serie" />
+                <input className={f.input} readOnly value={correlative || "Se asigna al guardar"} title="Correlativo" />
               </div>
-            </>
-          )}
+            </div>
+            <div className={f.campo}>
+              <label>Observación</label>
+              <textarea className={f.notas} rows={4} placeholder="Escribe aquí una observación" value={observacion} onChange={(e) => setObservacion(e.target.value)} />
+            </div>
+          </div>
         </div>
 
-        <div className={styles.section}>
-          <div className={styles.productosHeader}>
-            <h4>LISTA DE PRODUCTOS:</h4>
-            <button type="button" className={styles.addBtn} onClick={() => setIsPickerOpen(true)}>
-              <Icon icon="mdi:plus" /> Agregar productos
-            </button>
-          </div>
-          <CampoError mensaje={errors.productos} />
-
-          {productsBySale.length === 0 ? (
-            <p className={styles.empty}>Aún no agregaste productos.</p>
-          ) : (
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Und. Medida</th>
-                    <th>Cantidad</th>
-                    <th>P. Unit.</th>
-                    <th>Subtotal</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {productsBySale.map((item: any) => (
-                    <tr key={item.productoId}>
-                      <td data-label="Producto">{item.nombre}</td>
-                      <td data-label="Und. Medida">
-                        <select
-                          className={styles.select}
-                          value={item.unidadMedidaId ?? ""}
-                          onChange={(e) => cambiarUnidadMedida(item.productoId, Number(e.target.value))}
-                        >
-                          {(unidadesMedida as any[])?.map((u) => (
-                            <option key={u.id} value={u.id}>
-                              {u.codigo}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td data-label="Cantidad">
-                        <div className={styles.qtyControl}>
-                          <button type="button" onClick={() => restar(item)}>-</button>
-                          <span>{item.cantidad}</span>
-                          <button type="button" onClick={() => sumar(item)}>+</button>
-                        </div>
-                      </td>
-                      <td data-label="P. Unit.">
-                        {item.cambioPrecioPermitido ? (
-                          <input
-                            type="text"
-                            className={styles.costoInput}
-                            defaultValue={Number(item.precio).toFixed(2)}
-                            onBlur={(e) => cambiarPrecio(item.productoId, e.target.value)}
-                          />
-                        ) : (
-                          <>S/ {Number(item.precio).toFixed(2)}</>
-                        )}
-                      </td>
-                      <td data-label="Subtotal">S/ {Number(item.precio * item.cantidad).toFixed(2)}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className={styles.removeBtn}
-                          onClick={() => eliminar(item.productoId)}
-                        >
-                          <Icon icon="mdi:trash-can-outline" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* Datos adicionales (los que se activan en Opc. Avanzadas): mismas 3 columnas de la cabecera. */}
+        <div className={f.cabecera}>
+          {campos.tipoOperacion && (
+            <div className={f.campo}>
+              <label>Tipo de Operación</label>
+              <select className={f.input} value={tipoOperacionId} onChange={(e) => setTipoOperacionId(Number(e.target.value))}>
+                <option value={0}>Selecciona un tipo de operación</option>
+                {(tiposOperacion as any[])?.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.value}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
-        </div>
-
-        <div className={styles.section}>
-          <div className={styles.multipagosHeader}>
-            <button
-              type="button"
-              className={styles.resumenPagoLink}
-              onClick={() => resumenRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
-            >
-              RESUMEN DE PAGO
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.ventaResumenGrid}>
-          <div className={styles.ventaResumenLeft}>
-            <div className={styles.formGrid}>
+          {campos.sucursal && (
+            <div className={f.campo}>
+              <label>Sucursal</label>
+              <select className={f.input} value={sucursalId} onChange={(e) => setSucursalId(Number(e.target.value))}>
+                <option value={0}>Selecciona una sucursal</option>
+                {(sucursales as any[])?.map((su) => (
+                  <option key={su.id} value={su.id}>
+                    {su.value}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {campos.colaborador && (
+            <div className={f.campo}>
+              <label>Colaborador</label>
+              <select className={f.input} value={colaboradorId} onChange={(e) => setColaboradorId(e.target.value)}>
+                <option value="">Selecciona un colaborador</option>
+                {(colaboradores as any[])?.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombres} {u.apellidos}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {campos.tipoMoneda && (
+            <div className={f.campo}>
+              <label>Tipo de Moneda</label>
+              <select className={f.input} value={monedaId} onChange={(e) => setMonedaId(Number(e.target.value))}>
+                <option value={0}>Selecciona una moneda</option>
+                {(monedas as any[])?.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.value}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {campos.tipoCambio && (
+            <div className={f.campo}>
+              <label>Tipo de Cambio (SUNAT)</label>
               <div>
-                <label className={styles.fieldLabel}>¿Es al Crédito?</label>
-                <div className={styles.switchRow}>
-                  <span className={styles.switch}>
-                    <input type="checkbox" checked={esCredito} onChange={(e) => toggleCredito(e.target.checked)} />
-                    <span className={styles.switchSlider}></span>
-                  </span>
-                  <span>{esCredito ? "Sí" : "No"}</span>
-                </div>
+                <input
+                  type="text"
+                  className={f.input}
+                  value={tipoCambio}
+                  style={estiloError(!!errors.tipoCambio)}
+                  onChange={(e) => {
+                    setTipoCambio(sanitizeDecimal(e.target.value));
+                    clearError("tipoCambio");
+                  }}
+                />
+                <CampoError mensaje={errors.tipoCambio} />
               </div>
+            </div>
+          )}
+          {campos.placaVehiculo && (
+            <div className={f.campo}>
+              <label>N° Placa Vehículo</label>
+              <input className={f.input} value={placaVehiculo} maxLength={10} onChange={(e) => setPlacaVehiculo(e.target.value.toUpperCase())} />
+            </div>
+          )}
+          {campos.guiaRemisionManual && (
+            <div className={f.campo}>
+              <label>N° Guía Remisión Manual</label>
+              <input className={f.input} value={guiaRemisionManual} maxLength={20} onChange={(e) => setGuiaRemisionManual(e.target.value)} />
+            </div>
+          )}
+          {campos.guiaRemisionElectronica && (
+            <div className={f.campo}>
+              <label>N° Guía Remisión Electrónica</label>
+              <input className={f.input} value={guiaRemisionElectronica} maxLength={20} onChange={(e) => setGuiaRemisionElectronica(e.target.value)} />
+            </div>
+          )}
+          {campos.numeroOrden && (
+            <div className={f.campo}>
+              <label>N° de Orden</label>
+              <input className={f.input} value={numeroOrden} maxLength={30} onChange={(e) => setNumeroOrden(e.target.value)} />
+            </div>
+          )}
+          {campos.fechaVencimiento && (
+            <div className={f.campo}>
+              <label>Fecha Vencimiento del Documento</label>
+              <input type="date" className={f.input} value={fechaVencimiento} onChange={(e) => setFechaVencimiento(e.target.value)} />
+            </div>
+          )}
+          {campos.etiquetas && (
+            <div className={f.campo}>
+              <label>Etiquetas</label>
+              <input className={f.input} placeholder="Separadas por coma" value={etiquetas} maxLength={200} onChange={(e) => setEtiquetas(e.target.value)} />
+            </div>
+          )}
+          {campos.detraccion && (
+            <div className={f.campo}>
+              <label>Detracción</label>
               <div>
-                <label>Forma de Pago</label>
-                <select
-                  className={styles.select}
-                  value={metodoPagoId}
-                  disabled={esCredito}
-                  onChange={(e) => setMetodoPagoId(Number(e.target.value))}
-                >
-                  <option value={0}>Selecciona un método de pago</option>
-                  {(payMethods as any[])?.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.value}
+                <select className={f.input} value={tipoDetraccionId} onChange={(e) => setTipoDetraccionId(Number(e.target.value))}>
+                  <option value={0}>Sin detracción</option>
+                  {tiposDetraccion.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {Number(t.porcentaje)}%{t.descripcion ? ` - ${t.descripcion}` : ""}
                     </option>
                   ))}
                 </select>
+                {tipoDetraccionId !== 0 && (
+                  <small>
+                    Monto: S/ {((total * Number(tiposDetraccion.find((t) => t.id === tipoDetraccionId)?.porcentaje ?? 0)) / 100).toFixed(2)}
+                  </small>
+                )}
               </div>
             </div>
-
-            <div className={styles.formGrid3}>
+          )}
+          {campos.retencion && (
+            <div className={f.campo}>
+              <label>Retención S/.</label>
               <div>
-                <label className={styles.toggleLabel}>
-                  <span className={styles.switch}>
-                    <input
-                      type="checkbox"
-                      checked={descuentoActivo}
-                      disabled={esCredito}
-                      onChange={(e) => setDescuentoActivo(e.target.checked)}
-                    />
-                    <span className={styles.switchSlider}></span>
-                  </span>
-                  Descuento en %
-                </label>
+                <input
+                  type="text"
+                  className={f.input}
+                  value={montoRetencion}
+                  style={estiloError(!!errors.montoRetencion)}
+                  onChange={(e) => {
+                    setMontoRetencion(sanitizeDecimal(e.target.value));
+                    clearError("montoRetencion");
+                  }}
+                />
+                <CampoError mensaje={errors.montoRetencion} />
+              </div>
+            </div>
+          )}
+          {campos.anticipo && (
+            <div className={f.campo}>
+              <label>Anticipo S/.</label>
+              <div>
+                <input
+                  type="text"
+                  className={f.input}
+                  value={montoAnticipo}
+                  style={estiloError(!!errors.montoAnticipo)}
+                  onChange={(e) => {
+                    setMontoAnticipo(sanitizeDecimal(e.target.value));
+                    clearError("montoAnticipo");
+                  }}
+                />
+                <CampoError mensaje={errors.montoAnticipo} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className={f.lineas}>
+          <div className={`${f.fila} ${f.filaTitulo} ${styles.filaVenta}`}>
+            <span>Artículo</span>
+            <span>Und. medida</span>
+            <span>Cantidad</span>
+            <span>Precio</span>
+            <span className={f.derecha}>Importe</span>
+            <span />
+          </div>
+          {productsBySale.map((item: any) => (
+            <div key={item.productoId} className={`${f.fila} ${styles.filaVenta}`}>
+              <span className={styles.articulo}>{item.nombre}</span>
+              <select className={f.input} value={item.unidadMedidaId ?? ""} onChange={(e) => cambiarUnidadMedida(item.productoId, Number(e.target.value))}>
+                {(unidadesMedida as any[])?.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.codigo}
+                  </option>
+                ))}
+              </select>
+              <div className={styles.qtyControl}>
+                <button type="button" onClick={() => restar(item)}>-</button>
+                <span>{item.cantidad}</span>
+                <button type="button" onClick={() => sumar(item)}>+</button>
+              </div>
+              {item.cambioPrecioPermitido ? (
+                <input
+                  type="text"
+                  className={f.input}
+                  defaultValue={Number(item.precio).toFixed(2)}
+                  onBlur={(e) => cambiarPrecio(item.productoId, e.target.value)}
+                />
+              ) : (
+                <span className={styles.articulo}>S/ {Number(item.precio).toFixed(2)}</span>
+              )}
+              <span className={f.derecha}>S/ {Number(item.precio * item.cantidad).toFixed(2)}</span>
+              <button type="button" className={f.removeRow} onClick={() => eliminar(item.productoId)} title="Quitar línea">🗑</button>
+            </div>
+          ))}
+          <CampoError mensaje={errors.productos} />
+        </div>
+
+        <div className={f.pie}>
+          <div className={f.pieIzq}>
+            <button type="button" className={f.addLineBtn} onClick={() => setIsPickerOpen(true)}>⊕ Añade una línea</button>
+
+            <div className={styles.modoEnvioCol}>
+              <strong>Modo de envío</strong>
+              <label className={`${styles.modoEnvioOption} ${styles.modoEnvioAzul}`}>
+                <input type="radio" checked={modoEnvio === "F"} onChange={() => setModoEnvio("F")} />
+                Solo Firmar e Imprimir
+              </label>
+              <label className={`${styles.modoEnvioOption} ${styles.modoEnvioVerde}`}>
+                <input type="radio" checked={modoEnvio === "S"} onChange={() => setModoEnvio("S")} />
+                Enviar a SUNAT ahora mismo!
+              </label>
+              <label className={`${styles.modoEnvioOption} ${styles.modoEnvioCeleste}`}>
+                <input type="radio" checked={modoEnvio === "G"} onChange={() => setModoEnvio("G")} />
+                Solo Guardar la Venta
+              </label>
+            </div>
+          </div>
+
+          <div className={f.totales}>
+            <div><span>Gravada:</span><span>S/ {subtotal.toFixed(2)}</span></div>
+            <div>
+              <span className={f.conInput}>
+                Descuento en %
+                <input type="checkbox" style={{ accentColor: "#6C5DD3" }} checked={descuentoActivo} disabled={esCredito} onChange={(e) => setDescuentoActivo(e.target.checked)} />
                 {descuentoActivo && (
                   <input
                     type="text"
+                    className={f.totalInput}
                     value={porcentajeDescuento}
                     disabled={esCredito}
                     style={estiloError(!!errors.porcentajeDescuento)}
@@ -1478,12 +1376,18 @@ const NuevaFactura = () => {
                     }}
                   />
                 )}
-                <CampoError mensaje={errors.porcentajeDescuento} />
-              </div>
-              <div>
-                <label>Total Recibido S/.</label>
+              </span>
+              <span>- S/ {montoDescuento.toFixed(2)}</span>
+            </div>
+            <CampoError mensaje={errors.porcentajeDescuento} />
+            <div><span>IGV:</span><span>S/ {igv.toFixed(2)}</span></div>
+            <div className={f.totalFila}><span>Total:</span><span>S/ {total.toFixed(2)}</span></div>
+            <div>
+              <span className={f.conInput}>
+                Total recibido
                 <input
                   type="text"
+                  className={f.totalInput}
                   value={montoRecibido}
                   disabled={esCredito}
                   style={estiloError(!!errors.montoRecibido)}
@@ -1492,43 +1396,11 @@ const NuevaFactura = () => {
                     clearError("montoRecibido");
                   }}
                 />
-                <CampoError mensaje={errors.montoRecibido} />
-              </div>
-              <div>
-                <label>Vuelto S/.</label>
-                <input type="text" readOnly disabled={esCredito} value={montoRecibido !== "" ? Math.max(vuelto, 0).toFixed(2) : ""} />
-              </div>
+              </span>
+              <span>S/ {Number(montoRecibido || 0).toFixed(2)}</span>
             </div>
-
-            <div>
-              <label>Observación</label>
-              <textarea
-                className={styles.observacionInput}
-                placeholder="Escribe aquí una observación"
-                value={observacion}
-                onChange={(e) => setObservacion(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className={styles.resumenCard} ref={resumenRef}>
-            <h4>Resumen:</h4>
-            <div className={styles.totalesRow}>
-              <span>Gravada:</span>
-              <span>S/. {subtotal.toFixed(2)}</span>
-            </div>
-            <div className={styles.totalesRow}>
-              <span>(-) Descuento Total:</span>
-              <span className={styles.negativo}>S/. {montoDescuento.toFixed(2)}</span>
-            </div>
-            <div className={styles.totalesRow}>
-              <span>IGV: (18%)</span>
-              <span>S/. {igv.toFixed(2)}</span>
-            </div>
-            <div className={`${styles.totalesRow} ${styles.totalesRowFinal}`}>
-              <span>Total:</span>
-              <span>S/. {total.toFixed(2)}</span>
-            </div>
+            <CampoError mensaje={errors.montoRecibido} />
+            <div><span>Vuelto:</span><span>S/ {(montoRecibido !== "" ? Math.max(vuelto, 0) : 0).toFixed(2)}</span></div>
             {/* Mismas cuentas por defecto que ComprobanteRepository.GenerarAsientoVenta. */}
             <AsientoPreview
               asientos={asientosSimulados}
@@ -1539,34 +1411,12 @@ const NuevaFactura = () => {
               ]}
               nota={asientosSimulados ? "Cuentas tomadas de la configuración (producto, cliente, IGV y cuentas por defecto)." : "Además, la salida de mercadería: 69 Costo de ventas (Debe) / 20 Mercaderías (Haber) al costo. Las cuentas propias del producto o del cliente reemplazan a estas."}
             />
-          </div>
-        </div>
-
-        <div className={styles.section}>
-          <h4 className={styles.sectionTitleDivider}>SELECCIONA EL MODO DE ENVÍO:</h4>
-          <div className={styles.modoEnvioRow}>
-            <label className={`${styles.modoEnvioOption} ${styles.modoEnvioAzul}`}>
-              <input type="radio" checked={modoEnvio === "F"} onChange={() => setModoEnvio("F")} />
-              Solo Firmar e Imprimir
-            </label>
-            <label className={`${styles.modoEnvioOption} ${styles.modoEnvioVerde}`}>
-              <input type="radio" checked={modoEnvio === "S"} onChange={() => setModoEnvio("S")} />
-              Enviar a SUNAT ahora mismo!
-            </label>
-            <label className={`${styles.modoEnvioOption} ${styles.modoEnvioCeleste}`}>
-              <input type="radio" checked={modoEnvio === "G"} onChange={() => setModoEnvio("G")} />
-              Solo Guardar la Venta
-            </label>
-          </div>
-
-          <div className={styles.buttons}>
-            <button type="button" className={styles.cancel} onClick={limpiar}>
-              Limpiar
-            </button>
-            <button type="button" className={styles.submitPill} disabled={enviando || Object.keys(errors).length > 0} onClick={generarFactura}>
-              <Icon icon="mdi:content-save-outline" />
-              {enviando ? "Guardando..." : "Guardar documento electrónico (F12)"}
-            </button>
+            <div className={f.acciones}>
+              <button type="button" className={f.cancelarBtn} onClick={limpiar}>Limpiar</button>
+              <button type="button" className={f.guardarBtn} disabled={enviando || Object.keys(errors).length > 0} onClick={generarFactura}>
+                {enviando ? "Guardando..." : "Guardar (F12)"}
+              </button>
+            </div>
           </div>
         </div>
       </div>

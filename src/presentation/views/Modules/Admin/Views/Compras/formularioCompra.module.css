@@ -81,6 +81,8 @@
   border-color: #6C5DD3;
 }
 
+.input:disabled,
+.tipoDoc:disabled,
 .input:read-only {
   background: #F9FAFB;
 }
