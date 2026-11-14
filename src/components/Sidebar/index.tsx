@@ -33,8 +33,14 @@ export const LayoutView = () => {
   const [menu, setMenu] = useState<any[]>([]);
   const { me }: IAuthState = useAppSelector((state: RootState) => state.auth)
 
+  // En escritorio el boton no esconde el menu: lo deja en una tira de solo iconos.
+  const [soloIconos, setSoloIconos] = useState<boolean>(() => localStorage.getItem("menuSoloIconos") === "1")
+  const colapsado = isDesktop && soloIconos
+
   const hideSidebar = () => {
-    setOpenSidebar(!openSidebar)
+    if (!isDesktop) return setOpenSidebar(!openSidebar)
+    localStorage.setItem("menuSoloIconos", soloIconos ? "0" : "1")
+    setSoloIconos(!soloIconos)
   }
 
   useEffect(() => {
@@ -73,11 +79,11 @@ export const LayoutView = () => {
       }
 
       {
-        !openSidebar && <aside id="logo-sidebar" className={`${sidebar.aside} bg-white`} aria-label="Sidebar">
-          <div className={styles.avatar}>
+        !openSidebar && <aside id="logo-sidebar" className={`${sidebar.aside} ${colapsado ? "w-16" : "w-64"} bg-white`} aria-label="Sidebar">
+          <div className={styles.avatar} style={colapsado ? { padding: "0.75rem 0", justifyContent: "center" } : undefined}>
             <div>
-              <Avatar name={me?.nombre} size={44} />
-              <div>
+              <Avatar name={me?.nombre} size={colapsado ? 36 : 44} />
+              <div hidden={colapsado}>
                 <h5>{me?.nombre}</h5>
                 <p>{me?.userName}</p>
                 <div>
@@ -86,17 +92,17 @@ export const LayoutView = () => {
               </div>
             </div>
           </div>
-          <div className={`${styles['aside']} ${sidebar.divUl}`}>
+          <div className={`${styles['aside']} ${sidebar.divUl} ${colapsado ? "!px-2" : ""}`}>
 
             <ul className={sidebar.ul}>
               {menu?.map((item, index) => {
-                return <SidebarElement key={item.id ?? index} {...item} index={index} />;
+                return <SidebarElement key={item.id ?? index} {...item} index={index} colapsado={colapsado} onExpandir={hideSidebar} />;
               })}
             </ul>
           </div>
         </aside>
       }
-      <div className={`p-0 transition-all duration-200 ${isDesktop && !openSidebar ? 'ml-64' : 'ml-0'}`} >
+      <div className={`p-0 transition-all duration-200 ${isDesktop && !openSidebar ? (colapsado ? 'ml-16' : 'ml-64') : 'ml-0'}`} >
         <div className="p-4 sm:p-6 mt-14">
           <Outlet />
         </div>

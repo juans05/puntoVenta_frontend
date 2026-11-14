@@ -1359,22 +1359,6 @@ const NuevaFactura = () => {
         <div className={f.pie}>
           <div className={f.pieIzq}>
             <button type="button" className={f.addLineBtn} onClick={() => setIsPickerOpen(true)}>⊕ Añade una línea</button>
-
-            <div className={styles.modoEnvioCol}>
-              <strong>Modo de envío</strong>
-              <label className={`${styles.modoEnvioOption} ${styles.modoEnvioAzul}`}>
-                <input type="radio" checked={modoEnvio === "F"} onChange={() => setModoEnvio("F")} />
-                Solo Firmar e Imprimir
-              </label>
-              <label className={`${styles.modoEnvioOption} ${styles.modoEnvioVerde}`}>
-                <input type="radio" checked={modoEnvio === "S"} onChange={() => setModoEnvio("S")} />
-                Enviar a SUNAT ahora mismo!
-              </label>
-              <label className={`${styles.modoEnvioOption} ${styles.modoEnvioCeleste}`}>
-                <input type="radio" checked={modoEnvio === "G"} onChange={() => setModoEnvio("G")} />
-                Solo Guardar la Venta
-              </label>
-            </div>
           </div>
 
           <div className={f.totales}>
@@ -1432,6 +1416,21 @@ const NuevaFactura = () => {
               ]}
               nota={asientosSimulados ? "Cuentas tomadas de la configuración (producto, cliente, IGV y cuentas por defecto)." : "Además, la salida de mercadería: 69 Costo de ventas (Debe) / 20 Mercaderías (Haber) al costo. Las cuentas propias del producto o del cliente reemplazan a estas."}
             />
+            <div className={styles.modoEnvioCol}>
+              <strong>Modo de envío</strong>
+              <label className={`${styles.modoEnvioOption} ${styles.modoEnvioAzul}`}>
+                <input type="radio" checked={modoEnvio === "F"} onChange={() => setModoEnvio("F")} />
+                Solo Firmar e Imprimir
+              </label>
+              <label className={`${styles.modoEnvioOption} ${styles.modoEnvioVerde}`}>
+                <input type="radio" checked={modoEnvio === "S"} onChange={() => setModoEnvio("S")} />
+                Enviar a SUNAT ahora mismo!
+              </label>
+              <label className={`${styles.modoEnvioOption} ${styles.modoEnvioCeleste}`}>
+                <input type="radio" checked={modoEnvio === "G"} onChange={() => setModoEnvio("G")} />
+                Solo Guardar la Venta
+              </label>
+            </div>
             <div className={f.acciones}>
               <button type="button" className={f.cancelarBtn} onClick={limpiar}>Limpiar</button>
               <button type="button" className={f.guardarBtn} disabled={enviando || Object.keys(errors).length > 0} onClick={generarFactura}>

@@ -114,7 +114,7 @@ export const Navbar = ({ onClickSidebar }: any) => {
               <a href="/dashboard" className="flex ml-2 md:mr-24">
                 <img className={`${styles['img-brand-logo']}`} src={tenantEmpresa?.logoSidebar} alt="Logo de la empresa" />
               </a>
-              <div className={styles['entrance-right']} onClick={onClickSidebar} title="Ocultar menú">
+              <div className={styles['entrance-right']} onClick={onClickSidebar} title="Mostrar solo iconos / menú completo">
                 <Icon icon="mingcute:enter-door-fill" />
               </div>
             </div>

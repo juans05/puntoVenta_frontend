@@ -969,7 +969,9 @@ div.filaVenta {
   color: #344054;
 }
 
-.modoEnvioCol {
+div.modoEnvioCol {
+  align-items: flex-start;
+  justify-content: flex-start;
   display: flex;
   flex-direction: column;
   gap: 8px;
