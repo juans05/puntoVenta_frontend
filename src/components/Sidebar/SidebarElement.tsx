@@ -22,11 +22,31 @@ export const SidebarElement = ({
   index,
   children,
   nivel = 0,
-}: ISidebarElement & { nivel?: number }) => {
+  colapsado = false,
+  onExpandir,
+}: ISidebarElement & { nivel?: number; colapsado?: boolean; onExpandir?: () => void }) => {
   const location = useLocation();
   const hasChildren = !!children?.length;
   const isChildActive = hasChildren && algunoCoincideConRuta(children!, location.pathname);
   const [isOpen, setIsOpen] = useState(isChildActive);
+
+  // Menu en solo iconos: un grupo abre el menu completo con ese grupo desplegado.
+  if (colapsado && hasChildren) {
+    return (
+      <li key={index}>
+        <button
+          type="button"
+          title={value}
+          onClick={() => { setIsOpen(true); onExpandir?.(); }}
+          className={`${sidebar.contenedorSidebar} w-full justify-center ${
+            isChildActive ? "bg-brand-50 text-brand-700" : "text-neutral-600 hover:bg-brand-50 hover:text-brand-700"
+          }`}
+        >
+          <Icon icon={icon} className={sidebar.svgSidebar} />
+        </button>
+      </li>
+    );
+  }
 
   if (hasChildren) {
     return (
@@ -63,8 +83,9 @@ export const SidebarElement = ({
       <NavLink
         to={`/${url}`}
         end
+        title={colapsado ? value : undefined}
         className={({ isActive }) =>
-          `${sidebar.contenedorSidebar} ${nivel > 0 ? "text-sm" : ""} ${
+          `${sidebar.contenedorSidebar} ${colapsado ? "justify-center" : ""} ${nivel > 0 ? "text-sm" : ""} ${
             isActive
               ? "bg-brand-500 text-white"
               : "text-neutral-600 hover:bg-brand-50 hover:text-brand-700"
@@ -72,7 +93,7 @@ export const SidebarElement = ({
         }
       >
         <Icon icon={icon} className={sidebar.svgSidebar} />
-        <span className="whitespace-nowrap">{value}</span>
+        {!colapsado && <span className="whitespace-nowrap">{value}</span>}
       </NavLink>
     </li>
   );
