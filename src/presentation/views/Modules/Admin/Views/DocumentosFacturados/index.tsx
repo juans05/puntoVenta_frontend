@@ -1,21 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Tab } from "../../../../../../components/Layout";
-import { Toggle } from "../../../../../../components/Toggle";
 import Input from "../../../../../../components/Input";
-/* import { Sidebar } from "../../../../../../components/Layout/Sidebar"; */
-import styles from "./documentosFacturados.module.css";
-/* import { HiOutlineUserGroup } from "react-icons/hi";
-import { IoIosBusiness } from "react-icons/io"; */
-import { ImWoman } from "react-icons/im";
-import { IHeaderTable } from "../../../../../../application/models/Header/IHeaderTable";
-import { ITableButton } from "../../../../../../components/Datatable/table/TableButton";
-import { UserTable } from "../Usuarios/UserTable";
-import { ITableHeaderProps } from "../Usuarios/UserTable/UserTableHeader";
+// Mismo diseño que Compras > Facturación: se reutiliza su hoja de estilos.
+import styles from "../Compras/compras.module.css";
+import local from "./documentosFacturados.module.css";
+import { TableSkeleton } from "../../../../../../components/Skeleton";
 import { RootState } from "../../../../../../redux/rootState";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
-import { Button, Card, Title, LineChart, DonutChart } from "@tremor/react";
-import { Icon } from "@iconify/react";
+import { Card, Title, LineChart, DonutChart } from "@tremor/react";
 import { Toaster } from "sonner";
 import { printTable } from "../../../../../../helpers/functions/printTitle";
 import { title } from "../../../../../../infraestructure/MData/MData";
@@ -28,25 +20,10 @@ import {
 import { VentasModal } from "../../../../../../components/Modal/Admin/Ventas";
 import moment from "moment";
 import { Calendar } from "../../../../../../components/Date";
-import { Indicadores } from "./Indicadores/Indicadores";
 import ExportExcel from "../../../../../../components/ExportExcel/ExportExcel";
 import { EmitirNotaModal } from "../../../../../../components/Modal/Admin/Notas/EmitirNotaModal";
 import { toast } from "sonner";
 import { VentasSunatModal } from "./VentasSunatModal";
-const header: IHeaderTable[] = [
-  /*        { type: "seleccion", alias: "Seleccionar" }, */
-  /*   { type: "checked", alias: "Checked" }, */
-  { type: "id", alias: "N°" },
-  { type: "clienteNombre", alias: "Nombres y Apellidos" },
-  { type: "tipoDocumento", alias: "TipoDocumento" },
-  { type: "serieCorrelativo", alias: "Serie - Correlativo" },
-  { type: "nombreVendedor", alias: "Nombre Vendedor" },
-  { type: "fechaRegistro", alias: "Fecha Registro" },
-  { type: "total", alias: "Total" },
-  { type: "estadoComprobante", alias: "Estado" },
-  { type: "accion", alias: "Accion" },
-];
-
 moment.locale("es");
 interface IDataHistory {
   dateStart: string;
@@ -221,43 +198,6 @@ export const DocumentosFacturados = () => {
     );
   };
 
-  const buttonsVentas: ITableButton[] = [
-    {
-      title: "Descargar Pdf",
-      icon: "",
-      className: "body__btn-companyBtn",
-      classNameIcon: "",
-      handleOnClick: verProductosMain,
-      iconify: "fa6-solid:file-pdf",
-    },
-    {
-      title: "Anular",
-      icon: "",
-      className: "body__btn-companyBtn",
-      classNameIcon: "",
-      handleOnClick: handleAnular,
-      iconify: "mdi:cancel",
-    },
-    {
-      title: "Nota de Crédito",
-      icon: "",
-      className: "body__btn-companyBtn",
-      classNameIcon: "",
-      texto: "NC",
-      handleOnClick: (data: any) => abrirNota(data, 4),
-      iconify: "mdi:file-document-minus-outline",
-    },
-    {
-      title: "Nota de Débito",
-      icon: "",
-      className: "body__btn-companyBtn",
-      classNameIcon: "",
-      texto: "ND",
-      handleOnClick: (data: any) => abrirNota(data, 5),
-      iconify: "mdi:file-document-plus-outline",
-    },
-  ];
-
   const totalPrecio = ventas?.reduce((total: number, persona: any) => {
     return total + persona.valorTotal;
   }, 0);
@@ -323,29 +263,6 @@ export const DocumentosFacturados = () => {
     },
   ];
 
-  const tabs: Tab[] = [
-    {
-      id: 1,
-
-      label: "Anfitrionas",
-      icon: ImWoman,
-      data: newDataVentas,
-      dataBtns: buttonsVentas,
-      // btnsHeader: btnsAnfitrionas,
-    },
-  ];
-
-  const [headerClients] = useState<IHeaderTable[] | ITableHeaderProps[] | any>(
-    header
-  );
-  console.log(headerClients);
-  const [activeTab /* setActiveTab */] = useState(1);
-  const selectedTab = tabs.find((tab) => tab.id === activeTab);
-  const getButtons = selectedTab && selectedTab.dataBtns;
-  const getData = filterTipo === "todos" ? selectedTab?.data : filteredVentas;
-  // const getLabel = selectedTab && selectedTab.label;
-  const getBtnsHeader = selectedTab && selectedTab.btnsHeader;
-
   useEffect(() => {
     setLoadingDocs(true);
     dispatch(getAllVentas(dateStart, dateEnd, { numeroDocumento, fechaRegistroInicio, fechaRegistroFin })).finally(() => setLoadingDocs(false));
@@ -361,188 +278,187 @@ export const DocumentosFacturados = () => {
   const fileName = "Documentos_Facturados";
   const idTable = "documentos_facturados";
   const [downloaded] = useState(true);
+  const filas = filteredVentas ?? [];
+  const buscar = () => {
+    setLoadingDocs(true);
+    dispatch(getAllVentas(dateStart, dateEnd, { numeroDocumento, fechaRegistroInicio, fechaRegistroFin })).finally(() => setLoadingDocs(false));
+  };
   return (
     <>
-      <div className={styles.main}>
-        <div className={styles.outlet}>
-          <div className={styles.content}>
-            <div className={styles.title}>
-              <h3>Documentos Facturados</h3>
-            </div>
-
-            <div className={styles.toolbar}>
-              <div className={styles.toolbarActions}>
-                <button className={styles.toolbarLink} style={{ color: "#2997FE" }} onClick={() => navigate("/dashboard/nueva-factura/factura")}>
-                  <Icon icon="mdi:file-document-plus-outline" /> Crear Factura
-                </button>
-                <button className={styles.toolbarLink} style={{ color: "#17C653" }} onClick={() => navigate("/dashboard/nueva-factura/boleta")}>
-                  <Icon icon="mdi:receipt-text-outline" /> Crear Boleta
-                </button>
-                <button className={styles.toolbarLink} style={{ color: "#7C3AED" }} onClick={() => setVentasSunatOpen(true)}>
-                  <Icon icon="mdi:cloud-download-outline" /> Traer de SUNAT
-                </button>
-              </div>
-              <label className={styles.advancedToggle}>
-                Opciones avanzada
-                <Toggle isOn={opcionesAvanzadas} handleToggle={() => setOpcionesAvanzadas(!opcionesAvanzadas)} colorOne="#2997FE" colorTwo="#ccc" id="toggleOpcionesAvanzadas" />
-              </label>
-            </div>
-
-            {opcionesAvanzadas && (
-              <div className={styles.advancedPanel}>
-                <p className={styles.advancedTitle}>Opciones Avanzadas</p>
-                <p className={styles.advancedSubtitle}>A continuación puedes filtrar por fecha de registro o buscar un cliente por su RUC/DNI.</p>
-                <div className={styles.advancedGrid}>
-                  <Calendar onChange={(v: string) => setFechaRegistroInicio(v)} name="fechaRegistroInicio" text="Fecha Registro Desde" />
-                  <Calendar onChange={(v: string) => setFechaRegistroFin(v)} name="fechaRegistroFin" text="Fecha Registro Hasta" />
-                  <div>
-                    <Input isLabel label="RUC / DNI" name="numeroDocumento" value={numeroDocumento} onChange={(e: any) => setNumeroDocumento(e.target.value)} />
-                  </div>
-                  <button
-                    className={styles.buscarBtn}
-                    onClick={() => {
-                      setLoadingDocs(true);
-                      dispatch(getAllVentas(dateStart, dateEnd, { numeroDocumento, fechaRegistroInicio, fechaRegistroFin })).finally(() => setLoadingDocs(false));
-                    }}
-                  >
-                    Buscar
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className={styles.filterTabs}>
-              <button
-                className={`${styles.tab} ${filterTipo === "todos" ? styles.active : ""}`}
-                onClick={() => setFilterTipo("todos")}
-              >
-                Todos ({newDataVentas?.length || 0})
-              </button>
-              <button
-                className={`${styles.tab} ${filterTipo === "1" ? styles.active : ""}`}
-                onClick={() => setFilterTipo("1")}
-              >
-                Facturas ({countFacturas})
-              </button>
-              <button
-                className={`${styles.tab} ${filterTipo === "2" ? styles.active : ""}`}
-                onClick={() => setFilterTipo("2")}
-              >
-                Boletas ({countBoletas})
-              </button>
-              <button
-                className={`${styles.tab} ${filterTipo === "3" ? styles.active : ""}`}
-                onClick={() => setFilterTipo("3")}
-              >
-                Otros ({countOtros})
-              </button>
-            </div>
-
-            <div className={`${styles["encabezado-principal"]}`}></div>
-
-            <div>
-              <div className={`${styles["indicador"]}`}>
-                <Indicadores data={indicadores} />
-                <div className={`${styles["leyenda"]}`}>
-                  <div>
-                    <div className={styles["toggle-date"]}>
-                      <div className={`${styles["date"]}`}>
-                        <Calendar
-                          onChange={handleChangeDate}
-                          name="dateStart"
-                          text="Fecha Documento Desde"
-                        />
-                        <Calendar
-                          onChange={handleChangeDate}
-                          name="dateEnd"
-                          text="Fecha Documento Hasta"
-                        />
-                        <ExportExcel
-                          filename={fileName}
-                          refTable={idTable}
-                          booleanState={downloaded}
-                        ></ExportExcel>
-                      </div>
-                      
-                    </div>
-                    
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.chartsRow}>
-              <Card className={styles.chartCard}>
-                <Title>Facturas vs Boletas vs Notas (por fecha de registro)</Title>
-                {serieDiaria.length === 0 ? (
-                  <p className={styles.advancedSubtitle}>No hay datos en el periodo seleccionado.</p>
-                ) : (
-                  <LineChart
-                    className="mt-4 h-72"
-                    data={serieDiaria}
-                    index="fecha"
-                    categories={["Facturas", "Boletas", "Notas Crédito", "Notas Débito", "Notas Venta", "Total"]}
-                    colors={["cyan", "violet", "rose", "emerald", "amber", "slate"]}
-                    valueFormatter={formatSoles}
-                  />
-                )}
-              </Card>
-              <div className={styles.donutsCol}>
-                <Card>
-                  <Title>Pagado vs Al Crédito</Title>
-                  <DonutChart
-                    className="mt-4 h-40"
-                    data={dataCreditoContado}
-                    category="cantidad"
-                    index="nombre"
-                    colors={["emerald", "violet"]}
-                  />
-                </Card>
-                <Card>
-                  <Title>Métodos de Pago</Title>
-                  {dataMetodosPago.length === 0 ? (
-                    <p className={styles.advancedSubtitle}>Sin pagos registrados.</p>
-                  ) : (
-                    <DonutChart
-                      className="mt-4 h-40"
-                      data={dataMetodosPago}
-                      category="monto"
-                      index="nombre"
-                      valueFormatter={formatSoles}
-                      colors={["rose", "cyan", "amber", "violet", "slate"]}
-                    />
-                  )}
-                </Card>
-              </div>
-            </div>
-
-            <div className={`${styles["btns-header"]}`}>
-              {getBtnsHeader?.map((value: any) => {
-                return (
-                  <Button onClick={value?.onClick}>
-                    {value?.icon != "" && <Icon icon={value?.icon} />}
-
-                    <p>{value?.value}</p>
-                  </Button>
-                );
-              })}
-            </div>
-            <div className="container__hidden">
-                  <UserTable
-                    header={headerClients}
-                    body={getData}
-                    actions={getButtons}
-                    idTable={idTable} />
-                </div>
-            <UserTable
-              header={headerClients}
-              body={getData}
-              actions={getButtons}
-              idTable={idTable}
-              loading={loadingDocs}
-            />
+      <div>
+        <div className={styles.headerTop}>
+          <div>
+            <h3>Documentos Facturados</h3>
+            <p className={styles.subtitle}>Comprobantes emitidos del {dateStart} al {dateEnd}</p>
+          </div>
+          <div className={styles.headerActions}>
+            <button className={styles.historialBtn} onClick={() => setVentasSunatOpen(true)}>
+              ☁️ Traer de SUNAT
+            </button>
+            <button className={styles.historialBtn} onClick={() => navigate("/dashboard/nueva-factura/boleta")}>
+              🧾 Crear Boleta
+            </button>
+            <button className={styles.registrarBtn} onClick={() => navigate("/dashboard/nueva-factura/factura")}>
+              + Crear Factura
+            </button>
           </div>
         </div>
+
+        <div className={styles.kpiGrid}>
+          {indicadores.map((i) => (
+            <div key={i.id} className={styles.kpiCard}>
+              <div className={styles.kpiLabel}>{i.description}</div>
+              <div className={styles.kpiValue}>{i.value}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className={styles.toolbar} style={{ alignItems: "flex-end" }}>
+          <Calendar onChange={handleChangeDate} name="dateStart" text="Fecha Documento Desde" />
+          <Calendar onChange={handleChangeDate} name="dateEnd" text="Fecha Documento Hasta" />
+          <span style={{ flex: 1 }} />
+          <ExportExcel filename={fileName} refTable={idTable} booleanState={downloaded}></ExportExcel>
+          <button className={styles.filtrosBtn} onClick={() => setOpcionesAvanzadas(!opcionesAvanzadas)}>
+            🎚 Opciones avanzadas
+          </button>
+        </div>
+
+        {opcionesAvanzadas && (
+          <div className={styles.filtrosPanel}>
+            <Calendar onChange={(v: string) => setFechaRegistroInicio(v)} name="fechaRegistroInicio" text="Fecha Registro Desde" />
+            <Calendar onChange={(v: string) => setFechaRegistroFin(v)} name="fechaRegistroFin" text="Fecha Registro Hasta" />
+            <div>
+              <Input isLabel label="RUC / DNI" name="numeroDocumento" value={numeroDocumento} onChange={(e: any) => setNumeroDocumento(e.target.value)} />
+            </div>
+            <button className={styles.registrarBtn} onClick={buscar}>
+              Buscar
+            </button>
+          </div>
+        )}
+
+        <div className={local.chartsRow}>
+          <Card className={local.chartCard}>
+            <Title>Facturas vs Boletas vs Notas (por fecha de registro)</Title>
+            {serieDiaria.length === 0 ? (
+              <p className={styles.subtitle}>No hay datos en el periodo seleccionado.</p>
+            ) : (
+              <LineChart
+                className="mt-4 h-72"
+                data={serieDiaria}
+                index="fecha"
+                categories={["Facturas", "Boletas", "Notas Crédito", "Notas Débito", "Notas Venta", "Total"]}
+                colors={["cyan", "violet", "rose", "emerald", "amber", "slate"]}
+                valueFormatter={formatSoles}
+              />
+            )}
+          </Card>
+          <div className={local.donutsCol}>
+            <Card>
+              <Title>Pagado vs Al Crédito</Title>
+              <DonutChart
+                className="mt-4 h-40"
+                data={dataCreditoContado}
+                category="cantidad"
+                index="nombre"
+                colors={["emerald", "violet"]}
+              />
+            </Card>
+            <Card>
+              <Title>Métodos de Pago</Title>
+              {dataMetodosPago.length === 0 ? (
+                <p className={styles.subtitle}>Sin pagos registrados.</p>
+              ) : (
+                <DonutChart
+                  className="mt-4 h-40"
+                  data={dataMetodosPago}
+                  category="monto"
+                  index="nombre"
+                  valueFormatter={formatSoles}
+                  colors={["rose", "cyan", "amber", "violet", "slate"]}
+                />
+              )}
+            </Card>
+          </div>
+        </div>
+
+        <div className={styles.tabs}>
+          {([
+            ["todos", "📄 Todos", newDataVentas?.length || 0],
+            ["1", "📄 Facturas", countFacturas],
+            ["2", "🧾 Boletas", countBoletas],
+            ["3", "📁 Otros", countOtros],
+          ] as [string, string, number][]).map(([k, label, n]) => (
+            <button key={k} className={`${styles.tab} ${filterTipo === k ? styles.tabActive : ""}`} onClick={() => setFilterTipo(k)}>
+              {label} <span className={styles.tabBadge}>{n}</span>
+            </button>
+          ))}
+        </div>
+
+        {loadingDocs ? (
+          <div className={styles.panel}><TableSkeleton columns={9} /></div>
+        ) : filas.length === 0 ? (
+          <div className={styles.panel}>
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>🔍</div>
+              <h4>Nada por aquí</h4>
+              <p>No hay comprobantes emitidos en este periodo con los filtros elegidos.</p>
+            </div>
+          </div>
+        ) : (
+          <div className={`${styles.tableWrap} ${styles.tableWrapTabbed}`}>
+            <table className={styles.table} id={idTable}>
+              <thead>
+                <tr>
+                  <th>N°</th>
+                  <th>Nombres y Apellidos</th>
+                  <th>Tipo Documento</th>
+                  <th>Serie - Correlativo</th>
+                  <th>Nombre Vendedor</th>
+                  <th>Fecha Registro</th>
+                  <th>Total</th>
+                  <th>Estado</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((v: any, i: number) => (
+                  <tr key={v.idComprobante ?? i}>
+                    <td data-label="N°">{v.index}</td>
+                    <td data-label="Nombres y Apellidos">{v.clienteNombre || "SIN ESPECIFICAR"}</td>
+                    <td data-label="Tipo Documento">{v.tipoDocumento}</td>
+                    <td data-label="Serie - Correlativo">{v.serieCorrelativo}</td>
+                    <td data-label="Nombre Vendedor">{v.nombreVendedor ?? "-"}</td>
+                    <td data-label="Fecha Registro">{v.fechaRegistro}</td>
+                    <td data-label="Total">{formatSoles(v.total)}</td>
+                    <td data-label="Estado">
+                      <span className={`${styles.estado} ${estaAnulado(v) ? styles.anulado : styles.confirmado}`}>
+                        {v.estadoComprobante}
+                      </span>
+                    </td>
+                    <td className={styles.accionesCell}>
+                      {v.estadoEnvioSunat !== "PENDIENTE" && (
+                        <button className={styles.verBtn} title="Descargar Pdf" onClick={() => verProductosMain(v)}>
+                          PDF
+                        </button>
+                      )}
+                      <button className={styles.editarBtn} title="Nota de Crédito" onClick={() => abrirNota(v, 4)}>
+                        NC
+                      </button>
+                      <button className={styles.editarBtn} title="Nota de Débito" onClick={() => abrirNota(v, 5)}>
+                        ND
+                      </button>
+                      {!estaAnulado(v) && (
+                        <button className={styles.anularBtn} onClick={() => handleAnular(v)}>
+                          Anular
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
       <VentasModal />
       <VentasSunatModal isOpen={ventasSunatOpen} onClose={() => setVentasSunatOpen(false)} />

@@ -206,7 +206,8 @@ export const Compras = ({ tabInicial = "cpe" }: { tabInicial?: Tab }) => {
   };
 
   // Facturas de SUNAT ya con su XML descargado (ComprasSunatModal): entran a la misma cola que "Subir XML".
-  const registrarDesdeSunat = (previews: any[]) => {
+  const registrarDesdeSunat = (previews: any[], registradas: number) => {
+    if (registradas > 0) recargar();
     if (previews.length === 0) return;
     setSunatAbierto(false);
     setPrefillXml(previews[0]);
